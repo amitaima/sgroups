@@ -1,0 +1,31 @@
+.home-page {
+  background: var(--color-bg);
+}
+
+.home-page__content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  align-items: flex-start;
+}
+
+.home-page__eyebrow {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-soft);
+}
+
+.home-page__title {
+  margin-top: var(--space-2);
+  margin-bottom: var(--space-2);
+  color: var(--color-text);
+}
+
+.home-page__subtitle {
+  max-width: 560px;
+  color: var(--color-text-muted);
+}
+
+.home-page__actions {
+  margin-top: var(--space-4);
+}

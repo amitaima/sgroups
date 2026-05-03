@@ -1,0 +1,17 @@
+.auth-gate {
+  min-height: calc(100vh - var(--size-header-height));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-6);
+  background: var(--color-bg);
+}
+
+.auth-gate__card {
+  background: var(--color-surface);
+  border: var(--border-width-sm) solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-6);
+  color: var(--color-text-muted);
+  box-shadow: var(--shadow-sm);
+}

@@ -1,0 +1,50 @@
+.deadline-card {
+  padding: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.deadline-card__title {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.deadline-card__value {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
+}
+
+.deadline-card__hint {
+  margin: 0;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-soft);
+}
+
+.deadline-card--primary {
+  border-color: color-mix(
+    in srgb,
+    var(--color-primary),
+    var(--color-border) 60%
+  );
+  background: color-mix(
+    in srgb,
+    var(--color-primary) 12%,
+    var(--color-surface) 88%
+  );
+}
+
+.deadline-card--accent {
+  border-color: color-mix(
+    in srgb,
+    var(--color-accent),
+    var(--color-border) 60%
+  );
+  background: color-mix(
+    in srgb,
+    var(--color-accent) 12%,
+    var(--color-surface) 88%
+  );
+}

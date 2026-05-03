@@ -1,0 +1,153 @@
+/* SCSS variables mirroring CSS custom properties */
+
+// Raw palette
+$golden-chestnut-50: var(--color-golden-chestnut-50);
+$golden-chestnut-100: var(--color-golden-chestnut-100);
+$golden-chestnut-200: var(--color-golden-chestnut-200);
+$golden-chestnut-300: var(--color-golden-chestnut-300);
+$golden-chestnut-400: var(--color-golden-chestnut-400);
+$golden-chestnut-500: var(--color-golden-chestnut-500);
+$golden-chestnut-600: var(--color-golden-chestnut-600);
+$golden-chestnut-700: var(--color-golden-chestnut-700);
+$golden-chestnut-800: var(--color-golden-chestnut-800);
+$golden-chestnut-900: var(--color-golden-chestnut-900);
+$golden-chestnut-950: var(--color-golden-chestnut-950);
+
+$dusty-olive-50: var(--color-dusty-olive-50);
+$dusty-olive-100: var(--color-dusty-olive-100);
+$dusty-olive-200: var(--color-dusty-olive-200);
+$dusty-olive-300: var(--color-dusty-olive-300);
+$dusty-olive-400: var(--color-dusty-olive-400);
+$dusty-olive-500: var(--color-dusty-olive-500);
+$dusty-olive-600: var(--color-dusty-olive-600);
+$dusty-olive-700: var(--color-dusty-olive-700);
+$dusty-olive-800: var(--color-dusty-olive-800);
+$dusty-olive-900: var(--color-dusty-olive-900);
+$dusty-olive-950: var(--color-dusty-olive-950);
+
+$tan-50: var(--color-tan-50);
+$tan-100: var(--color-tan-100);
+$tan-200: var(--color-tan-200);
+$tan-300: var(--color-tan-300);
+$tan-400: var(--color-tan-400);
+$tan-500: var(--color-tan-500);
+$tan-600: var(--color-tan-600);
+$tan-700: var(--color-tan-700);
+$tan-800: var(--color-tan-800);
+$tan-900: var(--color-tan-900);
+$tan-950: var(--color-tan-950);
+
+$parchment-50: var(--color-parchment-50);
+$parchment-100: var(--color-parchment-100);
+$parchment-200: var(--color-parchment-200);
+$parchment-300: var(--color-parchment-300);
+$parchment-400: var(--color-parchment-400);
+$parchment-500: var(--color-parchment-500);
+$parchment-600: var(--color-parchment-600);
+$parchment-700: var(--color-parchment-700);
+$parchment-800: var(--color-parchment-800);
+$parchment-900: var(--color-parchment-900);
+$parchment-950: var(--color-parchment-950);
+
+$tropical-teal-50: var(--color-tropical-teal-50);
+$tropical-teal-100: var(--color-tropical-teal-100);
+$tropical-teal-200: var(--color-tropical-teal-200);
+$tropical-teal-300: var(--color-tropical-teal-300);
+$tropical-teal-400: var(--color-tropical-teal-400);
+$tropical-teal-500: var(--color-tropical-teal-500);
+$tropical-teal-600: var(--color-tropical-teal-600);
+$tropical-teal-700: var(--color-tropical-teal-700);
+$tropical-teal-800: var(--color-tropical-teal-800);
+$tropical-teal-900: var(--color-tropical-teal-900);
+$tropical-teal-950: var(--color-tropical-teal-950);
+
+// Semantic colors
+$color-bg: var(--color-bg);
+$color-surface: var(--color-surface);
+$color-surface-alt: var(--color-surface-alt);
+$color-surface-muted: var(--color-surface-muted);
+$color-border: var(--color-border);
+$color-border-strong: var(--color-border-strong);
+$color-text: var(--color-text);
+$color-text-muted: var(--color-text-muted);
+$color-text-soft: var(--color-text-soft);
+$color-primary: var(--color-primary);
+$color-primary-hover: var(--color-primary-hover);
+$color-primary-active: var(--color-primary-active);
+$color-primary-contrast: var(--color-primary-contrast);
+$color-accent: var(--color-accent);
+$color-accent-hover: var(--color-accent-hover);
+$color-success: var(--color-success);
+$color-warning: var(--color-warning);
+$color-danger: var(--color-danger);
+
+// Typography
+$font-family-base: var(--font-family-base);
+$font-family-heading: var(--font-family-heading);
+$font-family-mono: var(--font-family-mono);
+$font-weight-regular: var(--font-weight-regular);
+$font-weight-medium: var(--font-weight-medium);
+$font-weight-semibold: var(--font-weight-semibold);
+$font-weight-bold: var(--font-weight-bold);
+
+// Sizing
+$size-control-sm: var(--size-control-sm);
+$size-control-md: var(--size-control-md);
+$size-control-lg: var(--size-control-lg);
+$size-icon-sm: var(--size-icon-sm);
+$size-icon-md: var(--size-icon-md);
+$size-icon-lg: var(--size-icon-lg);
+$size-header-height: var(--size-header-height);
+$size-sidebar-width: var(--size-sidebar-width);
+
+// Radius
+$radius-sm: var(--radius-sm);
+$radius-md: var(--radius-md);
+$radius-lg: var(--radius-lg);
+$radius-xl: var(--radius-xl);
+$radius-full: var(--radius-full);
+
+// Shadows
+$shadow-sm: var(--shadow-sm);
+$shadow-md: var(--shadow-md);
+$shadow-lg: var(--shadow-lg);
+
+// Borders
+$border-width-sm: var(--border-width-sm);
+$border-width-md: var(--border-width-md);
+
+// Z-index
+$z-base: var(--z-base);
+$z-header: var(--z-header);
+$z-dropdown: var(--z-dropdown);
+$z-overlay: var(--z-overlay);
+$z-modal: var(--z-modal);
+$z-toast: var(--z-toast);
+
+// Motion
+$motion-fast: var(--motion-fast);
+$motion-base: var(--motion-base);
+$motion-slow: var(--motion-slow);
+$motion-ease: var(--motion-ease);
+
+// Layout
+$layout-content-md: var(--layout-content-md);
+$layout-content-lg: var(--layout-content-lg);
+
+// Breakpoints
+$bp-sm: 640px;
+$bp-md: 768px;
+$bp-lg: 1024px;
+$bp-xl: 1280px;
+
+@mixin below-lg {
+  @media (max-width: $bp-lg) {
+    @content;
+  }
+}
+
+@mixin above-lg {
+  @media (min-width: $bp-lg) {
+    @content;
+  }
+}

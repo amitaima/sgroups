@@ -1,0 +1,25 @@
+.stats-card {
+  padding: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-height: 120px;
+}
+
+.stats-card__label {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-soft);
+}
+
+.stats-card__value {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
+}
+
+.stats-card__helper {
+  margin: 0;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}

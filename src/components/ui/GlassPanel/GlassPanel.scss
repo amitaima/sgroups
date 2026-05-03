@@ -1,0 +1,22 @@
+.glass-panel {
+  border-radius: var(--radius-lg);
+  border: var(--border-width-sm) solid var(--color-border);
+  box-shadow: var(--shadow-sm);
+  background: color-mix(in srgb, var(--color-surface) 92%, transparent);
+}
+
+.glass-panel--strong {
+  background: color-mix(in srgb, var(--color-surface) 85%, transparent);
+}
+
+@supports (backdrop-filter: blur(12px)) {
+  .glass-panel {
+    backdrop-filter: blur(14px);
+    background: color-mix(in srgb, var(--color-surface) 75%, transparent);
+  }
+
+  .glass-panel--strong {
+    backdrop-filter: blur(18px);
+    background: color-mix(in srgb, var(--color-surface) 65%, transparent);
+  }
+}

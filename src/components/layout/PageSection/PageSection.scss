@@ -1,0 +1,9 @@
+.page-section {
+  padding-block: var(--space-8);
+}
+
+@media (max-width: 1024px) {
+  .page-section {
+    padding-block: var(--space-6);
+  }
+}
