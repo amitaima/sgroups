@@ -3,10 +3,12 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: var(--space-4);
+  flex-wrap: wrap;
 }
 
 .section-title__heading {
   margin: 0 0 var(--space-2);
+  font-size: var(--font-size-2xl);
 }
 
 .section-title__subtitle {
@@ -19,4 +21,5 @@
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
+  flex-wrap: wrap;
 }

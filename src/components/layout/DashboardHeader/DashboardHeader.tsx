@@ -1,27 +1,71 @@
+import { useNavigate } from "react-router-dom";
 import type { DashboardHeaderProps } from "./DashboardHeader.types";
-import { GlassPanel } from "@components/ui/GlassPanel/GlassPanel";
+import { ProjectSwitcher } from "@components/layout/ProjectSwitcher/ProjectSwitcher";
+import { ProfileMenuButton } from "@components/ui/ProfileMenuButton";
+import { ArrowRight, Bell, History, Menu } from "lucide-react";
 import "./DashboardHeader.scss";
 
-export const DashboardHeader = ({ onOpenMenu }: DashboardHeaderProps) => {
+export const DashboardHeader = ({
+  onOpenMenu,
+  currentProjectId,
+  userLabel,
+  userPhoto,
+  onSignOut,
+}: DashboardHeaderProps) => {
+  const navigate = useNavigate();
+
   return (
     <header className="dashboard-header">
-      <GlassPanel className="dashboard-header__panel" intensity="soft">
-        <button
-          className="dashboard-header__menu"
-          type="button"
-          onClick={onOpenMenu}
-          aria-label="פתח תפריט"
-        >
-          ☰
-        </button>
-        <div className="dashboard-header__titles">
-          <h1 className="dashboard-header__title">מרכז פיקוד לצוות</h1>
-          <p className="dashboard-header__subtitle">
-            ניהול פרויקט קבוצתי וליווי ה-AI במקום אחד.
-          </p>
+      <div className="dashboard-header__panel">
+        <div className="dashboard-header__start">
+          <button
+            className="dashboard-header__menu"
+            type="button"
+            onClick={onOpenMenu}
+            aria-label="פתח תפריט"
+          >
+            <Menu size={18} strokeWidth={2} />
+          </button>
+          <button
+            className="dashboard-header__back"
+            type="button"
+            onClick={() => navigate("/projects")}
+            aria-label="חזור לכל הפרויקטים"
+          >
+            <ArrowRight size={18} strokeWidth={2} />
+          </button>
         </div>
-        <div className="dashboard-header__hint">מיילסטון הבא בעוד 4 ימים</div>
-      </GlassPanel>
+
+        <div className="dashboard-header__titles">
+          <ProjectSwitcher currentProjectId={currentProjectId} />
+        </div>
+
+        <div className="dashboard-header__actions">
+          <button
+            className="dashboard-header__action dashboard-header__indicator"
+            type="button"
+            aria-label="התראות"
+          >
+            <Bell size={18} strokeWidth={2} />
+            <span className="dashboard-header__dot" />
+          </button>
+          <button
+            className="dashboard-header__action"
+            type="button"
+            aria-label="היסטוריה"
+          >
+            <History size={18} strokeWidth={2} />
+          </button>
+        </div>
+
+        <div className="dashboard-header__meta">
+          <ProfileMenuButton
+            userLabel={userLabel}
+            userPhoto={userPhoto}
+            onSignOut={onSignOut}
+          />
+        </div>
+      </div>
     </header>
   );
 };

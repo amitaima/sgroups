@@ -17,11 +17,28 @@ body {
   line-height: var(--line-height-base);
   color: var(--color-text);
   background-color: var(--color-bg);
+  background-image:
+    radial-gradient(
+      circle at 20% 0,
+      color-mix(in srgb, var(--color-primary) 10%, transparent) 0,
+      transparent 34%
+    ),
+    radial-gradient(
+      circle at 84% 0,
+      color-mix(in srgb, var(--color-tertiary) 8%, transparent) 0,
+      transparent 36%
+    );
+  background-attachment: fixed;
   text-align: start;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+body,
+#root {
+  min-height: 100vh;
 }
 
 a {
@@ -74,8 +91,18 @@ h3 {
   line-height: var(--line-height-lg);
 }
 
+h3 {
+  font-size: var(--font-size-xl);
+  line-height: var(--line-height-lg);
+}
+
 p {
   color: var(--color-text-muted);
+}
+
+::selection {
+  background: color-mix(in srgb, var(--color-primary-fixed-dim) 70%, white);
+  color: var(--color-primary-active);
 }
 
 /* Utility classes */

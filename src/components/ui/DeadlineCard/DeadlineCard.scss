@@ -3,6 +3,8 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
+  min-height: 0;
+  justify-content: center;
 }
 
 .deadline-card__title {
@@ -24,27 +26,31 @@
 }
 
 .deadline-card--primary {
-  border-color: color-mix(
-    in srgb,
-    var(--color-primary),
-    var(--color-border) 60%
-  );
-  background: color-mix(
-    in srgb,
-    var(--color-primary) 12%,
-    var(--color-surface) 88%
-  );
+  border-color: color-mix(in srgb, var(--color-primary) 18%, white);
+  background:
+    radial-gradient(
+      circle at top right,
+      color-mix(in srgb, var(--color-primary) 14%, transparent) 0%,
+      transparent 40%
+    ),
+    linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.9) 0%,
+      rgba(253, 249, 246, 0.72) 100%
+    );
 }
 
 .deadline-card--accent {
-  border-color: color-mix(
-    in srgb,
-    var(--color-accent),
-    var(--color-border) 60%
-  );
-  background: color-mix(
-    in srgb,
-    var(--color-accent) 12%,
-    var(--color-surface) 88%
-  );
+  border-color: color-mix(in srgb, var(--color-tertiary-container) 22%, white);
+  background:
+    radial-gradient(
+      circle at top right,
+      color-mix(in srgb, var(--color-tertiary-container) 18%, transparent) 0%,
+      transparent 36%
+    ),
+    linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.88) 0%,
+      rgba(253, 249, 246, 0.72) 100%
+    );
 }

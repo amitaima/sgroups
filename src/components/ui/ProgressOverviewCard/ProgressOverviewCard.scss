@@ -1,15 +1,17 @@
 .progress-card {
-  padding: var(--space-5);
-  border-color: color-mix(
-    in srgb,
-    var(--color-primary),
-    var(--color-border) 60%
-  );
-  background: color-mix(
-    in srgb,
-    var(--color-primary) 16%,
-    var(--color-surface) 84%
-  );
+  padding: var(--space-6);
+  border-color: color-mix(in srgb, var(--color-primary) 14%, white);
+  background:
+    radial-gradient(
+      circle at top right,
+      color-mix(in srgb, var(--color-tertiary-container) 18%, transparent) 0%,
+      transparent 32%
+    ),
+    linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.92) 0%,
+      rgba(253, 249, 246, 0.72) 100%
+    );
 }
 
 .progress-card__header {
@@ -20,39 +22,60 @@
   margin-bottom: var(--space-4);
 }
 
+.progress-card__copy {
+  min-width: 0;
+}
+
 .progress-card__label {
   margin: 0 0 var(--space-1);
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-xs);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-soft);
+}
+
+.progress-card__subtitle {
+  margin: var(--space-1) 0 0;
   color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
 }
 
 .progress-card__value {
   margin: 0;
-  font-size: var(--font-size-2xl);
+  font-size: var(--font-size-display);
+  line-height: var(--line-height-display);
+  letter-spacing: var(--letter-spacing-tight);
+  color: var(--color-primary);
 }
 
 .progress-card__badge {
   padding: var(--space-1) var(--space-3);
   border-radius: var(--radius-full);
-  background: var(--color-primary);
-  color: var(--color-primary-contrast);
+  background: color-mix(in srgb, var(--color-primary-fixed-dim) 70%, white);
+  color: var(--color-primary-active);
   font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
 }
 
 .progress-card__bar {
-  height: 8px;
-  background: color-mix(
-    in srgb,
-    var(--color-primary) 10%,
-    var(--color-border) 90%
-  );
+  height: 0.75rem;
+  background: color-mix(in srgb, var(--color-surface-muted) 80%, white);
   border-radius: var(--radius-full);
   overflow: hidden;
+  border: 1px solid color-mix(in srgb, white 60%, var(--color-border));
+  box-shadow: inset 0 1px 2px rgba(17, 19, 16, 0.08);
 }
 
 .progress-card__fill {
   height: 100%;
-  background: linear-gradient(90deg, var(--color-primary), var(--color-accent));
+  background: linear-gradient(
+    90deg,
+    var(--color-primary),
+    var(--color-primary-container)
+  );
+  border-radius: inherit;
+  position: relative;
+  overflow: hidden;
 }
 
 .progress-card__hint {

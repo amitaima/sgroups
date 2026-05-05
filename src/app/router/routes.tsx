@@ -1,9 +1,11 @@
 import type { RouteObject } from "react-router-dom";
+import { Navigate } from "react-router-dom";
 import { AuthLayout } from "@app/layouts/AuthLayout";
 import { RootLayout } from "@app/layouts/RootLayout";
 import { ProtectedRoute } from "@app/router/ProtectedRoute";
 import { DashboardPage } from "@pages/DashboardPage/DashboardPage";
 import { LoginPage } from "@pages/LoginPage/LoginPage";
+import { ProjectsHomePage } from "@pages/ProjectsHomePage/ProjectsHomePage";
 
 export const routes: RouteObject[] = [
   {
@@ -21,10 +23,18 @@ export const routes: RouteObject[] = [
     children: [
       {
         path: "/",
+        element: <Navigate to="/projects" replace />,
+      },
+      {
+        path: "/projects",
         element: <RootLayout />,
         children: [
           {
             index: true,
+            element: <ProjectsHomePage />,
+          },
+          {
+            path: ":projectId",
             element: <DashboardPage />,
           },
         ],

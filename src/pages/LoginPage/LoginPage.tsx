@@ -27,7 +27,7 @@ export const LoginPage = () => {
 
   useEffect(() => {
     if (!initializing && user) {
-      navigate("/", { replace: true });
+      navigate("/projects", { replace: true });
     }
   }, [initializing, navigate, user]);
 
