@@ -4,6 +4,9 @@ import { AuthLayout } from "@app/layouts/AuthLayout";
 import { RootLayout } from "@app/layouts/RootLayout";
 import { ProtectedRoute } from "@app/router/ProtectedRoute";
 import { DashboardPage } from "@pages/DashboardPage/DashboardPage";
+import { TasksPage } from "@pages/TasksPage/TasksPage";
+import { CalendarPage } from "@pages/CalendarPage/CalendarPage";
+import { SettingsPage } from "@pages/SettingsPage/SettingsPage";
 import { LoginPage } from "@pages/LoginPage/LoginPage";
 import { ProjectsHomePage } from "@pages/ProjectsHomePage/ProjectsHomePage";
 
@@ -35,7 +38,28 @@ export const routes: RouteObject[] = [
           },
           {
             path: ":projectId",
-            element: <DashboardPage />,
+            children: [
+              {
+                index: true,
+                element: <DashboardPage />,
+              },
+              {
+                path: "dashboard",
+                element: <DashboardPage />,
+              },
+              {
+                path: "tasks",
+                element: <TasksPage />,
+              },
+              {
+                path: "calendar",
+                element: <CalendarPage />,
+              },
+              {
+                path: "settings",
+                element: <SettingsPage />,
+              },
+            ],
           },
         ],
       },

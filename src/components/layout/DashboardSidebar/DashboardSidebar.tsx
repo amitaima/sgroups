@@ -1,11 +1,5 @@
 import { GlassPanel } from "@components/ui/GlassPanel/GlassPanel";
-import {
-  LayoutGrid,
-  CheckSquare2,
-  Calendar,
-  Settings,
-  Sparkles,
-} from "lucide-react";
+import { Sparkles } from "lucide-react";
 import "./DashboardSidebar.scss";
 
 interface SidebarItem {
@@ -18,12 +12,17 @@ interface DashboardSidebarProps {
   items: SidebarItem[];
   isOpen: boolean;
   onClose: () => void;
+  currentProjectId?: string | null;
 }
+
+import { NavLink } from "react-router-dom";
+import { getProjectWorkspacePath } from "@app/router/workspaceRoutes";
 
 export const DashboardSidebar = ({
   items,
   isOpen,
   onClose,
+  currentProjectId,
 }: DashboardSidebarProps) => {
   return (
     <aside className={`dashboard-sidebar${isOpen ? " is-open" : ""}`}>
@@ -47,16 +46,26 @@ export const DashboardSidebar = ({
           </button>
         </div>
         <nav className="dashboard-sidebar__nav">
-          {items.map((item) => (
-            <button
-              key={item.id}
-              className="dashboard-sidebar__item"
-              type="button"
-            >
-              <span className="dashboard-sidebar__icon">{item.icon}</span>
-              <span className="dashboard-sidebar__label">{item.label}</span>
-            </button>
-          ))}
+          {items.map((item) => {
+            const to = currentProjectId
+              ? getProjectWorkspacePath(currentProjectId, item.id as any)
+              : "/projects";
+
+            return (
+              <NavLink
+                key={item.id}
+                to={to}
+                className={({ isActive }) =>
+                  ["dashboard-sidebar__item", isActive ? "is-active" : ""]
+                    .filter(Boolean)
+                    .join(" ")
+                }
+              >
+                <span className="dashboard-sidebar__icon">{item.icon}</span>
+                <span className="dashboard-sidebar__label">{item.label}</span>
+              </NavLink>
+            );
+          })}
         </nav>
       </GlassPanel>
     </aside>

@@ -53,6 +53,7 @@ export const RootLayout = () => {
           items={createSidebarItems()}
           isOpen={sidebarOpen}
           onClose={() => setSidebarOpen(false)}
+          currentProjectId={projectId}
         />
       ) : null}
       <div

@@ -1,0 +1,188 @@
+.task-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-5);
+  border-radius: var(--radius-xl);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  box-shadow: 0 4px 20px rgba(17, 19, 16, 0.03);
+  transition:
+    transform var(--motion-base) var(--motion-ease),
+    box-shadow var(--motion-base) var(--motion-ease),
+    border-color var(--motion-base) var(--motion-ease),
+    opacity var(--motion-base) var(--motion-ease);
+  cursor: grab;
+}
+
+.task-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 28px rgba(17, 19, 16, 0.08);
+}
+
+.task-card:active {
+  cursor: grabbing;
+}
+
+.task-card--overdue {
+  border-color: color-mix(in srgb, #ffcdd2 55%, white);
+  background:
+    linear-gradient(
+      135deg,
+      rgba(255, 205, 210, 0.16) 0%,
+      rgba(255, 255, 255, 0.58) 100%
+    ),
+    rgba(255, 255, 255, 0.5);
+}
+
+.task-card--completed {
+  opacity: 0.92;
+  border-color: color-mix(in srgb, #c8e6c9 55%, white);
+  background:
+    linear-gradient(
+      135deg,
+      rgba(200, 230, 201, 0.18) 0%,
+      rgba(255, 255, 255, 0.62) 100%
+    ),
+    rgba(255, 255, 255, 0.5);
+}
+
+.task-card--dragging {
+  opacity: 0.5;
+  box-shadow: 0 12px 32px rgba(17, 19, 16, 0.15);
+}
+
+.task-card__top,
+.task-card__footer {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.task-card__priority {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.35rem 0.6rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.65rem;
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 0.08em;
+  line-height: 1;
+  text-transform: uppercase;
+  border: 1px solid transparent;
+}
+
+.task-card__priority--high {
+  color: var(--color-on-error-container, #93000a);
+  background: color-mix(in srgb, #ffdad6 58%, white);
+  border-color: color-mix(in srgb, #ffdad6 80%, white);
+}
+
+.task-card__priority--medium {
+  color: var(--color-secondary);
+  background: color-mix(in srgb, var(--color-secondary-container) 55%, white);
+  border-color: color-mix(in srgb, var(--color-secondary-container) 72%, white);
+}
+
+.task-card__priority--low {
+  color: var(--color-text-muted);
+  background: color-mix(in srgb, var(--color-surface-muted) 78%, white);
+  border-color: color-mix(in srgb, var(--color-border) 24%, white);
+}
+
+.task-card__menu,
+.task-card__status {
+  color: var(--color-text-soft);
+  flex-shrink: 0;
+}
+
+.task-card__menu {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border: none;
+  border-radius: var(--radius-full);
+  background: transparent;
+  transition:
+    background-color var(--motion-base) var(--motion-ease),
+    color var(--motion-base) var(--motion-ease);
+}
+
+.task-card__menu:hover,
+.task-card__menu:focus-visible {
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--color-primary);
+  outline: none;
+}
+
+.task-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.task-card__title {
+  margin: 0;
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
+}
+
+.task-card__description {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-xl);
+  color: var(--color-text-muted);
+}
+
+.task-card--completed .task-card__title {
+  text-decoration: line-through;
+  text-decoration-color: color-mix(in srgb, var(--color-text-soft) 50%, white);
+}
+
+.task-card__footer {
+  margin-top: var(--space-1);
+  padding-top: var(--space-3);
+  border-top: 1px solid rgba(255, 255, 255, 0.5);
+  align-items: center;
+}
+
+.task-card__due {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.task-card__overdue-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 0.3rem 0.55rem;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, #ffdcc4 34%, white);
+  color: var(--color-tertiary);
+  font-size: 0.72rem;
+  font-weight: var(--font-weight-bold);
+}
+
+.task-card__status {
+  color: var(--color-primary);
+}
+
+@media (max-width: 640px) {
+  .task-card {
+    padding: var(--space-4);
+  }
+
+  .task-card__footer {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
