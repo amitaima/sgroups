@@ -3,6 +3,7 @@ import type { User } from "firebase/auth";
 import { getAuth } from "firebase/auth";
 import {
   addDoc,
+  deleteDoc,
   collection,
   type DocumentData,
   type DocumentSnapshot,
@@ -14,6 +15,7 @@ import {
   query,
   serverTimestamp,
   setDoc,
+  updateDoc,
   Timestamp,
   where,
 } from "firebase/firestore";
@@ -64,6 +66,38 @@ export interface CreateProjectInput {
   status?: "active" | "completed" | "archived";
 }
 
+export type CalendarEventAudience = "selected" | "everyone";
+
+export interface CalendarEventRecord {
+  id: string;
+  projectId: string;
+  title: string;
+  startDate: Timestamp;
+  endDate: Timestamp;
+  time: string | null;
+  description: string | null;
+  location: string | null;
+  ownerId: string;
+  assigneeIds: string[];
+  audience: CalendarEventAudience;
+  createdBy: string;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
+export interface CreateCalendarEventInput {
+  title: string;
+  startDate: Date;
+  endDate: Date;
+  time?: string;
+  description?: string;
+  location?: string;
+  ownerId: string;
+  assigneeIds: string[];
+  audience: CalendarEventAudience;
+  createdBy: string;
+}
+
 export const upsertUserProfile = async (user: User): Promise<void> => {
   const ref = doc(db, "users", user.uid);
   const snapshot = await getDoc(ref);
@@ -87,6 +121,7 @@ export const upsertUserProfile = async (user: User): Promise<void> => {
 
 const PROJECTS_COLLECTION = "projects";
 const USERS_COLLECTION = "users";
+const PROJECT_CALENDAR_EVENTS_COLLECTION = "calendarEvents";
 
 const chunkArray = <T>(arr: T[], size: number): T[][] => {
   const chunks: T[][] = [];
@@ -137,6 +172,95 @@ const mapProjectSnapshot = (
   };
 };
 
+const mapCalendarEventSnapshot = (
+  snapshot: DocumentSnapshot<DocumentData>,
+  projectId: string,
+): CalendarEventRecord | null => {
+  if (!snapshot.exists()) {
+    return null;
+  }
+
+  const data = (snapshot.data() ?? {}) as Record<string, unknown>;
+  const assigneeIds = Array.isArray(data.assigneeIds)
+    ? data.assigneeIds.filter(
+        (item): item is string => typeof item === "string",
+      )
+    : [];
+  const ownerId =
+    typeof data.ownerId === "string" && data.ownerId.trim().length > 0
+      ? data.ownerId
+      : typeof data.createdBy === "string" && data.createdBy.trim().length > 0
+        ? data.createdBy
+        : (assigneeIds[0] ?? "");
+
+  return {
+    id: snapshot.id,
+    projectId,
+    title: String(data.title ?? ""),
+    startDate:
+      data.startDate instanceof Timestamp
+        ? data.startDate
+        : Timestamp.fromDate(new Date()),
+    endDate:
+      data.endDate instanceof Timestamp
+        ? data.endDate
+        : Timestamp.fromDate(new Date()),
+    time:
+      typeof data.time === "string" && data.time.trim().length > 0
+        ? data.time
+        : null,
+    description:
+      typeof data.description === "string" && data.description.trim().length > 0
+        ? data.description
+        : null,
+    location:
+      typeof data.location === "string" && data.location.trim().length > 0
+        ? data.location
+        : null,
+    ownerId,
+    assigneeIds:
+      assigneeIds.length > 0 ? assigneeIds : ownerId ? [ownerId] : [],
+    audience: data.audience === "everyone" ? "everyone" : "selected",
+    createdBy: String(data.createdBy ?? ownerId ?? ""),
+    createdAt:
+      data.createdAt instanceof Timestamp
+        ? data.createdAt
+        : Timestamp.fromDate(new Date()),
+    updatedAt:
+      data.updatedAt instanceof Timestamp
+        ? data.updatedAt
+        : Timestamp.fromDate(new Date()),
+  };
+};
+
+const getProjectCalendarEventsCollection = (projectId: string) =>
+  collection(
+    db,
+    PROJECTS_COLLECTION,
+    projectId,
+    PROJECT_CALENDAR_EVENTS_COLLECTION,
+  );
+
+const normalizeEventAssignees = (
+  assigneeIds: string[],
+  ownerId: string,
+  audience: CalendarEventAudience,
+) => {
+  if (audience === "everyone") {
+    return [];
+  }
+
+  const normalizedIds = Array.from(
+    new Set(assigneeIds.map((item) => item.trim()).filter(Boolean)),
+  );
+
+  if (normalizedIds.length > 0) {
+    return normalizedIds;
+  }
+
+  return ownerId ? [ownerId] : [];
+};
+
 export const createProject = async (
   input: CreateProjectInput,
 ): Promise<string> => {
@@ -183,6 +307,116 @@ export const getProjectById = async (
 ): Promise<Project | null> => {
   const snapshot = await getDoc(doc(db, PROJECTS_COLLECTION, projectId));
   return mapProjectSnapshot(snapshot);
+};
+
+export const getProjectCalendarEvents = async (
+  projectId: string,
+): Promise<CalendarEventRecord[]> => {
+  const snapshot = await getDocs(getProjectCalendarEventsCollection(projectId));
+
+  return snapshot.docs
+    .map((docSnapshot) => mapCalendarEventSnapshot(docSnapshot, projectId))
+    .filter((event): event is CalendarEventRecord => Boolean(event))
+    .sort(
+      (left, right) => left.startDate.toMillis() - right.startDate.toMillis(),
+    );
+};
+
+export const createProjectCalendarEvent = async (
+  projectId: string,
+  input: CreateCalendarEventInput,
+): Promise<string> => {
+  const payload = {
+    projectId,
+    title: input.title.trim(),
+    startDate: Timestamp.fromDate(input.startDate),
+    endDate: Timestamp.fromDate(input.endDate),
+    time: input.time?.trim() || null,
+    description: input.description?.trim() || null,
+    location: input.location?.trim() || null,
+    ownerId: input.ownerId,
+    assigneeIds: normalizeEventAssignees(
+      input.assigneeIds,
+      input.ownerId,
+      input.audience,
+    ),
+    audience: input.audience,
+    createdBy: input.createdBy,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  };
+
+  const docRef = await addDoc(
+    getProjectCalendarEventsCollection(projectId),
+    payload,
+  );
+  return docRef.id;
+};
+
+export const updateProjectCalendarEvent = async (
+  projectId: string,
+  eventId: string,
+  input: Partial<CreateCalendarEventInput>,
+): Promise<void> => {
+  const payload: Record<string, unknown> = {
+    updatedAt: serverTimestamp(),
+  };
+
+  if (typeof input.title === "string") {
+    payload.title = input.title.trim();
+  }
+
+  if (input.startDate) {
+    payload.startDate = Timestamp.fromDate(input.startDate);
+  }
+
+  if (input.endDate) {
+    payload.endDate = Timestamp.fromDate(input.endDate);
+  }
+
+  if (typeof input.time === "string") {
+    payload.time = input.time.trim() || null;
+  }
+
+  if (typeof input.description === "string") {
+    payload.description = input.description.trim() || null;
+  }
+
+  if (typeof input.location === "string") {
+    payload.location = input.location.trim() || null;
+  }
+
+  if (typeof input.ownerId === "string") {
+    payload.ownerId = input.ownerId;
+  }
+
+  if (Array.isArray(input.assigneeIds)) {
+    payload.assigneeIds = normalizeEventAssignees(
+      input.assigneeIds,
+      input.ownerId ?? "",
+      input.audience ?? "selected",
+    );
+  }
+
+  if (input.audience) {
+    payload.audience = input.audience;
+  }
+
+  if (typeof input.createdBy === "string") {
+    payload.createdBy = input.createdBy;
+  }
+
+  await updateDoc(
+    doc(getProjectCalendarEventsCollection(projectId), eventId),
+    payload,
+  );
+};
+
+export const deleteProjectCalendarEvent = async (
+  projectId: string,
+  eventId: string,
+): Promise<void> => {
+  await deleteDoc(doc(getProjectCalendarEventsCollection(projectId), eventId));
 };
 
 export const getUsersByIds = async (
