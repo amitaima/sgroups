@@ -19,7 +19,7 @@ export const WORKSPACE_NAV_ITEMS: WorkspaceNavItemConfig[] = [
   { id: "dashboard", label: "מסך ניהול", section: "dashboard" },
   { id: "tasks", label: "משימות", section: "tasks" },
   { id: "calendar", label: "יומן", section: "calendar" },
-  { id: "settings", label: "הגדרות פרוייקט", section: "settings" },
+  { id: "settings", label: "הגדרות פרויקט", section: "settings" },
 ];
 
 export const getProjectsRootPath = () => PROJECTS_ROOT_PATH;

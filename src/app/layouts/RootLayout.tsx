@@ -32,7 +32,7 @@ const createSidebarItems = () => [
   },
   {
     id: "settings",
-    label: "הגדרות פרוייקט",
+    label: "הגדרות פרויקט",
     icon: <Settings size={20} strokeWidth={2} />,
   },
 ];

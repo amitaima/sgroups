@@ -19,7 +19,15 @@ import {
   Timestamp,
   where,
 } from "firebase/firestore";
-import type { Project } from "../../types/common";
+import type {
+  Project,
+  ProjectLink,
+  ProjectMemberRole,
+  ProjectMilestone,
+  ProjectNotificationSettings,
+  ProjectStatus,
+  ProjectType,
+} from "../../types/common";
 import { getStorage } from "firebase/storage";
 
 const firebaseConfig = {
@@ -60,10 +68,55 @@ export interface CreateProjectInput {
   name: string;
   description?: string;
   dueDate?: Date;
+  finalSubmissionAt?: Date;
+  nextMilestoneAt?: Date;
+  projectType?: ProjectType;
+  courseName?: string;
+  institutionName?: string;
+  lecturerName?: string;
+  courseCode?: string;
+  semesterLabel?: string;
+  groupNumber?: string;
+  importantLinks?: Array<{ id: string; label: string; url: string }>;
+  milestones?: Array<{
+    id: string;
+    title: string;
+    dueDate: Date;
+    completed?: boolean;
+  }>;
+  notificationSettings?: ProjectNotificationSettings;
   createdBy: string;
   memberIds?: string[];
   teacherIds?: string[];
+  memberRoles?: Record<string, ProjectMemberRole>;
   status?: "active" | "completed" | "archived";
+}
+
+export interface UpdateProjectInput {
+  name?: string;
+  description?: string | null;
+  dueDate?: Date | null;
+  finalSubmissionAt?: Date | null;
+  nextMilestoneAt?: Date | null;
+  projectType?: ProjectType | null;
+  courseName?: string | null;
+  institutionName?: string | null;
+  lecturerName?: string | null;
+  courseCode?: string | null;
+  semesterLabel?: string | null;
+  groupNumber?: string | null;
+  importantLinks?: Array<{ id: string; label: string; url: string }>;
+  milestones?: Array<{
+    id: string;
+    title: string;
+    dueDate: Date;
+    completed?: boolean;
+  }>;
+  notificationSettings?: ProjectNotificationSettings;
+  memberIds?: string[];
+  memberRoles?: Record<string, ProjectMemberRole>;
+  teacherIds?: string[];
+  status?: ProjectStatus;
 }
 
 export type CalendarEventAudience = "selected" | "everyone";
@@ -123,6 +176,177 @@ const PROJECTS_COLLECTION = "projects";
 const USERS_COLLECTION = "users";
 const PROJECT_CALENDAR_EVENTS_COLLECTION = "calendarEvents";
 
+const isProjectStatus = (value: unknown): value is ProjectStatus =>
+  value === "active" || value === "completed" || value === "archived";
+
+const isProjectType = (value: unknown): value is ProjectType =>
+  value === "seminar" ||
+  value === "assignment" ||
+  value === "presentation" ||
+  value === "research" ||
+  value === "lab";
+
+const isProjectMemberRole = (value: unknown): value is ProjectMemberRole =>
+  value === "owner" || value === "admin" || value === "member";
+
+const normalizeText = (value: unknown): string | undefined => {
+  if (typeof value !== "string") {
+    return undefined;
+  }
+
+  const trimmedValue = value.trim();
+  return trimmedValue.length > 0 ? trimmedValue : undefined;
+};
+
+const toTimestamp = (value: unknown): Timestamp | undefined => {
+  if (value instanceof Timestamp) {
+    return value;
+  }
+
+  return undefined;
+};
+
+const mapProjectLinks = (value: unknown): ProjectLink[] | undefined => {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+
+  const links = value
+    .map((item) => {
+      if (!item || typeof item !== "object") {
+        return null;
+      }
+
+      const data = item as Record<string, unknown>;
+      const id = normalizeText(data.id) ?? "";
+      const label = normalizeText(data.label) ?? "";
+      const url = normalizeText(data.url) ?? "";
+
+      if (!id || !label || !url) {
+        return null;
+      }
+
+      return { id, label, url };
+    })
+    .filter((link): link is ProjectLink => Boolean(link));
+
+  return links.length > 0 ? links : undefined;
+};
+
+const mapProjectMilestones = (
+  value: unknown,
+): ProjectMilestone[] | undefined => {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+
+  const milestones = value
+    .map((item) => {
+      if (!item || typeof item !== "object") {
+        return null;
+      }
+
+      const data = item as Record<string, unknown>;
+      const id = normalizeText(data.id) ?? "";
+      const title = normalizeText(data.title) ?? "";
+      const dueDate = toTimestamp(data.dueDate);
+
+      if (!id || !title || !dueDate) {
+        return null;
+      }
+
+      return {
+        id,
+        title,
+        dueDate,
+        completed: Boolean(data.completed),
+      };
+    })
+    .filter((milestone) => milestone !== null) as ProjectMilestone[];
+
+  return milestones.length > 0 ? milestones : undefined;
+};
+
+const mapMemberRoles = (
+  value: unknown,
+): Record<string, ProjectMemberRole> | undefined => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return undefined;
+  }
+
+  const entries = Object.entries(value as Record<string, unknown>).reduce<
+    Record<string, ProjectMemberRole>
+  >((accumulator, [memberId, role]) => {
+    if (normalizeText(memberId) && isProjectMemberRole(role)) {
+      accumulator[memberId] = role;
+    }
+
+    return accumulator;
+  }, {});
+
+  return Object.keys(entries).length > 0 ? entries : undefined;
+};
+
+const normalizeMemberIds = (memberIds: string[]) =>
+  Array.from(new Set(memberIds.map((item) => item.trim()).filter(Boolean)));
+
+const serializeProjectLinks = (
+  value: Array<{ id: string; label: string; url: string }>,
+) =>
+  value
+    .map((link) => ({
+      id: link.id.trim(),
+      label: link.label.trim(),
+      url: link.url.trim(),
+    }))
+    .filter((link) => link.id && link.label && link.url);
+
+const serializeProjectMilestones = (
+  value: Array<{
+    id: string;
+    title: string;
+    dueDate: Date;
+    completed?: boolean;
+  }>,
+) =>
+  value
+    .map((milestone) => ({
+      id: milestone.id.trim(),
+      title: milestone.title.trim(),
+      dueDate: Timestamp.fromDate(milestone.dueDate),
+      completed: Boolean(milestone.completed),
+    }))
+    .filter((milestone) => milestone.id && milestone.title);
+
+const normalizeProjectRoleMap = (
+  memberIds: string[],
+  memberRoles?: Record<string, ProjectMemberRole>,
+  createdBy?: string,
+) => {
+  const normalizedMemberIds = normalizeMemberIds(memberIds);
+  const roles = Object.entries(memberRoles ?? {}).reduce<
+    Record<string, ProjectMemberRole>
+  >((accumulator, [memberId, role]) => {
+    if (normalizedMemberIds.includes(memberId) && isProjectMemberRole(role)) {
+      accumulator[memberId] = role;
+    }
+
+    return accumulator;
+  }, {});
+
+  if (createdBy) {
+    roles[createdBy] = "owner";
+  }
+
+  normalizedMemberIds.forEach((memberId) => {
+    if (!roles[memberId]) {
+      roles[memberId] = memberId === createdBy ? "owner" : "member";
+    }
+  });
+
+  return roles;
+};
+
 const chunkArray = <T>(arr: T[], size: number): T[][] => {
   const chunks: T[][] = [];
   for (let index = 0; index < arr.length; index += size) {
@@ -142,8 +366,48 @@ const mapProjectSnapshot = (
   return {
     id: snapshot.id,
     name: String(data.name ?? ""),
-    description: data.description ? String(data.description) : undefined,
-    dueDate: data.dueDate instanceof Timestamp ? data.dueDate : undefined,
+    description: normalizeText(data.description),
+    dueDate: toTimestamp(data.dueDate),
+    finalSubmissionAt: toTimestamp(data.finalSubmissionAt),
+    nextMilestoneAt: toTimestamp(data.nextMilestoneAt),
+    projectType: isProjectType(data.projectType) ? data.projectType : undefined,
+    courseName: normalizeText(data.courseName),
+    institutionName: normalizeText(data.institutionName),
+    lecturerName: normalizeText(data.lecturerName),
+    courseCode: normalizeText(data.courseCode),
+    semesterLabel: normalizeText(data.semesterLabel),
+    groupNumber: normalizeText(data.groupNumber),
+    importantLinks: mapProjectLinks(data.importantLinks),
+    milestones: mapProjectMilestones(data.milestones),
+    notificationSettings: (() => {
+      if (
+        !data.notificationSettings ||
+        typeof data.notificationSettings !== "object"
+      ) {
+        return undefined;
+      }
+
+      const notificationSettingsData = data.notificationSettings as Record<
+        string,
+        unknown
+      >;
+
+      return {
+        email:
+          typeof notificationSettingsData.email === "boolean"
+            ? notificationSettingsData.email
+            : undefined,
+        reminders:
+          typeof notificationSettingsData.reminders === "boolean"
+            ? notificationSettingsData.reminders
+            : undefined,
+        mentions:
+          typeof notificationSettingsData.mentions === "boolean"
+            ? notificationSettingsData.mentions
+            : undefined,
+      };
+    })(),
+    memberRoles: mapMemberRoles(data.memberRoles),
     createdBy: String(data.createdBy ?? ""),
     memberIds: Array.isArray(data.memberIds)
       ? data.memberIds.filter(
@@ -163,12 +427,7 @@ const mapProjectSnapshot = (
       data.updatedAt instanceof Timestamp
         ? data.updatedAt
         : Timestamp.fromDate(new Date()),
-    status:
-      data.status === "completed" ||
-      data.status === "archived" ||
-      data.status === "active"
-        ? data.status
-        : "active",
+    status: isProjectStatus(data.status) ? data.status : "active",
   };
 };
 
@@ -264,17 +523,43 @@ const normalizeEventAssignees = (
 export const createProject = async (
   input: CreateProjectInput,
 ): Promise<string> => {
-  const normalizedMemberIds = Array.from(
-    new Set([input.createdBy, ...(input.memberIds ?? [])].filter(Boolean)),
-  );
+  const normalizedMemberIds = normalizeMemberIds([
+    input.createdBy,
+    ...(input.memberIds ?? []),
+  ]);
 
   const payload = {
     name: input.name.trim(),
     description: input.description?.trim() || "",
     dueDate: input.dueDate ? Timestamp.fromDate(input.dueDate) : null,
+    finalSubmissionAt: input.finalSubmissionAt
+      ? Timestamp.fromDate(input.finalSubmissionAt)
+      : null,
+    nextMilestoneAt: input.nextMilestoneAt
+      ? Timestamp.fromDate(input.nextMilestoneAt)
+      : null,
+    projectType: input.projectType ?? null,
+    courseName: input.courseName?.trim() || "",
+    institutionName: input.institutionName?.trim() || "",
+    lecturerName: input.lecturerName?.trim() || "",
+    courseCode: input.courseCode?.trim() || "",
+    semesterLabel: input.semesterLabel?.trim() || "",
+    groupNumber: input.groupNumber?.trim() || "",
+    importantLinks: serializeProjectLinks(input.importantLinks ?? []),
+    milestones: serializeProjectMilestones(input.milestones ?? []),
+    notificationSettings: input.notificationSettings ?? {
+      email: false,
+      reminders: false,
+      mentions: false,
+    },
     createdBy: input.createdBy,
     memberIds: normalizedMemberIds,
     teacherIds: input.teacherIds ?? [],
+    memberRoles: normalizeProjectRoleMap(
+      normalizedMemberIds,
+      input.memberRoles,
+      input.createdBy,
+    ),
     status: input.status ?? "active",
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
@@ -307,6 +592,124 @@ export const getProjectById = async (
 ): Promise<Project | null> => {
   const snapshot = await getDoc(doc(db, PROJECTS_COLLECTION, projectId));
   return mapProjectSnapshot(snapshot);
+};
+
+export const updateProject = async (
+  projectId: string,
+  input: UpdateProjectInput,
+): Promise<void> => {
+  const payload: Record<string, unknown> = {
+    updatedAt: serverTimestamp(),
+  };
+
+  if (typeof input.name === "string") {
+    payload.name = input.name.trim();
+  }
+
+  if (input.description !== undefined) {
+    payload.description = normalizeText(input.description) ?? null;
+  }
+
+  if (input.dueDate !== undefined) {
+    payload.dueDate = input.dueDate ? Timestamp.fromDate(input.dueDate) : null;
+  }
+
+  if (input.finalSubmissionAt !== undefined) {
+    payload.finalSubmissionAt = input.finalSubmissionAt
+      ? Timestamp.fromDate(input.finalSubmissionAt)
+      : null;
+  }
+
+  if (input.nextMilestoneAt !== undefined) {
+    payload.nextMilestoneAt = input.nextMilestoneAt
+      ? Timestamp.fromDate(input.nextMilestoneAt)
+      : null;
+  }
+
+  if (input.projectType !== undefined) {
+    payload.projectType = input.projectType ?? null;
+  }
+
+  if (input.courseName !== undefined) {
+    payload.courseName = normalizeText(input.courseName) ?? null;
+  }
+
+  if (input.institutionName !== undefined) {
+    payload.institutionName = normalizeText(input.institutionName) ?? null;
+  }
+
+  if (input.lecturerName !== undefined) {
+    payload.lecturerName = normalizeText(input.lecturerName) ?? null;
+  }
+
+  if (input.courseCode !== undefined) {
+    payload.courseCode = normalizeText(input.courseCode) ?? null;
+  }
+
+  if (input.semesterLabel !== undefined) {
+    payload.semesterLabel = normalizeText(input.semesterLabel) ?? null;
+  }
+
+  if (input.groupNumber !== undefined) {
+    payload.groupNumber = normalizeText(input.groupNumber) ?? null;
+  }
+
+  if (input.importantLinks !== undefined) {
+    payload.importantLinks = serializeProjectLinks(input.importantLinks);
+  }
+
+  if (input.milestones !== undefined) {
+    payload.milestones = serializeProjectMilestones(input.milestones);
+  }
+
+  if (input.notificationSettings !== undefined) {
+    payload.notificationSettings = {
+      email: Boolean(input.notificationSettings.email),
+      reminders: Boolean(input.notificationSettings.reminders),
+      mentions: Boolean(input.notificationSettings.mentions),
+    };
+  }
+
+  if (input.memberIds !== undefined) {
+    payload.memberIds = normalizeMemberIds(input.memberIds);
+  }
+
+  if (input.memberRoles !== undefined) {
+    payload.memberRoles = normalizeProjectRoleMap(
+      input.memberIds ?? [],
+      input.memberRoles,
+    );
+  }
+
+  if (input.teacherIds !== undefined) {
+    payload.teacherIds = Array.from(
+      new Set(
+        input.teacherIds.map((teacherId) => teacherId.trim()).filter(Boolean),
+      ),
+    );
+  }
+
+  if (input.status !== undefined) {
+    payload.status = input.status;
+  }
+
+  await updateDoc(doc(db, PROJECTS_COLLECTION, projectId), payload);
+};
+
+export const deleteProject = async (projectId: string): Promise<void> => {
+  const eventsSnapshot = await getDocs(
+    getProjectCalendarEventsCollection(projectId),
+  );
+
+  await Promise.all(
+    eventsSnapshot.docs.map((eventSnapshot) =>
+      deleteDoc(
+        doc(getProjectCalendarEventsCollection(projectId), eventSnapshot.id),
+      ),
+    ),
+  );
+
+  await deleteDoc(doc(db, PROJECTS_COLLECTION, projectId));
 };
 
 export const getProjectCalendarEvents = async (
