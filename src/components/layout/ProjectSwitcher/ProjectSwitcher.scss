@@ -71,7 +71,7 @@
   top: calc(100% + var(--space-2));
   width: min(100%, 380px);
   z-index: var(--z-dropdown);
-  padding: var(--space-2);
+  padding: var(--space-4);
   border-radius: var(--radius-xl);
   border: 1px solid color-mix(in srgb, white 62%, var(--color-border));
   background: linear-gradient(

@@ -241,7 +241,7 @@ export const ProjectsHomePage = () => {
                 project={project}
                 members={members}
                 creatorLabel={getMemberLabel(project.createdBy)}
-                onEnter={() => navigate(`/projects/${project.id}`)}
+                onEnter={() => navigate(`/projects/${project.id}/dashboard`)}
               />
             ))}
           </div>

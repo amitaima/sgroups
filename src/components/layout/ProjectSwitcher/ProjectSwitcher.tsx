@@ -95,18 +95,18 @@ export const ProjectSwitcher = ({ currentProjectId }: ProjectSwitcherProps) => {
                 }`}
                 onClick={() => {
                   setOpen(false);
-                  navigate(`/projects/${project.id}`);
+                  navigate(`/projects/${project.id}/dashboard`);
                 }}
               >
                 <ArrowRightLeft size={14} />
                 <span className="project-switcher__option-name">
                   {project.name}
                 </span>
-                {project.description ? (
+                {/* {project.description ? (
                   <span className="project-switcher__option-description">
                     {project.description}
                   </span>
-                ) : null}
+                ) : null} */}
               </button>
             ))
           )}
