@@ -12,6 +12,7 @@ import {
   getDocs,
   getDoc,
   getFirestore,
+  onSnapshot,
   query,
   serverTimestamp,
   setDoc,
@@ -27,6 +28,8 @@ import type {
   ProjectNotificationSettings,
   ProjectStatus,
   ProjectType,
+  TaskPriority,
+  TaskStatus,
 } from "../../types/common";
 import { getStorage } from "firebase/storage";
 
@@ -151,6 +154,42 @@ export interface CreateCalendarEventInput {
   createdBy: string;
 }
 
+export interface ProjectTaskRecord {
+  id: string;
+  projectId: string;
+  title: string;
+  description: string | null;
+  priority: TaskPriority;
+  status: TaskStatus;
+  dueDate: Timestamp | null;
+  assigneeIds: string[];
+  completed: boolean;
+  createdBy: string;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
+export interface CreateProjectTaskInput {
+  title: string;
+  description?: string | null;
+  priority: TaskPriority;
+  status?: TaskStatus;
+  dueDate?: Date | null;
+  assigneeIds?: string[];
+  completed?: boolean;
+  createdBy: string;
+}
+
+export interface UpdateProjectTaskInput {
+  title?: string;
+  description?: string | null;
+  priority?: TaskPriority;
+  status?: TaskStatus;
+  dueDate?: Date | null;
+  assigneeIds?: string[];
+  completed?: boolean;
+}
+
 export const upsertUserProfile = async (user: User): Promise<void> => {
   const ref = doc(db, "users", user.uid);
   const snapshot = await getDoc(ref);
@@ -175,6 +214,7 @@ export const upsertUserProfile = async (user: User): Promise<void> => {
 const PROJECTS_COLLECTION = "projects";
 const USERS_COLLECTION = "users";
 const PROJECT_CALENDAR_EVENTS_COLLECTION = "calendarEvents";
+const PROJECT_TASKS_COLLECTION = "tasks";
 
 const isProjectStatus = (value: unknown): value is ProjectStatus =>
   value === "active" || value === "completed" || value === "archived";
@@ -185,6 +225,15 @@ const isProjectType = (value: unknown): value is ProjectType =>
   value === "presentation" ||
   value === "research" ||
   value === "lab";
+
+const isTaskPriority = (value: unknown): value is TaskPriority =>
+  value === "high" || value === "medium" || value === "low";
+
+const isTaskStatus = (value: unknown): value is TaskStatus =>
+  value === "todo" ||
+  value === "inProgress" ||
+  value === "review" ||
+  value === "completed";
 
 const isProjectMemberRole = (value: unknown): value is ProjectMemberRole =>
   value === "owner" || value === "admin" || value === "member";
@@ -492,6 +541,57 @@ const mapCalendarEventSnapshot = (
   };
 };
 
+const mapProjectTaskSnapshot = (
+  snapshot: DocumentSnapshot<DocumentData>,
+  projectId: string,
+): ProjectTaskRecord | null => {
+  if (!snapshot.exists()) {
+    return null;
+  }
+
+  const data = (snapshot.data() ?? {}) as Record<string, unknown>;
+  const status = isTaskStatus(data.status) ? data.status : "todo";
+  const priority = isTaskPriority(data.priority) ? data.priority : "medium";
+  const assigneeIds = Array.isArray(data.assigneeIds)
+    ? data.assigneeIds.filter(
+        (item): item is string => typeof item === "string",
+      )
+    : [];
+  const createdBy =
+    typeof data.createdBy === "string" && data.createdBy.trim().length > 0
+      ? data.createdBy
+      : (assigneeIds[0] ?? "");
+  const completed =
+    typeof data.completed === "boolean"
+      ? data.completed
+      : status === "completed";
+
+  return {
+    id: snapshot.id,
+    projectId,
+    title: String(data.title ?? ""),
+    description:
+      typeof data.description === "string" && data.description.trim().length > 0
+        ? data.description
+        : null,
+    priority,
+    status,
+    dueDate: toTimestamp(data.dueDate) ?? null,
+    assigneeIds:
+      assigneeIds.length > 0 ? assigneeIds : createdBy ? [createdBy] : [],
+    completed,
+    createdBy,
+    createdAt:
+      data.createdAt instanceof Timestamp
+        ? data.createdAt
+        : Timestamp.fromDate(new Date()),
+    updatedAt:
+      data.updatedAt instanceof Timestamp
+        ? data.updatedAt
+        : Timestamp.fromDate(new Date()),
+  };
+};
+
 const getProjectCalendarEventsCollection = (projectId: string) =>
   collection(
     db,
@@ -499,6 +599,9 @@ const getProjectCalendarEventsCollection = (projectId: string) =>
     projectId,
     PROJECT_CALENDAR_EVENTS_COLLECTION,
   );
+
+const getProjectTasksCollection = (projectId: string) =>
+  collection(db, PROJECTS_COLLECTION, projectId, PROJECT_TASKS_COLLECTION);
 
 const normalizeEventAssignees = (
   assigneeIds: string[],
@@ -518,6 +621,128 @@ const normalizeEventAssignees = (
   }
 
   return ownerId ? [ownerId] : [];
+};
+
+const normalizeTaskAssignees = (assigneeIds: string[]) =>
+  Array.from(new Set(assigneeIds.map((item) => item.trim()).filter(Boolean)));
+
+const sortProjectTasks = (tasks: ProjectTaskRecord[]) =>
+  [...tasks].sort((left, right) => {
+    const statusOrder: Record<TaskStatus, number> = {
+      todo: 0,
+      inProgress: 1,
+      review: 2,
+      completed: 3,
+    };
+
+    if (statusOrder[left.status] !== statusOrder[right.status]) {
+      return statusOrder[left.status] - statusOrder[right.status];
+    }
+
+    const leftDue = left.dueDate?.toMillis() ?? Number.POSITIVE_INFINITY;
+    const rightDue = right.dueDate?.toMillis() ?? Number.POSITIVE_INFINITY;
+
+    if (leftDue !== rightDue) {
+      return leftDue - rightDue;
+    }
+
+    return left.title.localeCompare(right.title, "he");
+  });
+
+export const getProjectTasks = async (
+  projectId: string,
+): Promise<ProjectTaskRecord[]> => {
+  const snapshot = await getDocs(getProjectTasksCollection(projectId));
+  const tasks = snapshot.docs
+    .map((docSnapshot) => mapProjectTaskSnapshot(docSnapshot, projectId))
+    .filter((task): task is ProjectTaskRecord => Boolean(task));
+
+  return sortProjectTasks(tasks);
+};
+
+export const subscribeProjectTasks = (
+  projectId: string,
+  onChange: (tasks: ProjectTaskRecord[]) => void,
+  onError?: (error: Error) => void,
+) =>
+  onSnapshot(
+    getProjectTasksCollection(projectId),
+    (snapshot) => {
+      const tasks = snapshot.docs
+        .map((docSnapshot) => mapProjectTaskSnapshot(docSnapshot, projectId))
+        .filter((task): task is ProjectTaskRecord => Boolean(task));
+
+      onChange(sortProjectTasks(tasks));
+    },
+    (error) => {
+      onError?.(error);
+    },
+  );
+
+export const createProjectTask = async (
+  projectId: string,
+  input: CreateProjectTaskInput,
+): Promise<string> => {
+  const payload = {
+    projectId,
+    title: input.title.trim(),
+    description: input.description?.trim() || null,
+    priority: input.priority,
+    status: input.status ?? "todo",
+    dueDate: input.dueDate ? Timestamp.fromDate(input.dueDate) : null,
+    assigneeIds: normalizeTaskAssignees(input.assigneeIds ?? []),
+    completed: input.completed ?? input.status === "completed",
+    createdBy: input.createdBy,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  };
+
+  const docRef = await addDoc(getProjectTasksCollection(projectId), payload);
+  return docRef.id;
+};
+
+export const updateProjectTask = async (
+  projectId: string,
+  taskId: string,
+  input: UpdateProjectTaskInput,
+): Promise<void> => {
+  const payload: Record<string, unknown> = {
+    updatedAt: serverTimestamp(),
+  };
+
+  if (typeof input.title === "string") {
+    payload.title = input.title.trim();
+  }
+
+  if (input.description !== undefined) {
+    payload.description = normalizeText(input.description) ?? null;
+  }
+
+  if (input.priority) {
+    payload.priority = input.priority;
+  }
+
+  if (input.status) {
+    payload.status = input.status;
+  }
+
+  if (input.dueDate !== undefined) {
+    payload.dueDate = input.dueDate ? Timestamp.fromDate(input.dueDate) : null;
+  }
+
+  if (Array.isArray(input.assigneeIds)) {
+    payload.assigneeIds = normalizeTaskAssignees(input.assigneeIds);
+  }
+
+  if (typeof input.completed === "boolean") {
+    payload.completed = input.completed;
+  }
+
+  if (typeof input.status === "string") {
+    payload.completed = input.status === "completed";
+  }
+
+  await updateDoc(doc(getProjectTasksCollection(projectId), taskId), payload);
 };
 
 export const createProject = async (

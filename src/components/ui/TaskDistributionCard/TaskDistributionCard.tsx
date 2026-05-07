@@ -16,28 +16,28 @@ const CHART_COLORS = [
 ];
 
 export const TaskDistributionCard = ({ data }: TaskDistributionCardProps) => {
-  data = [
-    {
-      name: "Shmuel Lander",
-      value: 12,
-    },
-    {
-      name: "Amitai Malka",
-      value: 8,
-    },
-    {
-      name: "Ori Ashkenazi",
-      value: 20,
-    },
-    {
-      name: "Aviv Cohen",
-      value: 20,
-    },
-    {
-      name: "Dana Levi",
-      value: 20,
-    },
-  ];
+  // data = [
+  //   {
+  //     name: "Shmuel Lander",
+  //     value: 12,
+  //   },
+  //   {
+  //     name: "Amitai Malka",
+  //     value: 8,
+  //   },
+  //   {
+  //     name: "Ori Ashkenazi",
+  //     value: 20,
+  //   },
+  //   {
+  //     name: "Aviv Cohen",
+  //     value: 20,
+  //   },
+  //   {
+  //     name: "Dana Levi",
+  //     value: 20,
+  //   },
+  // ];
   const total = data.reduce((sum, item) => sum + item.value, 0);
 
   const gradient =
@@ -62,7 +62,7 @@ export const TaskDistributionCard = ({ data }: TaskDistributionCardProps) => {
     <GlassPanel className="distribution-card">
       <div className="distribution-card__header">
         <div>
-          <p className="distribution-card__eyebrow">Workload</p>
+          <p className="distribution-card__eyebrow">עומס עבודה</p>
           <h3 className="distribution-card__title">חלוקת משימות</h3>
         </div>
       </div>
@@ -118,7 +118,7 @@ export const TaskDistributionCard = ({ data }: TaskDistributionCardProps) => {
         </div>
       ) : (
         <p className="distribution-card__empty">
-          אין עדיין מספיק נתונים לחישוב חלוקת משימות.
+          אין עדיין מספיק נתונים לחישוב חלוקת המשימות.
         </p>
       )}
     </GlassPanel>

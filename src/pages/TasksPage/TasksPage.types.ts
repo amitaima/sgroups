@@ -1,5 +1,6 @@
 import type { MemberAvatarItem } from "@components/users/MemberAvatarGroup";
 import type { TaskCardData, TaskStatus } from "@components/dashboard/TaskCard";
+import type { TaskPriority } from "../../types/common";
 
 export interface TaskBoardColumnData {
   id: TaskStatus;
@@ -12,6 +13,19 @@ export interface TaskBoardColumnData {
 export interface TasksPageViewModel {
   columns: TaskBoardColumnData[];
   boardToggle: "board" | "list";
+}
+
+export interface TaskDialogDraft {
+  title: string;
+  description: string;
+  priority: TaskPriority;
+  status: TaskStatus;
+  dueDate: string;
+  assigneeIds: string[];
+}
+
+export interface TaskAssigneeOption extends MemberAvatarItem {
+  email: string | null;
 }
 
 export interface TaskMember extends MemberAvatarItem {}

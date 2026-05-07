@@ -18,29 +18,48 @@ const PRIORITY_LABELS: Record<TaskCardProps["task"]["priority"], string> = {
 export const TaskCard = ({
   task,
   isDragging,
+  onClick,
   onDragStart,
   onDragEnd,
 }: TaskCardProps & {
   isDragging?: boolean;
+  onClick?: React.MouseEventHandler<HTMLDivElement>;
   onDragStart?: (e: React.DragEvent) => void;
   onDragEnd?: (e: React.DragEvent) => void;
 }) => {
+  const isCompleted = task.completed || task.status === "completed";
   const classNames = [
     "task-card",
     task.overdue ? "task-card--overdue" : "",
-    task.completed ? "task-card--completed" : "",
+    isCompleted ? "task-card--completed" : "",
+    onClick ? "task-card--interactive" : "",
     isDragging ? "task-card--dragging" : "",
   ]
     .filter(Boolean)
     .join(" ");
 
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (!onClick) {
+      return;
+    }
+
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      onClick(event as unknown as React.MouseEvent<HTMLDivElement>);
+    }
+  };
+
   return (
     <GlassPanel
       className={classNames}
       intensity="strong"
-      draggable
+      draggable={Boolean(onDragStart)}
       onDragStart={(e) => onDragStart && onDragStart(e)}
       onDragEnd={(e) => onDragEnd && onDragEnd(e)}
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onClick={onClick}
+      onKeyDown={handleKeyDown}
     >
       <div className="task-card__top">
         <span
@@ -48,7 +67,7 @@ export const TaskCard = ({
         >
           {PRIORITY_LABELS[task.priority]}
         </span>
-        {task.completed ? (
+        {isCompleted ? (
           <CheckCircle2
             size={18}
             strokeWidth={2.1}
@@ -57,16 +76,18 @@ export const TaskCard = ({
         ) : task.overdue ? (
           <span className="task-card__overdue-pill">
             <TriangleAlert size={14} strokeWidth={2.25} />
-            Yesterday
+            באיחור
           </span>
         ) : (
-          <button
-            className="task-card__menu"
-            type="button"
-            aria-label={`אפשרויות עבור ${task.title}`}
-          >
-            <MoreHorizontal size={18} strokeWidth={2} />
-          </button>
+          ""
+          // <button
+          //   className="task-card__menu"
+          //   type="button"
+          //   aria-label={`אפשרויות עבור ${task.title}`}
+          //   onClick={(event) => event.stopPropagation()}
+          // >
+          //   <MoreHorizontal size={18} strokeWidth={2} />
+          // </button>
         )}
       </div>
 

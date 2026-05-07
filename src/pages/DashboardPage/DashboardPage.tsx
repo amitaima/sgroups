@@ -1,10 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link, Navigate, useNavigate, useParams } from "react-router-dom";
+import { Navigate, useNavigate, useParams } from "react-router-dom";
 import {
-  CalendarDays,
   Link as LinkIcon,
   ListCheck,
-  PencilLine,
   Plus,
   Save,
   Trash2,
@@ -22,31 +20,31 @@ import { OpenTasksCard } from "@components/ui/OpenTasksCard/OpenTasksCard";
 import { TeamLinksCard } from "@components/ui/TeamLinksCard/TeamLinksCard";
 import { useWorkspaceProject } from "@hooks/useWorkspaceProject";
 import { getProjectWorkspacePath } from "@app/router/workspaceRoutes";
-import type { MemberDirectoryUser } from "@services/firebase/firebase";
+import type {
+  MemberDirectoryUser,
+  ProjectTaskRecord,
+} from "@services/firebase/firebase";
 import {
-  getProjectCalendarEvents,
+  getProjectTasks,
   getUsersByIds,
   resolveMemberIdsByEmails,
+  subscribeProjectTasks,
   updateProject,
+  updateProjectTask,
 } from "@services/firebase/firebase";
 import type {
   Project,
   ProjectLink,
   ProjectMemberRole,
-  ProjectMilestone,
 } from "../../types/common";
 import "./DashboardPage.scss";
-
-type ProjectDeadline =
-  | Project["nextMilestoneAt"]
-  | Project["finalSubmissionAt"]
-  | Project["dueDate"];
 
 type DashboardTaskItem = {
   id: string;
   title: string;
   completed: boolean;
   dueDateLabel: string;
+  assigneeIds: string[];
 };
 
 type DashboardMemberRow = {
@@ -69,6 +67,11 @@ const ROLE_LABELS: Record<ProjectMemberRole, string> = {
   member: "חבר צוות",
 };
 
+type ProjectDeadline =
+  | Project["nextMilestoneAt"]
+  | Project["finalSubmissionAt"]
+  | Project["dueDate"];
+
 const formatCountdown = (timestamp?: ProjectDeadline) => {
   if (!timestamp) {
     return "טרם הוגדר";
@@ -84,7 +87,7 @@ const formatCountdown = (timestamp?: ProjectDeadline) => {
   return differenceInDays === 0 ? "היום" : `${differenceInDays} ימים`;
 };
 
-const formatDateLabel = (timestamp?: ProjectDeadline) => {
+const formatDateLabel = (timestamp?: Project["dueDate"]) => {
   if (!timestamp) {
     return "טרם הוגדר";
   }
@@ -107,20 +110,30 @@ const formatRelativeDeadline = (timestamp?: ProjectDeadline) => {
   return differenceInDays <= 0 ? "היום" : `${differenceInDays} ימים`;
 };
 
-const getTaskDueDateLabel = (milestone: ProjectMilestone) =>
-  milestone.dueDate.toDate().toLocaleDateString("he-IL", {
+const getTaskDueDateLabel = (task: ProjectTaskRecord) =>
+  task.dueDate?.toDate().toLocaleDateString("he-IL", {
     day: "numeric",
     month: "short",
-  });
+  }) ?? "ללא מועד מוגדר";
 
-const buildTaskItems = (project: Project): DashboardTaskItem[] =>
-  [...(project.milestones ?? [])]
-    .sort((left, right) => left.dueDate.toMillis() - right.dueDate.toMillis())
-    .map((milestone) => ({
-      id: milestone.id,
-      title: milestone.title,
-      completed: Boolean(milestone.completed),
-      dueDateLabel: getTaskDueDateLabel(milestone),
+const buildTaskItems = (tasks: ProjectTaskRecord[]): DashboardTaskItem[] =>
+  [...tasks]
+    .sort((left, right) => {
+      const leftDue = left.dueDate?.toMillis() ?? Number.POSITIVE_INFINITY;
+      const rightDue = right.dueDate?.toMillis() ?? Number.POSITIVE_INFINITY;
+
+      if (leftDue !== rightDue) {
+        return leftDue - rightDue;
+      }
+
+      return left.title.localeCompare(right.title, "he");
+    })
+    .map((task) => ({
+      id: task.id,
+      title: task.title,
+      completed: task.status === "completed" || task.completed,
+      dueDateLabel: getTaskDueDateLabel(task),
+      assigneeIds: task.assigneeIds,
     }));
 
 const buildProjectMembers = (
@@ -162,50 +175,38 @@ const buildProjectMembers = (
 };
 
 const buildDistributionData = (
-  project: Project,
   members: DashboardMemberRow[],
-  projectEvents: Awaited<ReturnType<typeof getProjectCalendarEvents>>,
+  tasks: DashboardTaskItem[],
 ) => {
   const memberNames = new Map(
     members.map((member) => [member.id, member.name]),
   );
 
-  if (projectEvents.length > 0) {
-    const counts = new Map<string, number>();
-
-    projectEvents.forEach((event) => {
-      const assignees =
-        event.assigneeIds.length > 0 ? event.assigneeIds : [event.ownerId];
-
-      assignees.forEach((memberId) => {
-        if (!memberId) {
-          return;
-        }
-
-        counts.set(memberId, (counts.get(memberId) ?? 0) + 1);
-      });
-    });
-
-    return Array.from(counts.entries())
-      .map(([memberId, value]) => ({
-        name: memberNames.get(memberId) ?? "ללא שיוך",
-        value,
-      }))
-      .sort((left, right) => right.value - left.value)
-      .slice(0, 4);
-  }
-
-  const tasks = buildTaskItems(project);
-  const completedCount = tasks.filter((task) => task.completed).length;
-
   if (tasks.length === 0) {
     return [];
   }
 
-  return [
-    { name: "הושלמו", value: completedCount },
-    { name: "פתוחים", value: tasks.length - completedCount },
-  ].filter((item) => item.value > 0);
+  const counts = new Map<string, number>();
+
+  tasks.forEach((task) => {
+    const assignees = task.assigneeIds.length > 0 ? task.assigneeIds : [];
+
+    assignees.forEach((memberId) => {
+      if (!memberId) {
+        return;
+      }
+
+      counts.set(memberId, (counts.get(memberId) ?? 0) + 1);
+    });
+  });
+
+  return Array.from(counts.entries())
+    .map(([memberId, value]) => ({
+      name: memberNames.get(memberId) ?? "ללא שיוך",
+      value,
+    }))
+    .sort((left, right) => right.value - left.value)
+    .slice(0, 4);
 };
 
 const buildMemberRoleMap = (project: Project, memberIds: string[]) => {
@@ -261,9 +262,7 @@ export const DashboardPage = () => {
   const [projectMembers, setProjectMembers] = useState<MemberDirectoryUser[]>(
     [],
   );
-  const [projectEvents, setProjectEvents] = useState<
-    Awaited<ReturnType<typeof getProjectCalendarEvents>>
-  >([]);
+  const [projectTasks, setProjectTasks] = useState<ProjectTaskRecord[]>([]);
   const [updatingTaskId, setUpdatingTaskId] = useState<string | null>(null);
   const [membersDialogOpen, setMembersDialogOpen] = useState(false);
   const [linksDialogOpen, setLinksDialogOpen] = useState(false);
@@ -298,7 +297,7 @@ export const DashboardPage = () => {
   useEffect(() => {
     if (!selectedProject) {
       setProjectMembers([]);
-      setProjectEvents([]);
+      setProjectTasks([]);
       return;
     }
 
@@ -306,15 +305,15 @@ export const DashboardPage = () => {
 
     void Promise.all([
       getUsersByIds(selectedProject.memberIds),
-      getProjectCalendarEvents(selectedProject.id),
+      getProjectTasks(selectedProject.id),
     ])
-      .then(([members, events]) => {
+      .then(([members, tasks]) => {
         if (!active) {
           return;
         }
 
         setProjectMembers(members);
-        setProjectEvents(events);
+        setProjectTasks(tasks);
       })
       .catch((error) => {
         if (!active) {
@@ -323,11 +322,31 @@ export const DashboardPage = () => {
 
         console.error("Failed to load dashboard project data", error);
         setProjectMembers([]);
-        setProjectEvents([]);
+        setProjectTasks([]);
       });
 
     return () => {
       active = false;
+    };
+  }, [selectedProject]);
+
+  useEffect(() => {
+    if (!selectedProject) {
+      return;
+    }
+
+    const unsubscribe = subscribeProjectTasks(
+      selectedProject.id,
+      (nextTasks) => {
+        setProjectTasks(nextTasks);
+      },
+      (error) => {
+        console.error("Failed to subscribe to dashboard tasks", error);
+      },
+    );
+
+    return () => {
+      unsubscribe();
     };
   }, [selectedProject]);
 
@@ -367,10 +386,7 @@ export const DashboardPage = () => {
       activeProject ? buildProjectMembers(activeProject, projectMembers) : [],
     [activeProject, projectMembers],
   );
-  const taskItems = useMemo(
-    () => (activeProject ? buildTaskItems(activeProject) : []),
-    [activeProject],
-  );
+  const taskItems = useMemo(() => buildTaskItems(projectTasks), [projectTasks]);
   const completedTaskCount = useMemo(
     () => taskItems.filter((task) => task.completed).length,
     [taskItems],
@@ -414,11 +430,8 @@ export const DashboardPage = () => {
     return deadlines[0] ?? null;
   }, [activeProject]);
   const distributionData = useMemo(
-    () =>
-      activeProject
-        ? buildDistributionData(activeProject, memberRows, projectEvents)
-        : [],
-    [activeProject, memberRows, projectEvents],
+    () => (activeProject ? buildDistributionData(memberRows, taskItems) : []),
+    [activeProject, memberRows, taskItems],
   );
   const projectLinks = activeProject?.importantLinks ?? [];
   const links = projectLinks.map((link) => ({
@@ -454,27 +467,13 @@ export const DashboardPage = () => {
 
     setUpdatingTaskId(taskId);
 
-    const nextMilestones = (activeProject.milestones ?? []).map((milestone) =>
-      milestone.id === taskId
-        ? { ...milestone, completed: nextCompleted }
-        : milestone,
-    );
-    const serializedMilestones = nextMilestones.map((milestone) => ({
-      id: milestone.id,
-      title: milestone.title,
-      dueDate: milestone.dueDate.toDate(),
-      completed: milestone.completed,
-    }));
-
     try {
-      await updateProject(activeProject.id, {
-        milestones: serializedMilestones,
+      await updateProjectTask(activeProject.id, taskId, {
+        completed: nextCompleted,
+        status: nextCompleted ? "completed" : "todo",
       });
-      setSelectedProject((current) =>
-        current ? { ...current, milestones: nextMilestones } : current,
-      );
     } catch (error) {
-      console.error("Failed to update milestone", error);
+      console.error("Failed to update task", error);
     } finally {
       setUpdatingTaskId(null);
     }
@@ -592,8 +591,8 @@ export const DashboardPage = () => {
 
   const progressHint =
     taskItems.length > 0
-      ? `${completedTaskCount} דדליינים הושלמו מתוך ${taskItems.length}`
-      : "אין עדיין אבני דרך שהוגדרו לפרויקט.";
+      ? `${completedTaskCount} משימות הושלמו מתוך ${taskItems.length}`
+      : "אין עדיין משימות שהוגדרו לפרויקט.";
   const finalDeadline =
     activeProject.finalSubmissionAt ?? activeProject.dueDate;
   const finalDeadlineLabel = formatCountdown(finalDeadline);

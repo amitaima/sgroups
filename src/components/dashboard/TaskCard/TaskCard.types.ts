@@ -1,7 +1,5 @@
 import type { MemberAvatarItem } from "@components/users/MemberAvatarGroup";
-
-export type TaskPriority = "high" | "medium" | "low";
-export type TaskStatus = "todo" | "inProgress" | "review" | "completed";
+import type { TaskPriority, TaskStatus } from "../../../types/common";
 
 export interface TaskCardData {
   id: string;
@@ -18,6 +16,7 @@ export interface TaskCardData {
 export interface TaskCardProps {
   task: TaskCardData;
   isDragging?: boolean;
+  onClick?: React.MouseEventHandler<HTMLDivElement>;
   onDragStart?: (e: React.DragEvent) => void;
   onDragEnd?: (e: React.DragEvent) => void;
 }

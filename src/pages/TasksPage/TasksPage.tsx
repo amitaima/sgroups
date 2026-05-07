@@ -1,235 +1,560 @@
-import { useState, useCallback } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Navigate, useParams } from "react-router-dom";
+import {
+  CalendarDays,
+  CheckCircle2,
+  Filter,
+  MoreHorizontal,
+  Plus,
+  SlidersHorizontal,
+  TriangleAlert,
+  Users,
+  X,
+} from "lucide-react";
+import { useAuth } from "@app/providers/AuthProvider";
 import { Button } from "@components/ui/Button/Button";
+import { GlassPanel } from "@components/ui/GlassPanel/GlassPanel";
 import { PageSection } from "@components/layout/PageSection/PageSection";
 import { SectionTitle } from "@components/ui/SectionTitle/SectionTitle";
 import { TaskCard } from "@components/dashboard/TaskCard";
+import { MemberAvatarGroup } from "@components/users/MemberAvatarGroup";
 import { useWorkspaceProject } from "@hooks/useWorkspaceProject";
-import { Filter, MoreHorizontal, Plus, SlidersHorizontal } from "lucide-react";
-import type { TaskBoardColumnData } from "./TasksPage.types";
+import type {
+  MemberDirectoryUser,
+  ProjectTaskRecord,
+} from "@services/firebase/firebase";
+import {
+  createProjectTask,
+  getUsersByIds,
+  subscribeProjectTasks,
+  updateProjectTask,
+} from "@services/firebase/firebase";
+import type { TaskCardData } from "@components/dashboard/TaskCard";
+import type { TaskPriority, TaskStatus } from "../../types/common";
+import type {
+  TaskAssigneeOption,
+  TaskBoardColumnData,
+  TaskDialogDraft,
+} from "./TasksPage.types";
 import "./TasksPage.scss";
 
-const TASK_ASSIGNEES = {
-  naomi: { id: "naomi", displayName: "Naomi", email: null, photoURL: null },
-  yotam: { id: "yotam", displayName: "Yotam", email: null, photoURL: null },
-  shira: { id: "shira", displayName: "Shira", email: null, photoURL: null },
-  daniel: { id: "daniel", displayName: "Daniel", email: null, photoURL: null },
-} as const;
+const TASK_COLUMN_CONFIG: Record<
+  TaskStatus,
+  { title: string; tone: TaskBoardColumnData["tone"] }
+> = {
+  todo: { title: "To Do", tone: "neutral" },
+  inProgress: { title: "In Progress", tone: "teal" },
+  review: { title: "Review", tone: "olive" },
+  completed: { title: "Completed", tone: "primary" },
+};
 
-const buildColumns = (): TaskBoardColumnData[] => [
-  {
-    id: "todo",
-    title: "To Do",
-    count: 3,
-    tone: "neutral",
-    tasks: [
-      {
-        id: "research-sources",
-        title: "Research Literature Review Sources",
-        description:
-          "Compile an initial list of at least 15 peer-reviewed articles focusing on cognitive load theory.",
-        priority: "high",
-        status: "todo",
-        dueDateLabel: "Oct 24",
-        assignees: [TASK_ASSIGNEES.naomi],
-      },
-      {
-        id: "annotated-bibliography",
-        title: "Build Annotated Bibliography Draft",
-        description:
-          "Group the sources by theme and add short notes on methodology and relevance.",
-        priority: "medium",
-        status: "todo",
-        dueDateLabel: "Oct 26",
-        assignees: [TASK_ASSIGNEES.shira, TASK_ASSIGNEES.daniel],
-      },
-      {
-        id: "outline-followup",
-        title: "Confirm chapter outline with supervisor",
-        description:
-          "Review the latest outline revision and gather feedback before the next sync.",
-        priority: "low",
-        status: "todo",
-        dueDateLabel: "Oct 28",
-        assignees: [TASK_ASSIGNEES.yotam],
-      },
-    ],
-  },
-  {
-    id: "inProgress",
-    title: "In Progress",
-    count: 2,
-    tone: "teal",
-    tasks: [
-      {
-        id: "introduction-section",
-        title: "Draft Introduction Section",
-        description:
-          "Write the first 3 pages outlining the thesis statement and general background.",
-        priority: "medium",
-        status: "inProgress",
-        dueDateLabel: "Yesterday",
-        overdue: true,
-        assignees: [TASK_ASSIGNEES.yotam, TASK_ASSIGNEES.naomi],
-      },
-      {
-        id: "methodology-outline",
-        title: "Finalize Methodology Outline",
-        description:
-          "Map the experiment flow and list the instruments required for the pilot study.",
-        priority: "medium",
-        status: "inProgress",
-        dueDateLabel: "Oct 30",
-        assignees: [TASK_ASSIGNEES.shira],
-      },
-    ],
-  },
-  {
-    id: "review",
-    title: "Review",
-    count: 1,
-    tone: "olive",
-    tasks: [
-      {
-        id: "apa-formatting",
-        title: "Format Citations (APA)",
-        priority: "low",
-        status: "review",
-        dueDateLabel: "Oct 28",
-        assignees: [TASK_ASSIGNEES.daniel],
-      },
-    ],
-  },
-  {
-    id: "completed",
-    title: "Completed",
-    count: 4,
-    tone: "primary",
-    tasks: [
-      {
-        id: "presentation-shell",
-        title: "Create Presentation Deck Shell",
-        priority: "medium",
-        status: "completed",
-        dueDateLabel: "Oct 20",
-        completed: true,
-        assignees: [TASK_ASSIGNEES.naomi],
-      },
-      {
-        id: "source-matrix",
-        title: "Build source tracking matrix",
-        priority: "low",
-        status: "completed",
-        dueDateLabel: "Oct 18",
-        completed: true,
-        assignees: [TASK_ASSIGNEES.shira],
-      },
-    ],
-  },
+const TASK_STATUS_ORDER: TaskStatus[] = [
+  "todo",
+  "inProgress",
+  "review",
+  "completed",
 ];
 
+const TASK_PRIORITY_LABELS: Record<TaskPriority, string> = {
+  high: "High",
+  medium: "Medium",
+  low: "Low",
+};
+
+const TASK_STATUS_LABELS: Record<TaskStatus, string> = {
+  todo: "To Do",
+  inProgress: "In Progress",
+  review: "Review",
+  completed: "Completed",
+};
+
+const toDateInputValue = (value?: Date | null) => {
+  if (!value) {
+    return "";
+  }
+
+  const year = value.getFullYear();
+  const month = String(value.getMonth() + 1).padStart(2, "0");
+  const day = String(value.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+};
+
+const parseDateInputValue = (value: string) => {
+  if (!value) {
+    return null;
+  }
+
+  const parsedDate = new Date(`${value}T00:00:00`);
+  return Number.isNaN(parsedDate.getTime()) ? null : parsedDate;
+};
+
+const formatDueDateLabel = (task: ProjectTaskRecord) => {
+  if (!task.dueDate) {
+    return "ללא מועד מוגדר";
+  }
+
+  return task.dueDate.toDate().toLocaleDateString("he-IL", {
+    day: "numeric",
+    month: "short",
+  });
+};
+
+const buildEmptyTaskDraft = (assigneeId = ""): TaskDialogDraft => ({
+  title: "",
+  description: "",
+  priority: "medium",
+  status: "todo",
+  dueDate: "",
+  assigneeIds: assigneeId ? [assigneeId] : [],
+});
+
+const buildTaskDraftFromRecord = (
+  task: ProjectTaskRecord,
+): TaskDialogDraft => ({
+  title: task.title,
+  description: task.description ?? "",
+  priority: task.priority,
+  status: task.status,
+  dueDate: toDateInputValue(task.dueDate?.toDate() ?? null),
+  assigneeIds: [...task.assigneeIds],
+});
+
+const buildTaskAssigneeOptions = (
+  members: MemberDirectoryUser[],
+): TaskAssigneeOption[] =>
+  members
+    .map((member) => ({
+      id: member.uid,
+      displayName: member.displayName ?? null,
+      email: member.email ?? null,
+      photoURL: member.photoURL ?? null,
+    }))
+    .sort((left, right) => {
+      const leftLabel = left.displayName ?? left.email ?? left.id;
+      const rightLabel = right.displayName ?? right.email ?? right.id;
+      return leftLabel.localeCompare(rightLabel, "he");
+    });
+
+const buildTaskAssigneeOption = (
+  member: MemberDirectoryUser,
+): TaskAssigneeOption => ({
+  id: member.uid,
+  displayName: member.displayName ?? null,
+  email: member.email ?? null,
+  photoURL: member.photoURL ?? null,
+});
+
+const buildTaskCardData = (
+  task: ProjectTaskRecord,
+  memberById: Map<string, MemberDirectoryUser>,
+): TaskCardData => ({
+  id: task.id,
+  title: task.title,
+  description: task.description ?? undefined,
+  priority: task.priority,
+  status: task.status,
+  dueDateLabel: formatDueDateLabel(task),
+  assignees: task.assigneeIds.map((memberId) => {
+    const member = memberById.get(memberId);
+
+    return {
+      id: memberId,
+      displayName: member?.displayName ?? null,
+      email: member?.email ?? null,
+      photoURL: member?.photoURL ?? null,
+    };
+  }),
+  overdue:
+    Boolean(task.dueDate) &&
+    task.status !== "completed" &&
+    task.dueDate!.toMillis() < Date.now(),
+  completed: task.status === "completed" || task.completed,
+});
+
+const buildTaskBoardColumns = (
+  tasks: ProjectTaskRecord[],
+  memberById: Map<string, MemberDirectoryUser>,
+): TaskBoardColumnData[] => {
+  const tasksByStatus = new Map<TaskStatus, ProjectTaskRecord[]>(
+    TASK_STATUS_ORDER.map((status) => [status, []]),
+  );
+
+  tasks.forEach((task) => {
+    tasksByStatus.get(task.status)?.push(task);
+  });
+
+  return TASK_STATUS_ORDER.map((status) => {
+    const statusTasks = [...(tasksByStatus.get(status) ?? [])].sort(
+      (left, right) => {
+        const leftDue = left.dueDate?.toMillis() ?? Number.POSITIVE_INFINITY;
+        const rightDue = right.dueDate?.toMillis() ?? Number.POSITIVE_INFINITY;
+
+        if (leftDue !== rightDue) {
+          return leftDue - rightDue;
+        }
+
+        return left.title.localeCompare(right.title, "he");
+      },
+    );
+
+    return {
+      id: status,
+      title: TASK_COLUMN_CONFIG[status].title,
+      tone: TASK_COLUMN_CONFIG[status].tone,
+      count: statusTasks.length,
+      tasks: statusTasks.map((task) => buildTaskCardData(task, memberById)),
+    };
+  });
+};
+
+const getDefaultAssigneeId = (
+  projectCreatedBy?: string,
+  currentUserId?: string | null,
+) => projectCreatedBy ?? currentUserId ?? "";
+
 export const TasksPage = () => {
+  const { user } = useAuth();
   const { projectId } = useParams();
   const { project, loading, error } = useWorkspaceProject(projectId);
-  const [boardView, setBoardView] = useState<"board" | "list">("board");
-  const [columnsData, setColumnsData] = useState<TaskBoardColumnData[]>(() =>
-    buildColumns(),
-  );
-  const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
 
-  const handleTaskDragStart = useCallback(
-    (taskId: string, sourceColumnId: string) => (e: React.DragEvent) => {
+  const [boardView, setBoardView] = useState<"board" | "list">("board");
+  const [tasks, setTasks] = useState<ProjectTaskRecord[]>([]);
+  const [projectMembers, setProjectMembers] = useState<MemberDirectoryUser[]>(
+    [],
+  );
+  const [tasksLoading, setTasksLoading] = useState(true);
+  const [tasksError, setTasksError] = useState<string | null>(null);
+  const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
+  const [dragOverColumnId, setDragOverColumnId] = useState<TaskStatus | null>(
+    null,
+  );
+  const [taskDialogMode, setTaskDialogMode] = useState<
+    "create" | "edit" | null
+  >(null);
+  const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
+  const [taskDraft, setTaskDraft] = useState<TaskDialogDraft>(() =>
+    buildEmptyTaskDraft(),
+  );
+  const [taskDialogError, setTaskDialogError] = useState<string | null>(null);
+  const [isSavingTask, setIsSavingTask] = useState(false);
+  const suppressTaskClickRef = useRef(false);
+  const suppressTaskClickTimerRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (!project) {
+      setProjectMembers([]);
+      return;
+    }
+
+    let active = true;
+
+    void getUsersByIds(project.memberIds)
+      .then((members) => {
+        if (active) {
+          setProjectMembers(members);
+        }
+      })
+      .catch((nextError) => {
+        if (!active) {
+          return;
+        }
+
+        console.error("Failed to load task assignees", nextError);
+        setProjectMembers([]);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [project?.id, project?.memberIds.join("|")]);
+
+  useEffect(() => {
+    if (!project) {
+      setTasks([]);
+      setTasksLoading(true);
+      setTasksError(null);
+      return;
+    }
+
+    setTasksLoading(true);
+    setTasksError(null);
+
+    const unsubscribe = subscribeProjectTasks(
+      project.id,
+      (nextTasks) => {
+        setTasks(nextTasks);
+        setTasksLoading(false);
+      },
+      (nextError) => {
+        console.error("Failed to load project tasks", nextError);
+        setTasks([]);
+        setTasksError("לא הצלחנו לטעון את המשימות.");
+        setTasksLoading(false);
+      },
+    );
+
+    return () => {
+      unsubscribe();
+    };
+  }, [project?.id]);
+
+  useEffect(() => {
+    if (taskDialogMode !== "edit" || !activeTaskId) {
+      return;
+    }
+
+    const nextTask = tasks.find((task) => task.id === activeTaskId);
+    if (!nextTask) {
+      setTaskDialogMode(null);
+      setActiveTaskId(null);
+    }
+  }, [activeTaskId, taskDialogMode, tasks]);
+
+  useEffect(
+    () => () => {
+      if (suppressTaskClickTimerRef.current) {
+        window.clearTimeout(suppressTaskClickTimerRef.current);
+      }
+    },
+    [],
+  );
+
+  const memberById = useMemo(
+    () => new Map(projectMembers.map((member) => [member.uid, member])),
+    [projectMembers],
+  );
+
+  const taskColumns = useMemo(
+    () => buildTaskBoardColumns(tasks, memberById),
+    [memberById, tasks],
+  );
+
+  const assigneeOptions = useMemo(
+    () => buildTaskAssigneeOptions(projectMembers),
+    [projectMembers],
+  );
+
+  const selectedTask = useMemo(
+    () => tasks.find((task) => task.id === activeTaskId) ?? null,
+    [activeTaskId, tasks],
+  );
+
+  const openTaskDialog = (task: ProjectTaskRecord) => {
+    setTaskDialogMode("edit");
+    setActiveTaskId(task.id);
+    setTaskDialogError(null);
+    setTaskDraft(buildTaskDraftFromRecord(task));
+  };
+
+  const openCreateTaskDialog = () => {
+    const defaultAssigneeId = getDefaultAssigneeId(
+      project?.createdBy,
+      user?.uid ?? null,
+    );
+
+    setTaskDialogMode("create");
+    setActiveTaskId(null);
+    setTaskDialogError(null);
+    setTaskDraft(buildEmptyTaskDraft(defaultAssigneeId));
+  };
+
+  const closeTaskDialog = () => {
+    setTaskDialogMode(null);
+    setActiveTaskId(null);
+    setTaskDialogError(null);
+    setIsSavingTask(false);
+  };
+
+  const suppressNextTaskClick = () => {
+    suppressTaskClickRef.current = true;
+
+    if (suppressTaskClickTimerRef.current) {
+      window.clearTimeout(suppressTaskClickTimerRef.current);
+    }
+
+    suppressTaskClickTimerRef.current = window.setTimeout(() => {
+      suppressTaskClickRef.current = false;
+      suppressTaskClickTimerRef.current = null;
+    }, 180);
+  };
+
+  const handleTaskCardClick = (taskId: string) => {
+    if (suppressTaskClickRef.current) {
+      return;
+    }
+
+    const nextTask = tasks.find((task) => task.id === taskId);
+    if (nextTask) {
+      openTaskDialog(nextTask);
+    }
+  };
+
+  const handleTaskDragStart =
+    (taskId: string, sourceColumnId: TaskStatus) =>
+    (event: React.DragEvent) => {
       setDraggedTaskId(taskId);
-      e.dataTransfer.effectAllowed = "move";
-      // set both a custom type and a plain fallback for compatibility
+      setDragOverColumnId(sourceColumnId);
+      suppressNextTaskClick();
+      event.dataTransfer.effectAllowed = "move";
+
       try {
-        e.dataTransfer.setData("text/task", taskId);
-        e.dataTransfer.setData("text/source", sourceColumnId);
-        e.dataTransfer.setData(
+        event.dataTransfer.setData(
           "text/plain",
           JSON.stringify({ taskId, sourceColumnId }),
         );
-      } catch (err) {
-        // some environments may restrict types; still attempt plain
-        try {
-          e.dataTransfer.setData("text/plain", taskId);
-        } catch (e2) {
-          // ignore
-        }
+      } catch {
+        event.dataTransfer.setData("text/plain", taskId);
       }
-    },
-    [],
-  );
+    };
 
-  const handleColumnDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = "move";
-  };
+  const handleColumnDragOver =
+    (columnId: TaskStatus) => (event: React.DragEvent) => {
+      event.preventDefault();
+      event.dataTransfer.dropEffect = "move";
+      setDragOverColumnId(columnId);
+    };
 
-  const handleTaskDrop = useCallback(
-    (targetColumnId: string) => (e: React.DragEvent) => {
-      e.preventDefault();
-      // Try multiple retrieval strategies for cross-browser compatibility
-      let taskId =
-        e.dataTransfer.getData("text/task") || e.dataTransfer.getData("taskId");
-      let sourceColumnId =
-        e.dataTransfer.getData("text/source") ||
-        e.dataTransfer.getData("sourceColumn");
+  const handleTaskDrop =
+    (targetColumnId: TaskStatus) => (event: React.DragEvent) => {
+      event.preventDefault();
+      suppressNextTaskClick();
 
-      if (!taskId) {
-        const plain = e.dataTransfer.getData("text/plain");
-        if (plain) {
-          try {
-            const parsed = JSON.parse(plain);
-            taskId = taskId || parsed.taskId || parsed.id;
-            sourceColumnId =
-              sourceColumnId || parsed.sourceColumnId || parsed.source;
-          } catch (_err) {
-            // fallback: plain string could be the id
-            taskId = taskId || plain;
-          }
-        }
+      let taskId = "";
+      let sourceColumnId = "";
+
+      try {
+        const payload = JSON.parse(event.dataTransfer.getData("text/plain"));
+        taskId = typeof payload.taskId === "string" ? payload.taskId : "";
+        sourceColumnId =
+          typeof payload.sourceColumnId === "string"
+            ? payload.sourceColumnId
+            : "";
+      } catch {
+        taskId = event.dataTransfer.getData("text/plain");
       }
 
-      if (!taskId || !sourceColumnId) return;
-      if (sourceColumnId === targetColumnId) {
+      if (!taskId || !project) {
         setDraggedTaskId(null);
+        setDragOverColumnId(null);
         return;
       }
 
-      setColumnsData((prev) => {
-        const newColumns = prev.map((col) => ({ ...col }));
-        const sourceCol = newColumns.find((col) => col.id === sourceColumnId);
-        const targetCol = newColumns.find((col) => col.id === targetColumnId);
+      if (!sourceColumnId) {
+        const sourceTask = tasks.find((task) => task.id === taskId);
+        sourceColumnId = sourceTask?.status ?? "";
+      }
 
-        if (!sourceCol || !targetCol) return prev;
+      if (!sourceColumnId || sourceColumnId === targetColumnId) {
+        setDraggedTaskId(null);
+        setDragOverColumnId(null);
+        return;
+      }
 
-        const taskIndex = sourceCol.tasks.findIndex((t) => t.id === taskId);
-        if (taskIndex === -1) return prev;
-
-        const [task] = sourceCol.tasks.splice(taskIndex, 1);
-        task.status = targetColumnId as any;
-        targetCol.tasks.push(task);
-
-        sourceCol.count = sourceCol.tasks.length;
-        targetCol.count = targetCol.tasks.length;
-
-        return newColumns;
+      void updateProjectTask(project.id, taskId, {
+        status: targetColumnId,
+        completed: targetColumnId === "completed",
+      }).catch((nextError) => {
+        console.error("Failed to update task status", nextError);
+        setTasksError("לא הצלחנו לשמור את שינוי הסטטוס.");
       });
 
       setDraggedTaskId(null);
-    },
-    [],
-  );
+      setDragOverColumnId(null);
+    };
 
-  const handleTaskDragEnd = useCallback(() => {
+  const handleTaskDragEnd = () => {
     setDraggedTaskId(null);
-  }, []);
+    setDragOverColumnId(null);
+    suppressNextTaskClick();
+  };
+
+  const toggleTaskAssignee = (memberId: string) => {
+    setTaskDraft((current) => {
+      const hasAssignee = current.assigneeIds.includes(memberId);
+      return {
+        ...current,
+        assigneeIds: hasAssignee
+          ? current.assigneeIds.filter((item) => item !== memberId)
+          : [...current.assigneeIds, memberId],
+      };
+    });
+  };
+
+  const handleTaskSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    if (!project || !user) {
+      return;
+    }
+
+    const title = taskDraft.title.trim();
+    if (!title) {
+      setTaskDialogError("Task title is required.");
+      return;
+    }
+
+    setIsSavingTask(true);
+    setTaskDialogError(null);
+
+    const dueDate = parseDateInputValue(taskDraft.dueDate);
+
+    try {
+      if (taskDialogMode === "edit" && selectedTask) {
+        await updateProjectTask(project.id, selectedTask.id, {
+          title,
+          description: taskDraft.description.trim() || null,
+          priority: taskDraft.priority,
+          status: taskDraft.status,
+          dueDate,
+          assigneeIds: taskDraft.assigneeIds,
+          completed: taskDraft.status === "completed",
+        });
+      } else {
+        await createProjectTask(project.id, {
+          title,
+          description: taskDraft.description.trim() || null,
+          priority: taskDraft.priority,
+          status: taskDraft.status,
+          dueDate,
+          assigneeIds: taskDraft.assigneeIds,
+          completed: taskDraft.status === "completed",
+          createdBy: user.uid,
+        });
+      }
+
+      closeTaskDialog();
+    } catch (nextError) {
+      console.error("Failed to save task", nextError);
+      setTaskDialogError("לא הצלחנו לשמור את המשימה.");
+    } finally {
+      setIsSavingTask(false);
+    }
+  };
+
+  const currentTaskMembers =
+    taskDialogMode === "edit" && selectedTask
+      ? selectedTask.assigneeIds.map((memberId) => {
+          const member = memberById.get(memberId);
+          if (!member) {
+            return {
+              id: memberId,
+              displayName: null,
+              email: null,
+              photoURL: null,
+            };
+          }
+
+          return buildTaskAssigneeOption(member);
+        })
+      : assigneeOptions.filter((member) =>
+          taskDraft.assigneeIds.includes(member.id),
+        );
 
   if (loading) {
     return (
       <PageSection className="tasks-page">
-        <div className="tasks-page__state">Loading workspace...</div>
+        <div className="tasks-page__state">טוען סביבת עבודה...</div>
       </PageSection>
     );
   }
@@ -246,19 +571,23 @@ export const TasksPage = () => {
     return <Navigate to="/projects" replace />;
   }
 
+  const statusMessage =
+    tasksError ??
+    (tasksLoading && tasks.length === 0 ? "טוען משימות..." : null);
+
   return (
     <PageSection className="tasks-page" aria-labelledby="tasks-page-title">
       <div className="tasks-page__hero">
         <SectionTitle
-          title="Team Board"
-          subtitle="Manage tasks across all active groups."
+          title="לוח משימות"
+          subtitle="ניהול משימות לכל הקבוצות הפעילות."
         />
 
-        <div className="tasks-page__actions" aria-label="Board controls">
+        <div className="tasks-page__actions" aria-label="פקדי לוח">
           <div
             className="tasks-page__toggle"
             role="tablist"
-            aria-label="Board view"
+            aria-label="תצוגת לוח"
           >
             <button
               className={`tasks-page__toggle-item${boardView === "board" ? " is-active" : ""}`}
@@ -267,7 +596,7 @@ export const TasksPage = () => {
               aria-selected={boardView === "board"}
               onClick={() => setBoardView("board")}
             >
-              Board
+              לוח
             </button>
             <button
               className={`tasks-page__toggle-item${boardView === "list" ? " is-active" : ""}`}
@@ -276,7 +605,7 @@ export const TasksPage = () => {
               aria-selected={boardView === "list"}
               onClick={() => setBoardView("list")}
             >
-              List
+              רשימה
             </button>
           </div>
 
@@ -287,24 +616,44 @@ export const TasksPage = () => {
             className="tasks-page__filter-button"
           >
             <Filter size={16} />
-            Filters
+            סינון
           </Button>
 
-          <Button size="md" type="button" className="tasks-page__add-button">
+          <Button
+            size="md"
+            type="button"
+            className="tasks-page__add-button"
+            onClick={openCreateTaskDialog}
+          >
             <Plus size={16} />
-            Add Task
+            הוספת משימה
           </Button>
         </div>
       </div>
 
+      {statusMessage ? (
+        <div
+          className={`tasks-page__notice${tasksError ? " tasks-page__notice--error" : ""}`}
+          role={tasksError ? "alert" : "status"}
+          aria-live="polite"
+        >
+          {tasksError ? (
+            <TriangleAlert size={16} />
+          ) : (
+            <SlidersHorizontal size={16} />
+          )}
+          <span>{statusMessage}</span>
+        </div>
+      ) : null}
+
       {boardView === "board" ? (
-        <div className="tasks-page__board" aria-label="Task board columns">
-          {columnsData.map((column) => (
+        <div className="tasks-page__board" aria-label="עמודות לוח המשימות">
+          {taskColumns.map((column) => (
             <section
               key={column.id}
-              className={`tasks-page__column tasks-page__column--${column.tone}`}
+              className={`tasks-page__column tasks-page__column--${column.tone}${dragOverColumnId === column.id ? " is-drag-over" : ""}`}
               aria-labelledby={`column-${column.id}-title`}
-              onDragOver={handleColumnDragOver}
+              onDragOver={handleColumnDragOver(column.id)}
               onDrop={handleTaskDrop(column.id)}
             >
               <header className="tasks-page__column-header">
@@ -320,18 +669,18 @@ export const TasksPage = () => {
                     {column.count}
                   </span>
                 </div>
-                <button
+                {/* <button
                   className="tasks-page__column-menu"
                   type="button"
                   aria-label={`More options for ${column.title}`}
                 >
                   <MoreHorizontal size={18} strokeWidth={2} />
-                </button>
+                </button> */}
               </header>
 
               <div
                 className="tasks-page__cards"
-                onDragOver={handleColumnDragOver}
+                onDragOver={handleColumnDragOver(column.id)}
                 onDrop={handleTaskDrop(column.id)}
               >
                 {column.tasks.map((task) => (
@@ -339,14 +688,14 @@ export const TasksPage = () => {
                     key={task.id}
                     task={task}
                     isDragging={draggedTaskId === task.id}
+                    onClick={() => handleTaskCardClick(task.id)}
                     onDragStart={handleTaskDragStart(task.id, column.id)}
                     onDragEnd={handleTaskDragEnd}
                   />
                 ))}
-                {/* Invisible sentinel to catch drops into whitespace below last card */}
                 <div
                   className="tasks-page__drop-sentinel"
-                  onDragOver={handleColumnDragOver}
+                  onDragOver={handleColumnDragOver(column.id)}
                   onDrop={handleTaskDrop(column.id)}
                 />
               </div>
@@ -357,21 +706,258 @@ export const TasksPage = () => {
         <div className="tasks-page__list-view" aria-live="polite">
           <div className="tasks-page__list-header">
             <SlidersHorizontal size={16} />
-            List view is ready for future table data.
+            תצוגת הרשימה שומרת על המשימות זמינות גם במסכים קטנים.
           </div>
           <div className="tasks-page__list-grid">
-            {columnsData
+            {taskColumns
               .flatMap((column) => column.tasks)
               .map((task) => (
                 <TaskCard
                   key={task.id}
                   task={task}
+                  onClick={() => handleTaskCardClick(task.id)}
                   onDragEnd={handleTaskDragEnd}
                 />
               ))}
           </div>
         </div>
       )}
+
+      {taskDialogMode ? (
+        <div
+          className="tasks-page__dialog-backdrop"
+          role="presentation"
+          onClick={closeTaskDialog}
+        >
+          <GlassPanel
+            className="tasks-page__dialog"
+            intensity="strong"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="task-dialog-title"
+            onClick={(dialogClickEvent) => dialogClickEvent.stopPropagation()}
+          >
+            <div className="tasks-page__dialog-header">
+              <div className="tasks-page__dialog-heading">
+                <p className="tasks-page__dialog-eyebrow">
+                  {taskDialogMode === "edit" ? "עריכת משימה" : "משימה חדשה"}
+                </p>
+                <h2 id="task-dialog-title" className="tasks-page__dialog-title">
+                  {taskDraft.title.trim() || "פרטי משימה"}
+                </h2>
+                <p className="tasks-page__dialog-subtitle">
+                  עדכון כותרת, תיאור, אחראים, סטטוס ועדיפות.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                className="tasks-page__dialog-close"
+                onClick={closeTaskDialog}
+                aria-label="סגירת חלון"
+              >
+                <X size={18} strokeWidth={2} />
+              </button>
+            </div>
+
+            {/* <div className="tasks-page__dialog-summary">
+              <div className="tasks-page__summary-chip">
+                <CheckCircle2 size={14} strokeWidth={2.1} />
+                <span>{TASK_STATUS_LABELS[taskDraft.status]}</span>
+              </div>
+              <div className="tasks-page__summary-chip">
+                <TriangleAlert size={14} strokeWidth={2.1} />
+                <span>{TASK_PRIORITY_LABELS[taskDraft.priority]}</span>
+              </div>
+              <div className="tasks-page__summary-chip">
+                <CalendarDays size={14} strokeWidth={2.1} />
+                <span>{taskDraft.dueDate || "ללא מועד מוגדר"}</span>
+              </div>
+              <div className="tasks-page__summary-chip">
+                <Users size={14} strokeWidth={2.1} />
+                <span>{taskDraft.assigneeIds.length || "0"} אחראים</span>
+              </div>
+            </div> */}
+
+            <form
+              className="tasks-page__dialog-form"
+              onSubmit={handleTaskSubmit}
+            >
+              <div className="tasks-page__dialog-grid">
+                <label className="tasks-page__field tasks-page__field--full">
+                  <span>כותרת</span>
+                  <input
+                    type="text"
+                    value={taskDraft.title}
+                    onChange={(changeEvent) =>
+                      setTaskDraft((current) => ({
+                        ...current,
+                        title: changeEvent.target.value,
+                      }))
+                    }
+                    placeholder="מקורות לסקירת הספרות"
+                    autoComplete="off"
+                    required
+                  />
+                </label>
+
+                <label className="tasks-page__field tasks-page__field--full">
+                  <span>תיאור</span>
+                  <textarea
+                    value={taskDraft.description}
+                    onChange={(changeEvent) =>
+                      setTaskDraft((current) => ({
+                        ...current,
+                        description: changeEvent.target.value,
+                      }))
+                    }
+                    rows={4}
+                    placeholder="הוספת הקשר, הערות או פרטים תומכים."
+                  />
+                </label>
+
+                <label className="tasks-page__field">
+                  <span>סטטוס</span>
+                  <select
+                    value={taskDraft.status}
+                    onChange={(changeEvent) =>
+                      setTaskDraft((current) => ({
+                        ...current,
+                        status: changeEvent.target.value as TaskStatus,
+                      }))
+                    }
+                  >
+                    {TASK_STATUS_ORDER.map((status) => (
+                      <option key={status} value={status}>
+                        {TASK_STATUS_LABELS[status]}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label className="tasks-page__field">
+                  <span>עדיפות</span>
+                  <select
+                    value={taskDraft.priority}
+                    onChange={(changeEvent) =>
+                      setTaskDraft((current) => ({
+                        ...current,
+                        priority: changeEvent.target.value as TaskPriority,
+                      }))
+                    }
+                  >
+                    {Object.entries(TASK_PRIORITY_LABELS).map(
+                      ([priority, label]) => (
+                        <option key={priority} value={priority}>
+                          {label}
+                        </option>
+                      ),
+                    )}
+                  </select>
+                </label>
+
+                <label className="tasks-page__field">
+                  <span>תאריך יעד</span>
+                  <input
+                    type="date"
+                    value={taskDraft.dueDate}
+                    onChange={(changeEvent) =>
+                      setTaskDraft((current) => ({
+                        ...current,
+                        dueDate: changeEvent.target.value,
+                      }))
+                    }
+                  />
+                </label>
+
+                <div className="tasks-page__field tasks-page__field--full">
+                  <span>אחראים</span>
+                  {assigneeOptions.length ? (
+                    <div className="tasks-page__assignee-picker">
+                      {assigneeOptions.map((member) => {
+                        const isSelected = taskDraft.assigneeIds.includes(
+                          member.id,
+                        );
+
+                        return (
+                          <button
+                            key={member.id}
+                            type="button"
+                            className={`tasks-page__assignee-pill${isSelected ? " is-selected" : ""}`}
+                            onClick={() => toggleTaskAssignee(member.id)}
+                          >
+                            <MemberAvatarGroup
+                              members={[member]}
+                              size="sm"
+                              maxVisible={1}
+                            />
+                            <span>
+                              {member.displayName || member.email || member.id}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p className="tasks-page__dialog-empty">
+                      לא נמצאו חברי צוות לשיוך.
+                    </p>
+                  )}
+                </div>
+
+                {taskDialogMode === "edit" && selectedTask ? (
+                  <div className="tasks-page__field tasks-page__field--full">
+                    <span>אחראים נוכחיים</span>
+                    {currentTaskMembers.length ? (
+                      <div className="tasks-page__dialog-assignees">
+                        <MemberAvatarGroup
+                          members={currentTaskMembers}
+                          size="sm"
+                          maxVisible={4}
+                        />
+                        <p>
+                          {currentTaskMembers
+                            .map(
+                              (member) =>
+                                member.displayName || member.email || member.id,
+                            )
+                            .join(", ")}
+                        </p>
+                      </div>
+                    ) : (
+                      <p className="tasks-page__dialog-empty">
+                        אין עדיין אחראים.
+                      </p>
+                    )}
+                  </div>
+                ) : null}
+              </div>
+
+              {taskDialogError ? (
+                <p className="tasks-page__dialog-error">{taskDialogError}</p>
+              ) : null}
+
+              <div className="tasks-page__dialog-actions">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="md"
+                  onClick={closeTaskDialog}
+                >
+                  ביטול
+                </Button>
+                <Button type="submit" size="md" disabled={isSavingTask}>
+                  {isSavingTask
+                    ? "שומר..."
+                    : taskDialogMode === "edit"
+                      ? "שמירת שינויים"
+                      : "יצירת משימה"}
+                </Button>
+              </div>
+            </form>
+          </GlassPanel>
+        </div>
+      ) : null}
     </PageSection>
   );
 };

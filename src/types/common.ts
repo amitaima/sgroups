@@ -13,6 +13,10 @@ export interface PageMeta {
   description?: string;
 }
 
+export type TaskPriority = "high" | "medium" | "low";
+
+export type TaskStatus = "todo" | "inProgress" | "review" | "completed";
+
 export type Project = {
   id: string;
   name: string;

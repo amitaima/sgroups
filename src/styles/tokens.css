@@ -178,6 +178,7 @@
   --motion-fast: 120ms;
   --motion-base: 200ms;
   --motion-slow: 320ms;
+  --motion-slower: 500ms;
   --motion-ease: cubic-bezier(0.2, 0, 0, 1);
 
   /* Layout widths */

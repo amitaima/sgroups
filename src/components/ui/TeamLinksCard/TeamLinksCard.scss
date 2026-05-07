@@ -30,6 +30,12 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
+  max-height: 10rem;
+  @media (max-width: 1180px) {
+    max-height: none;
+  }
+  height: -webkit-fill-available;
+  overflow: scroll;
 }
 
 .links-card__item {

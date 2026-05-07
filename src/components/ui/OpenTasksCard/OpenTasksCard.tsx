@@ -14,7 +14,7 @@ export const OpenTasksCard = ({
     <GlassPanel className="tasks-card">
       <div className="tasks-card__header">
         <div>
-          <p className="tasks-card__eyebrow">Top tasks</p>
+          <p className="tasks-card__eyebrow">משימות מובילות</p>
           <h3 className="tasks-card__title">משימות פתוחות</h3>
         </div>
         {actions ?? null}

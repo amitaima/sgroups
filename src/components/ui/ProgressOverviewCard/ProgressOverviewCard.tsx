@@ -5,9 +5,9 @@ import "./ProgressOverviewCard.scss";
 export const ProgressOverviewCard = ({
   progress,
   title = "התקדמות פרויקט",
-  subtitle = "מבט כללי על סטטוס העבודה",
+  // subtitle = "מבט כללי על סטטוס העבודה",
   hint = "המדד מתעדכן לפי נתוני הפרויקט",
-  badgeLabel = "מבט כללי",
+  // badgeLabel = "מבט כללי",
 }: ProgressOverviewCardProps) => {
   return (
     <GlassPanel className="progress-card">

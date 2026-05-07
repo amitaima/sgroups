@@ -28,6 +28,18 @@ service cloud.firestore {
         allow update, delete: if request.auth != null
           && request.auth.uid in get(/databases/$(database)/documents/projects/$(projectId)).data.memberIds;
       }
+
+      match /tasks/{taskId} {
+        allow read: if request.auth != null
+          && request.auth.uid in get(/databases/$(database)/documents/projects/$(projectId)).data.memberIds;
+
+        allow create: if request.auth != null
+          && request.resource.data.projectId == projectId
+          && request.auth.uid in get(/databases/$(database)/documents/projects/$(projectId)).data.memberIds;
+
+        allow update, delete: if request.auth != null
+          && request.auth.uid in get(/databases/$(database)/documents/projects/$(projectId)).data.memberIds;
+      }
     }
 
     match /{document=**} {
