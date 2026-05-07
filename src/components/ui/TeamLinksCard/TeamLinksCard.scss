@@ -45,14 +45,26 @@
   gap: var(--space-3);
   padding: var(--space-2-5, 0.65rem) var(--space-3);
   border-radius: var(--radius-lg);
-  background: rgba(255, 255, 255, 0.44);
+  // background: rgba(255, 255, 255, 0.44);
+  // border: 1px solid rgba(255, 255, 255, 0.52);
+  background: color-mix(
+    in srgb,
+    var(--color-surface-glass) 82%,
+    var(--color-surface) 18%
+  );
+  border: 1px solid var(--color-surface-glass-border);
   color: var(--color-text);
-  border: 1px solid rgba(255, 255, 255, 0.52);
   box-shadow: var(--shadow-sm);
+  transition: background var(--motion-slower) var(--motion-ease);
 }
 
 .links-card__item:hover {
-  background: rgba(255, 255, 255, 0.7);
+  background: color-mix(
+    in srgb,
+    var(--color-primary) 5%,
+    var(--color-surface) 58%
+  );
+  // background: rgba(255, 255, 255, 0.7);
   color: var(--color-primary);
 }
 

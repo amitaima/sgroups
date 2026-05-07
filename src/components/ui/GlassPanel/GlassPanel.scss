@@ -1,3 +1,57 @@
+// .glass-panel {
+//   position: relative;
+//   overflow: hidden;
+//   border-radius: var(--radius-xl);
+//   border: 1px solid var(--color-surface-glass-border);
+//   background: linear-gradient(
+//     135deg,
+//     rgba(255, 255, 255, 0.7) 0%,
+//     rgba(245, 239, 234, 0.54) 100%
+//   );
+//   box-shadow: var(--shadow-glass);
+// }
+
+// .glass-panel--strong {
+//   background: linear-gradient(
+//     135deg,
+//     rgba(255, 255, 255, 0.88) 0%,
+//     rgba(253, 249, 246, 0.72) 100%
+//   );
+//   box-shadow: var(--shadow-glass-strong);
+// }
+
+// .glass-panel.glass-card--sgroups {
+//   background:
+//     radial-gradient(
+//       circle at top right,
+//       rgba(120, 169, 172, 0.14),
+//       transparent 35%
+//     ),
+//     radial-gradient(
+//       circle at bottom left,
+//       rgba(210, 132, 68, 0.1),
+//       transparent 30%
+//     ),
+//     linear-gradient(
+//       145deg,
+//       rgba(255, 255, 255, 0.82) 0%,
+//       rgba(245, 239, 234, 0.66) 100%
+//     );
+//   border-color: rgba(120, 169, 172, 0.22);
+// }
+
+// @supports (backdrop-filter: blur(4px)) {
+//   .glass-panel {
+//     backdrop-filter: blur(4px) saturate(138%);
+//     -webkit-backdrop-filter: blur(4px) saturate(138%);
+//   }
+
+//   .glass-panel--strong {
+//     backdrop-filter: blur(6px) saturate(148%);
+//     -webkit-backdrop-filter: blur(6px) saturate(148%);
+//   }
+// }
+
 .glass-panel {
   position: relative;
   overflow: hidden;
@@ -5,8 +59,8 @@
   border: 1px solid var(--color-surface-glass-border);
   background: linear-gradient(
     135deg,
-    rgba(255, 255, 255, 0.7) 0%,
-    rgba(245, 239, 234, 0.54) 100%
+    var(--color-glass-gradient-start) 0%,
+    var(--color-glass-gradient-end) 100%
   );
   box-shadow: var(--shadow-glass);
 }
@@ -14,8 +68,8 @@
 .glass-panel--strong {
   background: linear-gradient(
     135deg,
-    rgba(255, 255, 255, 0.88) 0%,
-    rgba(253, 249, 246, 0.72) 100%
+    var(--color-glass-strong-gradient-start) 0%,
+    var(--color-glass-strong-gradient-end) 100%
   );
   box-shadow: var(--shadow-glass-strong);
 }
@@ -24,20 +78,20 @@
   background:
     radial-gradient(
       circle at top right,
-      rgba(120, 169, 172, 0.14),
+      var(--color-glass-sgroups-primary-glow),
       transparent 35%
     ),
     radial-gradient(
       circle at bottom left,
-      rgba(210, 132, 68, 0.1),
+      var(--color-glass-sgroups-accent-glow),
       transparent 30%
     ),
     linear-gradient(
       145deg,
-      rgba(255, 255, 255, 0.82) 0%,
-      rgba(245, 239, 234, 0.66) 100%
+      var(--color-glass-sgroups-gradient-start) 0%,
+      var(--color-glass-sgroups-gradient-end) 100%
     );
-  border-color: rgba(120, 169, 172, 0.22);
+  border-color: var(--color-glass-sgroups-border);
 }
 
 @supports (backdrop-filter: blur(4px)) {

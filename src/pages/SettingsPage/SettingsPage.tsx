@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Navigate, useNavigate, useParams } from "react-router-dom";
 import {
   Archive,
@@ -337,6 +337,35 @@ export const SettingsPage = () => {
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  // --- autosave / dirty tracking refs & state ---
+  const initialGeneralRef = useRef<string | null>(null);
+  const [dirtyGeneral, setDirtyGeneral] = useState(false);
+
+  const lastSavedMilestonesRef = useRef<Record<string, string>>({});
+  const milestoneSaveTimerRef = useRef<number | null>(null);
+
+  const lastSavedMembersRef = useRef<string | null>(null);
+  const memberSaveTimerRef = useRef<number | null>(null);
+
+  const getGeneralSnapshot = useCallback((d: SettingsDraft | null) => {
+    if (!d) return null;
+    return JSON.stringify({
+      name: d.name,
+      description: d.description,
+      dueDate: d.dueDate,
+      finalSubmissionAt: d.finalSubmissionAt,
+      nextMilestoneAt: d.nextMilestoneAt,
+      projectType: d.projectType,
+      status: d.status,
+      courseName: d.courseName,
+      institutionName: d.institutionName,
+      lecturerName: d.lecturerName,
+      courseCode: d.courseCode,
+      semesterLabel: d.semesterLabel,
+      groupNumber: d.groupNumber,
+    });
+  }, []);
+
   useEffect(() => {
     if (!project) {
       setDraft(null);
@@ -349,7 +378,20 @@ export const SettingsPage = () => {
       return;
     }
 
-    setDraft(buildDraftFromProject(project));
+    const nextDraft = buildDraftFromProject(project);
+    setDraft(nextDraft);
+    // initialize dirty tracking and last-saved refs to avoid immediate autosave
+    initialGeneralRef.current = getGeneralSnapshot(nextDraft);
+    setDirtyGeneral(false);
+
+    // milestones
+    lastSavedMilestonesRef.current = Object.fromEntries(
+      (nextDraft.milestones || []).map((m) => [m.id, m.dueDate]),
+    );
+
+    // members
+    lastSavedMembersRef.current = `${(nextDraft.memberIds || []).join("|")}|${JSON.stringify(nextDraft.memberRoles || {})}`;
+
     setSaveError(null);
     setSaveSuccess(null);
     setInviteEmails("");
@@ -414,6 +456,110 @@ export const SettingsPage = () => {
       active = false;
     };
   }, [memberIdsKey, draft?.memberIds]);
+
+  // track whether general (non-members/milestones) fields have changed
+  useEffect(() => {
+    const snap = getGeneralSnapshot(draft);
+    setDirtyGeneral(
+      Boolean(
+        initialGeneralRef.current && snap && initialGeneralRef.current !== snap,
+      ),
+    );
+  }, [draft, getGeneralSnapshot]);
+
+  // autosave milestone due dates (debounced)
+  useEffect(() => {
+    if (!project || !draft) return;
+
+    const key = (draft.milestones || [])
+      .map((m) => `${m.id}|${m.dueDate}`)
+      .join(",");
+
+    const hasChange = (draft.milestones || []).some(
+      (m) => lastSavedMilestonesRef.current[m.id] !== m.dueDate,
+    );
+
+    if (!hasChange) return;
+
+    if (milestoneSaveTimerRef.current) {
+      clearTimeout(milestoneSaveTimerRef.current);
+    }
+
+    // debounce
+    milestoneSaveTimerRef.current = window.setTimeout(async () => {
+      try {
+        const milestonesPayload = (draft.milestones || [])
+          .filter(
+            (milestone) =>
+              milestone.title.trim().length > 0 &&
+              milestone.dueDate.trim().length > 0,
+          )
+          .map((milestone) => ({
+            id: milestone.id,
+            title: milestone.title.trim(),
+            dueDate: fromDateInputValue(milestone.dueDate) ?? new Date(),
+            completed: milestone.completed,
+          }));
+
+        await updateProject(project.id, { milestones: milestonesPayload });
+
+        // update last-saved map
+        lastSavedMilestonesRef.current = Object.fromEntries(
+          (draft.milestones || []).map((m) => [m.id, m.dueDate]),
+        );
+
+        setSaveSuccess("תאריכי אבני הדרך נשמרו.");
+      } catch (e) {
+        console.error("Autosave milestones failed", e);
+        setSaveError("לא הצלחנו לשמור את תאריכי אבני הדרך כרגע.");
+      }
+    }, 900);
+
+    return () => {
+      if (milestoneSaveTimerRef.current) {
+        clearTimeout(milestoneSaveTimerRef.current);
+      }
+    };
+  }, [project, draft?.milestones]);
+
+  // autosave members (roles / additions / removals) (debounced)
+  useEffect(() => {
+    if (!project || !draft) return;
+
+    const currentMembersKey = `${(draft.memberIds || []).join("|")}|${JSON.stringify(draft.memberRoles || {})}`;
+    if (lastSavedMembersRef.current === currentMembersKey) return;
+
+    if (memberSaveTimerRef.current) {
+      clearTimeout(memberSaveTimerRef.current);
+    }
+
+    memberSaveTimerRef.current = window.setTimeout(async () => {
+      try {
+        const memberIds = Array.from(
+          new Set([project.createdBy, ...(draft.memberIds || [])]),
+        );
+        const memberRoles = buildMemberRoles(
+          memberIds,
+          draft.memberRoles || {},
+          project.createdBy,
+        );
+
+        await updateProject(project.id, { memberIds, memberRoles });
+
+        lastSavedMembersRef.current = currentMembersKey;
+        setSaveSuccess("שינויים בצוות נשמרו.");
+      } catch (e) {
+        console.error("Autosave members failed", e);
+        setSaveError("לא הצלחנו לשמור שינויים בצוות כרגע.");
+      }
+    }, 700);
+
+    return () => {
+      if (memberSaveTimerRef.current) {
+        clearTimeout(memberSaveTimerRef.current);
+      }
+    };
+  }, [project, draft?.memberIds, draft?.memberRoles]);
 
   const currentUserRole = useMemo(() => {
     if (!project || !user) {
@@ -719,6 +865,7 @@ export const SettingsPage = () => {
       });
 
       setSaveSuccess("ההגדרות נשמרו בהצלחה.");
+      setDirtyGeneral(false);
     } catch (saveProjectError) {
       console.error("Failed to save project settings", saveProjectError);
       setSaveError("לא הצלחנו לשמור את ההגדרות. נסו שוב.");
@@ -818,18 +965,7 @@ export const SettingsPage = () => {
           <SectionTitle
             title="הגדרות פרויקט"
             subtitle="ניהול פרטי הפרויקט, הצוות, אבני הדרך והעדפות העבודה המשותפת."
-            actions={
-              <div className="settings-page__hero-actions">
-                <Button
-                  type="button"
-                  onClick={handleSaveProject}
-                  disabled={isSaving}
-                >
-                  <Save size={16} />
-                  {isSaving ? "שומר..." : "שמור שינויים"}
-                </Button>
-              </div>
-            }
+            actions={<div className="settings-page__hero-actions" />}
           />
 
           {saveError ? (
@@ -849,7 +985,8 @@ export const SettingsPage = () => {
 
         <div className="settings-page__layout">
           <div className="settings-page__main">
-            <GlassPanel
+            {/* LEAVE the comment */}
+            {/* <GlassPanel
               className="settings-page__card settings-page__card--intro"
               intensity="strong"
             >
@@ -875,15 +1012,16 @@ export const SettingsPage = () => {
                   </span>
                 </div>
               </div>
-            </GlassPanel>
+            </GlassPanel> */}
 
-            <GlassPanel className="settings-page__card">
+            <GlassPanel
+              className="settings-page__card"
+              style={{ position: "relative" }}
+            >
               <div className="settings-page__card-header">
                 <div>
                   <p className="settings-page__eyebrow">פרטי פרויקט</p>
-                  <h3 className="settings-page__card-title">
-                    מידע אקדמי ותאריכי יעד
-                  </h3>
+                  <h3 className="settings-page__card-title">כללי</h3>
                 </div>
                 <CalendarDays size={18} strokeWidth={2.1} />
               </div>
@@ -1052,6 +1190,26 @@ export const SettingsPage = () => {
                   />
                 </label>
               </div>
+
+              {/* Floating save button for general info (bottom-left of card) */}
+              {dirtyGeneral ? (
+                <div
+                  style={{
+                    position: "absolute",
+                    left: "1rem",
+                    bottom: "1rem",
+                  }}
+                >
+                  <Button
+                    type="button"
+                    onClick={handleSaveProject}
+                    disabled={isSaving}
+                  >
+                    <Save size={16} />
+                    {isSaving ? "שומר..." : "שמור שינויים"}
+                  </Button>
+                </div>
+              ) : null}
             </GlassPanel>
 
             <GlassPanel className="settings-page__card">
@@ -1273,71 +1431,8 @@ export const SettingsPage = () => {
               </Button>
             </GlassPanel>
 
-            <GlassPanel className="settings-page__card">
-              <div className="settings-page__card-header">
-                <div>
-                  <p className="settings-page__eyebrow">קבצים וקישורים</p>
-                  <h3 className="settings-page__card-title">
-                    משאבים חשובים לפרויקט
-                  </h3>
-                </div>
-                <Link2 size={18} strokeWidth={2.1} />
-              </div>
-
-              {draft?.importantLinks.length ? (
-                <div className="settings-page__stack">
-                  {draft.importantLinks.map((link) => (
-                    <div key={link.id} className="settings-page__stack-item">
-                      <label className="settings-page__field settings-page__field--wide">
-                        <span>כותרת</span>
-                        <input
-                          type="text"
-                          value={link.label}
-                          onChange={(event) =>
-                            updateLink(link.id, { label: event.target.value })
-                          }
-                        />
-                      </label>
-                      <label className="settings-page__field settings-page__field--wide">
-                        <span>קישור</span>
-                        <input
-                          type="url"
-                          value={link.url}
-                          onChange={(event) =>
-                            updateLink(link.id, { url: event.target.value })
-                          }
-                          placeholder="כתובת מלאה של הקישור"
-                        />
-                      </label>
-                      <button
-                        className="settings-page__stack-remove"
-                        type="button"
-                        onClick={() => removeLink(link.id)}
-                        aria-label="הסרת הקישור"
-                      >
-                        <X size={16} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="settings-page__muted">
-                  אין עדיין קישורים חשובים.
-                </p>
-              )}
-
-              <Button
-                style={{ width: "fit-content" }}
-                type="button"
-                variant="secondary"
-                onClick={addLink}
-              >
-                <Plus size={16} />
-                הוספת קישור
-              </Button>
-            </GlassPanel>
-
-            <GlassPanel className="settings-page__card">
+            {/* DONT TOUCH the comment */}
+            {/* <GlassPanel className="settings-page__card">
               <div className="settings-page__card-header">
                 <div>
                   <p className="settings-page__eyebrow">התראות ותזכורות</p>
@@ -1391,7 +1486,7 @@ export const SettingsPage = () => {
                   />
                 </label>
               </div>
-            </GlassPanel>
+            </GlassPanel> */}
           </div>
 
           <div className="settings-page__aside">

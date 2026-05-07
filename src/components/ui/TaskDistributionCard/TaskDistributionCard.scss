@@ -111,11 +111,16 @@
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
   gap: var(--space-3);
-  // min-height: 4.25rem;
   padding: 0.95rem 1rem;
   border-radius: 1.25rem;
-  background: rgba(255, 255, 255, 0.6);
-  border: 1px solid color-mix(in srgb, var(--color-primary) 8%, white);
+  // background: rgba(255, 255, 255, 0.6);
+  // border: 1px solid color-mix(in srgb, var(--color-primary) 8%, white);
+  background: color-mix(
+    in srgb,
+    var(--color-surface-glass) 82%,
+    var(--color-surface) 18%
+  );
+  border: 1px solid var(--color-surface-glass-border);
   box-shadow: 0 2px 10px rgba(53, 102, 105, 0.04);
   transition:
     transform 180ms ease,
@@ -126,8 +131,14 @@
 
 .distribution-card__row:hover {
   transform: translateY(-1px);
-  background: rgba(255, 255, 255, 0.78);
-  border-color: color-mix(in srgb, var(--color-primary) 18%, white);
+  background: color-mix(
+    in srgb,
+    var(--color-surface-glass) 90%,
+    var(--color-surface) 28%
+  );
+  border: 1px solid var(--color-surface-glass-border);
+  // background: rgba(255, 255, 255, 0.78);
+  // border-color: color-mix(in srgb, var(--color-primary) 18%, white);
   box-shadow: 0 8px 18px rgba(53, 102, 105, 0.08);
 }
 

@@ -2,7 +2,8 @@ import { useNavigate } from "react-router-dom";
 import type { DashboardHeaderProps } from "./DashboardHeader.types";
 import { ProjectSwitcher } from "@components/layout/ProjectSwitcher/ProjectSwitcher";
 import { ProfileMenuButton } from "@components/ui/ProfileMenuButton";
-import { ArrowRight, Bell, History, Menu } from "lucide-react";
+import { ArrowRight, Bell, Moon, Sun, Menu } from "lucide-react";
+import { useTheme } from "@app/providers/ThemeProvider";
 import "./DashboardHeader.scss";
 
 export const DashboardHeader = ({
@@ -13,6 +14,7 @@ export const DashboardHeader = ({
   onSignOut,
 }: DashboardHeaderProps) => {
   const navigate = useNavigate();
+  const { theme, toggleTheme } = useTheme();
 
   return (
     <header className="dashboard-header">
@@ -52,9 +54,14 @@ export const DashboardHeader = ({
           <button
             className="dashboard-header__action"
             type="button"
-            aria-label="היסטוריה"
+            onClick={toggleTheme}
+            aria-label={theme === "light" ? "עבור למצב חשוך" : "עבור למצב בהיר"}
           >
-            <History size={18} strokeWidth={2} />
+            {theme === "light" ? (
+              <Moon size={18} strokeWidth={2} />
+            ) : (
+              <Sun size={18} strokeWidth={2} />
+            )}
           </button>
         </div>
 

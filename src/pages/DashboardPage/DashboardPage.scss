@@ -106,16 +106,22 @@
   gap: var(--space-3);
   padding: var(--space-2-5, 0.7rem) var(--space-3);
   border-radius: var(--radius-lg);
-  border: 1px solid rgba(255, 255, 255, 0.55);
-  background: rgba(255, 255, 255, 0.38);
+  //   border: 1px solid rgba(255, 255, 255, 0.55);
+  //   background: rgba(255, 255, 255, 0.38);
+  background: color-mix(
+    in srgb,
+    var(--color-surface-glass) 82%,
+    var(--color-surface) 18%
+  );
+  border: 1px solid var(--color-surface-glass-border);
   box-shadow: var(--shadow-sm);
 }
 
 .dashboard-page__deadline-item--accent {
   background: color-mix(
     in srgb,
-    var(--color-primary-container) 22%,
-    rgba(255, 255, 255, 0.5)
+    var(--color-primary-container) 50%,
+    var(--color-surface) 58%
   );
 }
 

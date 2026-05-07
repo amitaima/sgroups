@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { RouterProvider } from "react-router-dom";
 import { AuthProvider } from "@app/providers/AuthProvider";
+import { ThemeProvider } from "@app/providers/ThemeProvider";
 import { router } from "@app/router/router";
 
 interface ProvidersProps {
@@ -9,9 +10,11 @@ interface ProvidersProps {
 
 export const Providers = ({ children }: ProvidersProps) => {
   return (
-    <AuthProvider>
-      {children}
-      <RouterProvider router={router} />
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        {children}
+        <RouterProvider router={router} />
+      </AuthProvider>
+    </ThemeProvider>
   );
 };
