@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Navigate, useNavigate, useParams } from "react-router-dom";
+import { Link, Navigate, useNavigate, useParams } from "react-router-dom";
 import {
   CalendarDays,
   Link as LinkIcon,
+  ListCheck,
   PencilLine,
   Plus,
   Save,
   Trash2,
+  UserPlus,
   X,
 } from "lucide-react";
 import { Button } from "@components/ui/Button/Button";
@@ -590,7 +592,7 @@ export const DashboardPage = () => {
 
   const progressHint =
     taskItems.length > 0
-      ? `${completedTaskCount} משימות הושלמו מתוך ${taskItems.length}`
+      ? `${completedTaskCount} דדליינים הושלמו מתוך ${taskItems.length}`
       : "אין עדיין אבני דרך שהוגדרו לפרויקט.";
   const finalDeadline =
     activeProject.finalSubmissionAt ?? activeProject.dueDate;
@@ -628,16 +630,11 @@ export const DashboardPage = () => {
         </div>
 
         <div className="dashboard-page__panel dashboard-page__panel--deadline">
-          <GlassPanel
-            className="dashboard-page__deadline-card"
-            intensity="strong"
-          >
+          <GlassPanel className="dashboard-page__deadline-card">
             <div className="dashboard-page__card-header">
               <div>
                 <p className="dashboard-page__eyebrow">Deadlines</p>
-                <h3 className="dashboard-page__card-title">
-                  הדדליין הקרוב והסופי
-                </h3>
+                <h3 className="dashboard-page__card-title">דדליינים</h3>
               </div>
               <span className="dashboard-page__deadline-badge">
                 {closestDeadlineLabel}
@@ -678,13 +675,7 @@ export const DashboardPage = () => {
           </GlassPanel>
         </div>
 
-        <div className="dashboard-page__panel dashboard-page__panel--distribution">
-          <TaskDistributionCard data={distributionData} />
-        </div>
-      </div>
-
-      <div className="dashboard-page__content-grid">
-        <div className="dashboard-page__panel dashboard-page__panel--tasks">
+        <div className="dashboard-page__panel dashboard-page__panel--tasks row-span-2">
           <OpenTasksCard
             tasks={openTasks}
             onToggleTask={handleTaskToggle}
@@ -699,28 +690,7 @@ export const DashboardPage = () => {
                   navigate(getProjectWorkspacePath(selectedProject.id, "tasks"))
                 }
               >
-                <CalendarDays size={14} />
-                לוח משימות
-              </Button>
-            }
-          />
-        </div>
-
-        <div className="dashboard-page__panel dashboard-page__panel--team">
-          <TeamMembersCard
-            members={memberRows.map((member) => ({
-              name: member.name,
-              role: ROLE_LABELS[member.role],
-            }))}
-            actions={
-              <Button
-                variant="secondary"
-                size="sm"
-                type="button"
-                onClick={openMembersDialog}
-              >
-                <PencilLine size={14} />
-                עריכת חברים
+                <ListCheck size={14} />
               </Button>
             }
           />
@@ -737,7 +707,30 @@ export const DashboardPage = () => {
                 onClick={openLinksDialog}
               >
                 <LinkIcon size={14} />
-                עריכת קישורים
+                <Plus size={12} />
+              </Button>
+            }
+          />
+        </div>
+
+        <div className="dashboard-page__panel dashboard-page__panel--distribution col-span-2">
+          <TaskDistributionCard data={distributionData} />
+        </div>
+
+        <div className="dashboard-page__panel dashboard-page__panel--team">
+          <TeamMembersCard
+            members={memberRows.map((member) => ({
+              name: member.name,
+              role: ROLE_LABELS[member.role],
+            }))}
+            actions={
+              <Button
+                variant="secondary"
+                size="sm"
+                type="button"
+                onClick={openMembersDialog}
+              >
+                <UserPlus size={14} />
               </Button>
             }
           />

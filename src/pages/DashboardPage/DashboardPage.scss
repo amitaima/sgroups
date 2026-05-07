@@ -38,7 +38,8 @@
 }
 
 .dashboard-page__summary-grid {
-  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr) minmax(0, 1.05fr);
+  //   grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr) minmax(0, 1.05fr);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .dashboard-page__content-grid {
@@ -301,11 +302,16 @@
 @media (max-width: 1180px) {
   .dashboard-page__summary-grid,
   .dashboard-page__content-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 @media (max-width: 720px) {
+  .dashboard-page__summary-grid,
+  .dashboard-page__content-grid {
+    display: flex;
+    flex-direction: column;
+  }
   .dashboard-page {
     gap: var(--space-3);
     padding-top: var(--space-5);

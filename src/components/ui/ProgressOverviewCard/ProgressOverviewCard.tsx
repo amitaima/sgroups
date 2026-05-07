@@ -10,22 +10,26 @@ export const ProgressOverviewCard = ({
   badgeLabel = "מבט כללי",
 }: ProgressOverviewCardProps) => {
   return (
-    <GlassPanel className="progress-card" intensity="strong">
-      <div className="progress-card__header">
-        <div className="progress-card__copy">
-          <p className="progress-card__label">{title}</p>
-          <h3 className="progress-card__value">{progress}%</h3>
-          <p className="progress-card__subtitle">{subtitle}</p>
+    <GlassPanel className="progress-card">
+      <div className="progress-card__decor flex flex-col justify-between h-full">
+        <div className="progress-card__header">
+          <div className="progress-card__copy">
+            <p className="progress-card__label">{title}</p>
+            <h3 className="progress-card__value">{progress}%</h3>
+            {/* <p className="progress-card__subtitle">{subtitle}</p> */}
+          </div>
+          {/* <span className="progress-card__badge">{badgeLabel}</span> */}
         </div>
-        <span className="progress-card__badge">{badgeLabel}</span>
+        <div>
+          <div className="progress-card__bar">
+            <div
+              className="progress-card__fill"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+          <p className="progress-card__hint">{hint}</p>
+        </div>
       </div>
-      <div className="progress-card__bar">
-        <div
-          className="progress-card__fill"
-          style={{ width: `${progress}%` }}
-        />
-      </div>
-      <p className="progress-card__hint">{hint}</p>
     </GlassPanel>
   );
 };
