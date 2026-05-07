@@ -3,7 +3,6 @@ import { Navigate, useNavigate, useParams } from "react-router-dom";
 import {
   Archive,
   CalendarDays,
-  CheckCheck,
   Copy,
   Layers3,
   Link2,
@@ -25,7 +24,6 @@ import { useWorkspaceProject } from "@hooks/useWorkspaceProject";
 import type {
   Project,
   ProjectMemberRole,
-  ProjectMilestone,
   ProjectNotificationSettings,
   ProjectStatus,
   ProjectType,
@@ -875,12 +873,6 @@ export const SettingsPage = () => {
                       draft?.status ?? project.status ?? "active",
                     )}
                   </span>
-                  <div className="settings-page__status-copy">
-                    <span className="settings-page__status-label">
-                      קוד הצטרפות
-                    </span>
-                    <strong>{project.id}</strong>
-                  </div>
                 </div>
               </div>
             </GlassPanel>
@@ -1084,6 +1076,7 @@ export const SettingsPage = () => {
                   />
                 </label>
                 <Button
+                  style={{ width: "fit-content" }}
                   type="button"
                   variant="secondary"
                   onClick={handleAddMembers}
@@ -1269,7 +1262,12 @@ export const SettingsPage = () => {
                 </p>
               )}
 
-              <Button type="button" variant="secondary" onClick={addMilestone}>
+              <Button
+                style={{ width: "fit-content" }}
+                type="button"
+                variant="secondary"
+                onClick={addMilestone}
+              >
                 <Plus size={16} />
                 הוספת אבן דרך
               </Button>
@@ -1328,7 +1326,12 @@ export const SettingsPage = () => {
                 </p>
               )}
 
-              <Button type="button" variant="secondary" onClick={addLink}>
+              <Button
+                style={{ width: "fit-content" }}
+                type="button"
+                variant="secondary"
+                onClick={addLink}
+              >
                 <Plus size={16} />
                 הוספת קישור
               </Button>
@@ -1492,23 +1495,6 @@ export const SettingsPage = () => {
                   מחיקת פרויקט
                 </button>
               </div>
-            </GlassPanel>
-
-            <GlassPanel className="settings-page__card settings-page__card--status">
-              <div className="settings-page__card-header">
-                <div>
-                  <p className="settings-page__eyebrow">השלמת הגדרות</p>
-                  <h3 className="settings-page__card-title">לפני ששומרים</h3>
-                </div>
-                <CheckCheck size={18} strokeWidth={2.1} />
-              </div>
-
-              <ul className="settings-page__checklist">
-                <li>שם הפרויקט ותיאור מעודכנים</li>
-                <li>התאריכים מחוברים לנתוני Firestore</li>
-                <li>חברי הצוות והרשאותיהם מסודרים</li>
-                <li>אבני הדרך, הקישורים וההתראות מוגדרים</li>
-              </ul>
             </GlassPanel>
           </div>
         </div>

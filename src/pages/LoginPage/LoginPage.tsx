@@ -5,8 +5,9 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signInWithPopup,
+  updateProfile,
 } from "firebase/auth";
-import { auth } from "@services/firebase/firebase";
+import { auth, upsertUserProfile } from "@services/firebase/firebase";
 import { useAuth } from "@app/providers/AuthProvider";
 import { PageSection } from "@components/layout/PageSection/PageSection";
 import { Button } from "@components/ui/Button/Button";
@@ -18,6 +19,7 @@ export const LoginPage = () => {
   const navigate = useNavigate();
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -68,7 +70,16 @@ export const LoginPage = () => {
         await signInWithEmailAndPassword(auth, email, password);
         setSuccess("התחברת בהצלחה");
       } else {
-        await createUserWithEmailAndPassword(auth, email, password);
+        const normalizedUsername = username.trim();
+        const credential = await createUserWithEmailAndPassword(
+          auth,
+          email,
+          password,
+        );
+        await updateProfile(credential.user, {
+          displayName: normalizedUsername,
+        });
+        await upsertUserProfile(credential.user);
         setSuccess("ההרשמה הושלמה בהצלחה");
       }
     } catch (err) {
@@ -108,6 +119,25 @@ export const LoginPage = () => {
           </p>
         </div>
         <form className="login-page__form" onSubmit={handleEmailSubmit}>
+          {mode !== "login" ? (
+            <label className="login-page__field">
+              <span className="login-page__label">שם משתמש</span>
+              <input
+                className="login-page__input"
+                type="text"
+                name="username"
+                autoComplete="username"
+                value={username}
+                onChange={(event) => {
+                  setUsername(event.target.value);
+                  setSuccess(null);
+                }}
+                required
+              />
+            </label>
+          ) : (
+            ""
+          )}
           <label className="login-page__field">
             <span className="login-page__label">אימייל</span>
             <input

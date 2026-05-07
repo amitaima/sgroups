@@ -61,6 +61,7 @@
 .projects-home__grid {
   display: grid;
   gap: var(--space-4);
+  justify-content: center;
 }
 
 .projects-home__loading,

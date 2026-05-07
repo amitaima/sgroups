@@ -181,6 +181,7 @@
   --motion-ease: cubic-bezier(0.2, 0, 0, 1);
 
   /* Layout widths */
+  --layout-content-sm: 40rem;
   --layout-content-md: 1120px;
   --layout-content-lg: 1280px;
 

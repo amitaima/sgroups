@@ -8,6 +8,7 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const sizeClassMap: Record<ButtonSize, string> = {
+  sm: "button--sm",
   md: "button--md",
   lg: "button--lg",
 };

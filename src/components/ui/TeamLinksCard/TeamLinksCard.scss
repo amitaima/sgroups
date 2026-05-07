@@ -1,10 +1,17 @@
 .links-card {
-  padding: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: var(--space-4);
   border-color: color-mix(in srgb, var(--color-primary) 12%, white);
 }
 
 .links-card__header {
-  margin-bottom: var(--space-4);
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
 }
 
 .links-card__eyebrow {
@@ -22,7 +29,7 @@
 .links-card__list {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--space-2);
 }
 
 .links-card__item {
@@ -30,7 +37,7 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
-  padding: var(--space-3) var(--space-4);
+  padding: var(--space-2-5, 0.65rem) var(--space-3);
   border-radius: var(--radius-lg);
   background: rgba(255, 255, 255, 0.44);
   color: var(--color-text);
@@ -50,4 +57,10 @@
 .links-card__item-arrow {
   color: var(--color-primary);
   flex-shrink: 0;
+}
+
+.links-card__empty {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
 }

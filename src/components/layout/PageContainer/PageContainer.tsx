@@ -10,7 +10,8 @@ export const PageContainer = ({
   className = "",
   ...props
 }: PageContainerProps) => {
-  const sizeClass = size === "lg" ? "page-container--lg" : "page-container--md";
+  // const sizeClass = size === "lg" ? "page-container--lg" : "page-container--md";
+  const sizeClass = "page-container--md";
   const classNames = ["page-container", sizeClass, className]
     .filter(Boolean)
     .join(" ");

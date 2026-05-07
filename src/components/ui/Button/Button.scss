@@ -30,6 +30,12 @@
   height: var(--size-control-md);
 }
 
+.button--sm {
+  min-height: 2rem;
+  padding-inline: var(--space-3);
+  font-size: var(--font-size-xs);
+}
+
 .button--lg {
   min-height: var(--size-control-lg);
   padding-inline: var(--space-6);

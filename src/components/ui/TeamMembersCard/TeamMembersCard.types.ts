@@ -1,3 +1,5 @@
+import type { ReactNode } from "react";
+
 export interface TeamMember {
   name: string;
   role: string;
@@ -5,4 +7,5 @@ export interface TeamMember {
 
 export interface TeamMembersCardProps {
   members: TeamMember[];
+  actions?: ReactNode;
 }

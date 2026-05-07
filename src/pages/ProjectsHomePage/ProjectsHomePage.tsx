@@ -21,14 +21,14 @@ import "./ProjectsHomePage.scss";
 interface CreateProjectFormState {
   name: string;
   description: string;
-  dueDate: string;
+  finalSubmissionAt: string;
   people: string;
 }
 
 const INITIAL_FORM: CreateProjectFormState = {
   name: "",
   description: "",
-  dueDate: "",
+  finalSubmissionAt: "",
   people: "",
 };
 
@@ -48,6 +48,12 @@ export const ProjectsHomePage = () => {
   const [createLoading, setCreateLoading] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
   const [createWarning, setCreateWarning] = useState<string | null>(null);
+
+  const projectStatus = {
+    active: 1,
+    archived: 2,
+    completed: 3,
+  };
 
   const loadProjects = useCallback(async () => {
     if (!user) {
@@ -172,7 +178,9 @@ export const ProjectsHomePage = () => {
       await createProject({
         name: projectName,
         description: formState.description,
-        dueDate: formState.dueDate ? new Date(formState.dueDate) : undefined,
+        finalSubmissionAt: formState.finalSubmissionAt
+          ? new Date(formState.finalSubmissionAt)
+          : undefined,
         createdBy: user.uid,
         memberIds,
       });
@@ -235,15 +243,21 @@ export const ProjectsHomePage = () => {
 
         {!loading && projectCards.length > 0 ? (
           <div className="projects-home__grid" aria-label="רשימת פרויקטים">
-            {projectCards.map(({ project, members }) => (
-              <ProjectCard
-                key={project.id}
-                project={project}
-                members={members}
-                creatorLabel={getMemberLabel(project.createdBy)}
-                onEnter={() => navigate(`/projects/${project.id}/dashboard`)}
-              />
-            ))}
+            {projectCards
+              .sort(
+                (a, b) =>
+                  projectStatus[a.project.status ?? "active"] -
+                  projectStatus[b.project.status ?? "active"],
+              )
+              .map(({ project, members }) => (
+                <ProjectCard
+                  key={project.id}
+                  project={project}
+                  members={members}
+                  creatorLabel={getMemberLabel(project.createdBy)}
+                  onEnter={() => navigate(`/projects/${project.id}/dashboard`)}
+                />
+              ))}
           </div>
         ) : null}
       </PageContainer>
@@ -319,11 +333,11 @@ export const ProjectsHomePage = () => {
                 <span>תאריך יעד (אופציונלי)</span>
                 <input
                   type="date"
-                  value={formState.dueDate}
+                  value={formState.finalSubmissionAt}
                   onChange={(event) =>
                     setFormState((prev) => ({
                       ...prev,
-                      dueDate: event.target.value,
+                      finalSubmissionAt: event.target.value,
                     }))
                   }
                 />

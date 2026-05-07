@@ -43,7 +43,8 @@ export const ProjectCard = ({
 }: ProjectCardProps) => {
   const status = project.status ?? "active";
   const toneClass = getToneClass(project.id || project.name);
-  const dueDate = formatDate(project.dueDate);
+  // const dueDate = formatDate(project.dueDate);
+  const finalSubmissionDate = formatDate(project.finalSubmissionAt);
 
   return (
     <GlassPanel className={`project-card ${toneClass}`} intensity="strong">
@@ -70,25 +71,24 @@ export const ProjectCard = ({
             </p>
           )}
 
-          <div className="project-card__meta-grid">
-            <div className="project-card__meta-item">
-              <UsersRound size={16} strokeWidth={2} />
-              <span>{members.length} חברי צוות</span>
-            </div>
-
-            {dueDate ? (
-              <div className="project-card__meta-item">
-                <CalendarDays size={16} strokeWidth={2} />
-                <span>יעד: {dueDate}</span>
-              </div>
-            ) : null}
-          </div>
-
           <div className="project-card__members-row">
             <MemberAvatarGroup members={members} maxVisible={4} />
-            <span className="project-card__creator">
+            <div className="project-card__meta-grid">
+              {/* <div className="project-card__meta-item">
+                <UsersRound size={16} strokeWidth={2} />
+                <span>{members.length} חברי צוות</span>
+              </div> */}
+
+              {finalSubmissionDate ? (
+                <div className="project-card__meta-item">
+                  <CalendarDays size={16} strokeWidth={2} />
+                  <span>הגשת הפרויקט: {finalSubmissionDate}</span>
+                </div>
+              ) : null}
+            </div>
+            {/* <span className="project-card__creator">
               נוצר על ידי {creatorLabel}
-            </span>
+            </span> */}
           </div>
         </div>
       </div>

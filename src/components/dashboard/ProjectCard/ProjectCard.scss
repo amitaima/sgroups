@@ -3,6 +3,7 @@
   flex-direction: column;
   gap: var(--space-5);
   padding: var(--space-5);
+  max-width: var(--layout-content-sm);
   transition:
     transform var(--motion-base) var(--motion-ease),
     box-shadow var(--motion-base) var(--motion-ease);
@@ -77,14 +78,17 @@
 
 .project-card__status--active {
   color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary), transparent 70%);
 }
 
 .project-card__status--completed {
   color: var(--color-secondary);
+  background: color-mix(in srgb, var(--color-secondary), transparent 70%);
 }
 
 .project-card__status--archived {
   color: var(--color-accent-hover);
+  background: color-mix(in srgb, var(--color-accent-hover), transparent 70%);
 }
 
 .project-card__description {
