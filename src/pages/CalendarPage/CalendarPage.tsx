@@ -17,13 +17,16 @@ import {
   deleteProjectCalendarEvent,
   getProjectCalendarEvents,
   getUsersByIds,
+  updateProjectCalendarEvent,
 } from "@services/firebase/firebase";
 import type { Project } from "../../types/common";
 import {
   ChevronLeft,
   ChevronRight,
+  Clock,
   MapPin,
   Plus,
+  Pencil,
   TriangleAlert,
   Users,
   X,
@@ -175,6 +178,9 @@ const formatTimeInputValue = (
     meridiem,
   };
 };
+
+const toTimeInputValue = (date: Date) =>
+  `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
 
 const getInitialFocusDate = () => new Date();
 
@@ -376,6 +382,7 @@ export const CalendarPage = () => {
     null,
   );
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [editingEventId, setEditingEventId] = useState<string | null>(null);
   const [isParticipantMenuOpen, setIsParticipantMenuOpen] = useState(false);
   const [isSavingEvent, setIsSavingEvent] = useState(false);
   const [dialogError, setDialogError] = useState<string | null>(null);
@@ -507,6 +514,36 @@ export const CalendarPage = () => {
   const selectedItems = itemsByDate[selectedDateKey] ?? [];
   const monthCells = getCalendarCells(monthCursor);
 
+  const openEditDialog = (item: CalendarDisplayItem) => {
+    const defaultAssigneeIds = buildDefaultAssigneeIds(
+      user?.uid,
+      memberOptions.map((member) => member.uid),
+    );
+
+    setDialogError(null);
+    setEditingEventId(item.id);
+    setEventDraft({
+      title: item.title,
+      startDate: toDateInputValue(item.startDate),
+      endDate: toDateInputValue(item.endDate),
+      time:
+        item.kind === "event" && item.timeLabel !== "כל היום"
+          ? toTimeInputValue(item.startDate)
+          : "",
+      description: item.description ?? "",
+      location: item.location ?? "",
+      audience: item.audience ?? "selected",
+      assigneeIds:
+        item.audience === "everyone"
+          ? []
+          : item.assigneeIds?.length
+            ? item.assigneeIds
+            : defaultAssigneeIds,
+    });
+    setIsParticipantMenuOpen(false);
+    setIsCreateDialogOpen(true);
+  };
+
   const openCreateDialog = (seedDate?: Date) => {
     const nextDate = seedDate ?? selectedDate ?? new Date();
     const defaultAssigneeIds = buildDefaultAssigneeIds(
@@ -525,6 +562,7 @@ export const CalendarPage = () => {
       audience: "selected",
       assigneeIds: defaultAssigneeIds,
     });
+    setEditingEventId(null);
     setIsParticipantMenuOpen(false);
     setIsCreateDialogOpen(true);
   };
@@ -533,6 +571,7 @@ export const CalendarPage = () => {
     setIsCreateDialogOpen(false);
     setIsParticipantMenuOpen(false);
     setDialogError(null);
+    setEditingEventId(null);
   };
 
   const toggleAssignee = (memberId: string) => {
@@ -630,48 +669,93 @@ export const CalendarPage = () => {
       normalizedAudience === "everyone"
         ? user.uid
         : (selectedAssigneeIds[0] ?? user.uid);
+    const trimmedTitle = eventDraft.title.trim();
+    const trimmedDescription = eventDraft.description.trim();
+    const trimmedLocation = eventDraft.location.trim();
 
     setIsSavingEvent(true);
     setDialogError(null);
 
     try {
-      const eventId = await createProjectCalendarEvent(project.id, {
-        title: eventDraft.title,
-        startDate: scheduledStartDate,
-        endDate: scheduledEndDate,
-        time: eventDraft.time || undefined,
-        description: eventDraft.description || undefined,
-        location: eventDraft.location || undefined,
-        ownerId,
-        assigneeIds: selectedAssigneeIds,
-        audience: normalizedAudience,
-        createdBy: user.uid,
-      });
+      if (editingEventId) {
+        await updateProjectCalendarEvent(project.id, editingEventId, {
+          title: trimmedTitle,
+          startDate: scheduledStartDate,
+          endDate: scheduledEndDate,
+          time: eventDraft.time || undefined,
+          description: trimmedDescription || undefined,
+          location: trimmedLocation || undefined,
+          ownerId,
+          assigneeIds: selectedAssigneeIds,
+          audience: normalizedAudience,
+          createdBy: user.uid,
+        });
 
-      const savedRecord: CalendarEventRecord = {
-        id: eventId,
-        projectId: project.id,
-        title: eventDraft.title.trim(),
-        startDate: Timestamp.fromDate(scheduledStartDate),
-        endDate: Timestamp.fromDate(scheduledEndDate),
-        time: eventDraft.time || null,
-        description: eventDraft.description.trim() || null,
-        location: eventDraft.location.trim() || null,
-        ownerId,
-        assigneeIds: selectedAssigneeIds,
-        audience: normalizedAudience,
-        createdBy: user.uid,
-        createdAt: Timestamp.fromDate(new Date()),
-        updatedAt: Timestamp.fromDate(new Date()),
-      };
+        setCalendarEvents((current) =>
+          current
+            .map((record) =>
+              record.id === editingEventId
+                ? {
+                    ...record,
+                    title: trimmedTitle,
+                    startDate: Timestamp.fromDate(scheduledStartDate),
+                    endDate: Timestamp.fromDate(scheduledEndDate),
+                    time: eventDraft.time || null,
+                    description: trimmedDescription || null,
+                    location: trimmedLocation || null,
+                    ownerId,
+                    assigneeIds: selectedAssigneeIds,
+                    audience: normalizedAudience,
+                    updatedAt: Timestamp.fromDate(new Date()),
+                  }
+                : record,
+            )
+            .sort((left, right) =>
+              left.startDate.toMillis() === right.startDate.toMillis()
+                ? left.title.localeCompare(right.title)
+                : left.startDate.toMillis() - right.startDate.toMillis(),
+            ),
+        );
+      } else {
+        const eventId = await createProjectCalendarEvent(project.id, {
+          title: trimmedTitle,
+          startDate: scheduledStartDate,
+          endDate: scheduledEndDate,
+          time: eventDraft.time || undefined,
+          description: trimmedDescription || undefined,
+          location: trimmedLocation || undefined,
+          ownerId,
+          assigneeIds: selectedAssigneeIds,
+          audience: normalizedAudience,
+          createdBy: user.uid,
+        });
 
-      setCalendarEvents((current) =>
-        [...current, savedRecord].sort((left, right) =>
-          left.startDate.toMillis() === right.startDate.toMillis()
-            ? left.title.localeCompare(right.title)
-            : left.startDate.toMillis() - right.startDate.toMillis(),
-        ),
-      );
+        const savedRecord: CalendarEventRecord = {
+          id: eventId,
+          projectId: project.id,
+          title: trimmedTitle,
+          startDate: Timestamp.fromDate(scheduledStartDate),
+          endDate: Timestamp.fromDate(scheduledEndDate),
+          time: eventDraft.time || null,
+          description: trimmedDescription || null,
+          location: trimmedLocation || null,
+          ownerId,
+          assigneeIds: selectedAssigneeIds,
+          audience: normalizedAudience,
+          createdBy: user.uid,
+          createdAt: Timestamp.fromDate(new Date()),
+          updatedAt: Timestamp.fromDate(new Date()),
+        };
+
+        setCalendarEvents((current) =>
+          [...current, savedRecord].sort((left, right) =>
+            left.startDate.toMillis() === right.startDate.toMillis()
+              ? left.title.localeCompare(right.title)
+              : left.startDate.toMillis() - right.startDate.toMillis(),
+          ),
+        );
+      }
+
       setLoadedProjectId(project.id);
       setSelectedDate(scheduledStartDate);
       setMonthCursor(toMonthStart(scheduledStartDate));
@@ -835,6 +919,7 @@ export const CalendarPage = () => {
                 const dateKey = getDateKey(date);
                 const inMonth = date.getMonth() === monthCursor.getMonth();
                 const isSelected = sameDate(date, selectedDate);
+                const isToday = sameDate(date, new Date());
                 const items = itemsByDate[dateKey] ?? [];
 
                 return (
@@ -847,6 +932,7 @@ export const CalendarPage = () => {
                       "calendar-page__day-cell",
                       inMonth ? "" : "is-outside",
                       isSelected ? "is-selected" : "",
+                      isToday ? "today" : "",
                     ]
                       .filter(Boolean)
                       .join(" ")}
@@ -956,27 +1042,12 @@ export const CalendarPage = () => {
                         "calendar-page__agenda-item",
                         item.kind === "deadline" ? "is-deadline" : "is-event",
                         getParticipantAccentClass(item.accentId, item.tone),
+                        "flex flex-col gap-4 rounded-[var(--radius-lg)] border border-white/10 bg-white/60 p-4 shadow-sm backdrop-blur-sm md:flex-row md:items-stretch md:justify-between",
                       ]
                         .filter(Boolean)
                         .join(" ")}
                     >
-                      {item.kind === "event" ? (
-                        <button
-                          type="button"
-                          className="calendar-page__agenda-delete"
-                          onClick={() => handleDeleteEvent(item.id)}
-                          aria-label="מחק אירוע"
-                        >
-                          <X size={16} strokeWidth={2.5} />
-                        </button>
-                      ) : null}
-
-                      <div className="calendar-page__agenda-time">
-                        <strong>{item.timeLabel}</strong>
-                        {item.meridiem ? <span>{item.meridiem}</span> : null}
-                      </div>
-
-                      <div className="calendar-page__agenda-content">
+                      <div className="calendar-page__agenda-content flex min-w-0 flex-1 flex-col gap-2 text-start md:items-start">
                         {item.kind === "deadline" ? (
                           <div className="calendar-page__deadline-row">
                             <TriangleAlert size={14} strokeWidth={2.3} />
@@ -986,18 +1057,57 @@ export const CalendarPage = () => {
 
                         <h3>{item.title}</h3>
 
-                        {item.location ? (
-                          <p>
-                            <MapPin size={14} strokeWidth={2.2} />
-                            <span>{item.location}</span>
-                          </p>
-                        ) : null}
+                        <div className="flex flex-col gap-1">
+                          {item.meridiem ? (
+                            <p>
+                              <Clock size={14} strokeWidth={2.2} />
+                              <span>
+                                {item.startDate.toLocaleTimeString("he-IL", {
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })}
+                              </span>
+                            </p>
+                          ) : null}
+                          {item.location ? (
+                            <p>
+                              <MapPin size={14} strokeWidth={2.2} />
+                              <span>{item.location}</span>
+                            </p>
+                          ) : null}
+                        </div>
 
                         {item.description ? (
                           <p className="calendar-page__event-note">
                             {item.description}
                           </p>
                         ) : null}
+                      </div>
+                      <div className="flex shrink-0 flex-col justify-between gap-3 items-end">
+                        <div className="flex items-center gap-2">
+                          {item.kind === "event" ? (
+                            <button
+                              type="button"
+                              className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-[color:var(--color-text-soft)] transition hover:bg-[color:var(--color-primary)]/25 hover:text-[color:var(--color-primary)]"
+                              onClick={() => openEditDialog(item)}
+                              aria-label="ערוך אירוע"
+                              title="ערוך אירוע"
+                            >
+                              <Pencil size={15} strokeWidth={2.4} />
+                            </button>
+                          ) : null}
+
+                          {item.kind === "event" ? (
+                            <button
+                              type="button"
+                              className="calendar-page__agenda-delete"
+                              onClick={() => handleDeleteEvent(item.id)}
+                              aria-label="מחק אירוע"
+                            >
+                              <X size={16} strokeWidth={2.5} />
+                            </button>
+                          ) : null}
+                        </div>
 
                         {attendees.length ? (
                           <div className="calendar-page__attendees">
@@ -1006,7 +1116,6 @@ export const CalendarPage = () => {
                               size="sm"
                               maxVisible={3}
                             />
-                            <span>{attendeeLabels}</span>
                           </div>
                         ) : null}
                       </div>
@@ -1039,12 +1148,14 @@ export const CalendarPage = () => {
           >
             <div className="calendar-page__dialog-header">
               <div>
-                <p className="calendar-page__dialog-eyebrow">אירוע חדש</p>
+                <p className="calendar-page__dialog-eyebrow">
+                  {editingEventId ? "עריכת אירוע" : "אירוע חדש"}
+                </p>
                 <h2
                   id="create-event-title"
                   className="calendar-page__dialog-title"
                 >
-                  הוסף אירוע
+                  {editingEventId ? "ערוך אירוע" : "הוסף אירוע"}
                 </h2>
               </div>
               <button
@@ -1134,7 +1245,7 @@ export const CalendarPage = () => {
                 />
               </label>
 
-              <label className="calendar-page__field calendar-page__field--full">
+              <label className="calendar-page__field">
                 <span>מיקום</span>
                 <input
                   type="text"
@@ -1149,7 +1260,7 @@ export const CalendarPage = () => {
                 />
               </label>
 
-              <div className="calendar-page__field calendar-page__field--full">
+              <div className="calendar-page__field ">
                 <span>משתתפים</span>
                 <div className="calendar-page__picker-wrap">
                   <button
@@ -1252,7 +1363,11 @@ export const CalendarPage = () => {
                   ביטול
                 </Button>
                 <Button type="submit" size="md" disabled={isSavingEvent}>
-                  {isSavingEvent ? "שומר..." : "צור אירוע"}
+                  {isSavingEvent
+                    ? "שומר..."
+                    : editingEventId
+                      ? "שמור שינויים"
+                      : "צור אירוע"}
                 </Button>
               </div>
             </form>

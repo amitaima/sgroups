@@ -206,7 +206,7 @@ export const ProjectsHomePage = () => {
 
           <div className="projects-home__hero-copy">
             <p className="projects-home__eyebrow">הפרויקטים שלי</p>
-            <h1 className="projects-home__title">My Projects</h1>
+            <h1 className="projects-home__title">הפרוייקטים שלי</h1>
             <p className="projects-home__subtitle">
               בחרו סביבת עבודה פעילה כדי להמשיך למחקר ולשיתוף פעולה.
             </p>

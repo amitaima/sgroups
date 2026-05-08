@@ -31,6 +31,10 @@
   flex-direction: column;
   gap: var(--space-2);
   max-height: 10rem;
+  margin: -20px;
+  padding: 20px;
+  margin-top: -10px;
+  padding-top: 10px;
   @media (max-width: 1180px) {
     max-height: none;
   }
