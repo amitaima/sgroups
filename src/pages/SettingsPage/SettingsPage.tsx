@@ -55,7 +55,7 @@ const PROJECT_ROLE_OPTIONS: Array<{
   label: string;
 }> = [
   { value: "owner", label: "בעלים" },
-  { value: "admin", label: "מנהל" },
+  { value: "faculty", label: "סגל" },
   { value: "member", label: "חבר צוות" },
 ];
 
@@ -202,7 +202,7 @@ const buildMemberRoles = (
   Object.entries(memberRoles).forEach(([memberId, role]) => {
     if (
       normalizedMemberIds.includes(memberId) &&
-      (role === "owner" || role === "admin" || role === "member")
+      (role === "owner" || role === "faculty" || role === "member")
     ) {
       normalizedRoles[memberId] = role;
     }
@@ -325,12 +325,10 @@ export const SettingsPage = () => {
       { displayName: string; email: string | null; photoURL: string | null }
     >
   >({});
-  const [membersLoading, setMembersLoading] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [inviteEmails, setInviteEmails] = useState("");
-  const [inviteMessage, setInviteMessage] = useState<string | null>(null);
   const [copyState, setCopyState] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteConfirmValue, setDeleteConfirmValue] = useState("");
@@ -373,7 +371,6 @@ export const SettingsPage = () => {
       setSaveError(null);
       setSaveSuccess(null);
       setInviteEmails("");
-      setInviteMessage(null);
       setCopyState(null);
       return;
     }
@@ -395,7 +392,6 @@ export const SettingsPage = () => {
     setSaveError(null);
     setSaveSuccess(null);
     setInviteEmails("");
-    setInviteMessage(null);
     setCopyState(null);
   }, [project]);
 
@@ -411,7 +407,6 @@ export const SettingsPage = () => {
       };
     }
 
-    setMembersLoading(true);
     void getUsersByIds(draft.memberIds)
       .then((members) => {
         if (!active) {
@@ -448,7 +443,6 @@ export const SettingsPage = () => {
       })
       .finally(() => {
         if (active) {
-          setMembersLoading(false);
         }
       });
 
@@ -574,7 +568,7 @@ export const SettingsPage = () => {
   }, [project, user]);
 
   const canManageTeam =
-    currentUserRole === "owner" || currentUserRole === "admin";
+    currentUserRole === "owner" || currentUserRole === "faculty";
 
   const memberRows = useMemo<MemberRow[]>(() => {
     if (!project || !draft) {
@@ -652,157 +646,6 @@ export const SettingsPage = () => {
           }
         : currentDraft,
     );
-  };
-
-  const updateLink = (linkId: string, value: Partial<LinkDraft>) => {
-    setDraft((currentDraft) => {
-      if (!currentDraft) {
-        return currentDraft;
-      }
-
-      return {
-        ...currentDraft,
-        importantLinks: currentDraft.importantLinks.map((link) =>
-          link.id === linkId ? { ...link, ...value } : link,
-        ),
-      };
-    });
-  };
-
-  const addLink = () => {
-    setDraft((currentDraft) => {
-      if (!currentDraft) {
-        return currentDraft;
-      }
-
-      return {
-        ...currentDraft,
-        importantLinks: [
-          ...currentDraft.importantLinks,
-          { id: createId(), label: "", url: "" },
-        ],
-      };
-    });
-  };
-
-  const removeLink = (linkId: string) => {
-    setDraft((currentDraft) =>
-      currentDraft
-        ? {
-            ...currentDraft,
-            importantLinks: currentDraft.importantLinks.filter(
-              (link) => link.id !== linkId,
-            ),
-          }
-        : currentDraft,
-    );
-  };
-
-  const updateMemberRole = (memberId: string, role: ProjectMemberRole) => {
-    setDraft((currentDraft) => {
-      if (!currentDraft) {
-        return currentDraft;
-      }
-
-      return {
-        ...currentDraft,
-        memberRoles: {
-          ...currentDraft.memberRoles,
-          [memberId]: role,
-        },
-      };
-    });
-  };
-
-  const removeMember = (memberId: string) => {
-    if (!project || memberId === project.createdBy) {
-      return;
-    }
-
-    setDraft((currentDraft) =>
-      currentDraft
-        ? {
-            ...currentDraft,
-            memberIds: currentDraft.memberIds.filter((id) => id !== memberId),
-          }
-        : currentDraft,
-    );
-  };
-
-  const handleAddMembers = async () => {
-    if (!draft) {
-      return;
-    }
-
-    const requestedEmails = inviteEmails
-      .split(/[\n,]/)
-      .map((value) => value.trim())
-      .filter(Boolean);
-
-    if (!requestedEmails.length) {
-      setInviteMessage("יש להזין לפחות כתובת אימייל אחת.");
-      return;
-    }
-
-    setInviteMessage(null);
-
-    try {
-      const { memberIds, missingEmails } =
-        await resolveMemberIdsByEmails(requestedEmails);
-
-      if (!memberIds.length) {
-        setInviteMessage("לא נמצא משתמש מתאים להזמנה.");
-        return;
-      }
-
-      setDraft((currentDraft) => {
-        if (!currentDraft) {
-          return currentDraft;
-        }
-
-        const nextMemberIds = Array.from(
-          new Set([...currentDraft.memberIds, ...memberIds]),
-        );
-        const nextMemberRoles = { ...currentDraft.memberRoles };
-
-        memberIds.forEach((memberId) => {
-          if (!nextMemberRoles[memberId]) {
-            nextMemberRoles[memberId] =
-              memberId === project?.createdBy ? "owner" : "member";
-          }
-        });
-
-        return {
-          ...currentDraft,
-          memberIds: nextMemberIds,
-          memberRoles: nextMemberRoles,
-        };
-      });
-
-      setInviteEmails("");
-      setInviteMessage(
-        missingEmails.length > 0
-          ? `נוספו המשתמשים שנמצאו. לא נמצאו: ${missingEmails.join(", ")}`
-          : "המשתמשים נוספו לטיוטת הצוות.",
-      );
-    } catch (inviteError) {
-      console.error("Failed to resolve invited members", inviteError);
-      setInviteMessage("לא הצלחנו לעדכן את הצוות כרגע.");
-    }
-  };
-
-  const handleCopyProjectCode = async () => {
-    if (!project) {
-      return;
-    }
-
-    try {
-      await navigator.clipboard.writeText(project.id);
-      setCopyState("קוד ההצטרפות הועתק ללוח.");
-    } catch (copyError) {
-      console.error("Failed to copy project code", copyError);
-      setCopyState("לא הצלחנו להעתיק את הקוד.");
-    }
   };
 
   const handleSaveProject = async () => {
@@ -1215,145 +1058,6 @@ export const SettingsPage = () => {
             <GlassPanel className="settings-page__card">
               <div className="settings-page__card-header">
                 <div>
-                  <p className="settings-page__eyebrow">צוות הפרויקט</p>
-                  <h3 className="settings-page__card-title">
-                    ניהול חברים והרשאות
-                  </h3>
-                </div>
-                <Users size={18} strokeWidth={2.1} />
-              </div>
-
-              <div className="settings-page__invite-block">
-                <label className="settings-page__field settings-page__field--wide">
-                  <span>הזמנה באימייל</span>
-                  <textarea
-                    rows={3}
-                    value={inviteEmails}
-                    onChange={(event) => setInviteEmails(event.target.value)}
-                    placeholder="חבר1@uni.ac.il, חבר2@uni.ac.il"
-                  />
-                </label>
-                <Button
-                  style={{ width: "fit-content" }}
-                  type="button"
-                  variant="secondary"
-                  onClick={handleAddMembers}
-                >
-                  <Plus size={16} />
-                  הוספת חברים לטיוטה
-                </Button>
-              </div>
-
-              {inviteMessage ? (
-                <p className="settings-page__inline-message">{inviteMessage}</p>
-              ) : null}
-
-              <div className="settings-page__code-row">
-                <div>
-                  <p className="settings-page__eyebrow">קוד ההצטרפות לפרויקט</p>
-                  <strong>{project.id}</strong>
-                </div>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  onClick={handleCopyProjectCode}
-                >
-                  <Copy size={16} />
-                  העתקה
-                </Button>
-              </div>
-
-              <div className="settings-page__member-list">
-                {membersLoading ? (
-                  <p className="settings-page__muted">טוען את חברי הצוות...</p>
-                ) : null}
-
-                {!membersLoading && memberRows.length === 0 ? (
-                  <p className="settings-page__muted">
-                    עדיין לא נוספו חברי צוות.
-                  </p>
-                ) : null}
-
-                {memberRows.map((member) => (
-                  <div key={member.id} className="settings-page__member-row">
-                    <div className="settings-page__member-main">
-                      <MemberAvatarGroup
-                        members={[
-                          {
-                            id: member.id,
-                            displayName: member.displayName,
-                            email: member.email,
-                            photoURL: member.photoURL,
-                          },
-                        ]}
-                        maxVisible={1}
-                        size="sm"
-                        className="settings-page__member-avatar"
-                      />
-                      <div>
-                        <div className="settings-page__member-name-row">
-                          <strong>{member.displayName}</strong>
-                          {member.isCreator ? (
-                            <span className="settings-page__member-badge">
-                              בעלים
-                            </span>
-                          ) : null}
-                        </div>
-                        <p className="settings-page__member-email">
-                          {member.email ?? member.id}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="settings-page__member-actions">
-                      {member.isCreator ? (
-                        <span className="settings-page__role-pill">
-                          {getRoleLabel(member.role)}
-                        </span>
-                      ) : canManageTeam ? (
-                        <select
-                          value={member.role}
-                          onChange={(event) =>
-                            updateMemberRole(
-                              member.id,
-                              event.target.value as ProjectMemberRole,
-                            )
-                          }
-                          aria-label={`הגדרת תפקיד עבור ${member.displayName}`}
-                        >
-                          {PROJECT_ROLE_OPTIONS.filter(
-                            (option) => option.value !== "owner",
-                          ).map((option) => (
-                            <option key={option.value} value={option.value}>
-                              {option.label}
-                            </option>
-                          ))}
-                        </select>
-                      ) : (
-                        <span className="settings-page__role-pill">
-                          {getRoleLabel(member.role)}
-                        </span>
-                      )}
-
-                      {canManageTeam && !member.isCreator ? (
-                        <button
-                          className="settings-page__icon-button"
-                          type="button"
-                          onClick={() => removeMember(member.id)}
-                          aria-label={`הסרת ${member.displayName} מהצוות`}
-                        >
-                          <X size={16} />
-                        </button>
-                      ) : null}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </GlassPanel>
-
-            <GlassPanel className="settings-page__card">
-              <div className="settings-page__card-header">
-                <div>
                   <p className="settings-page__eyebrow">אבני דרך</p>
                   <h3 className="settings-page__card-title">תאריכי ביניים</h3>
                 </div>
@@ -1549,7 +1253,7 @@ export const SettingsPage = () => {
                 <p>
                   {currentUserRole === "owner"
                     ? "אתם מוגדרים כבעלי הפרויקט."
-                    : currentUserRole === "admin"
+                    : currentUserRole === "faculty"
                       ? "יש לכם הרשאות ניהול לצוות ולהגדרות."
                       : "יש לכם הרשאת צפייה ועריכה בסיסית בפרויקט."}
                 </p>

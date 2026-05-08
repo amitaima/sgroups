@@ -63,7 +63,7 @@ type DashboardLinkRow = {
 
 const ROLE_LABELS: Record<ProjectMemberRole, string> = {
   owner: "בעלים",
-  admin: "מנהל",
+  faculty: "סגל",
   member: "חבר צוות",
 };
 
@@ -280,6 +280,7 @@ export const DashboardPage = () => {
   const [linksSaving, setLinksSaving] = useState(false);
   const [membersError, setMembersError] = useState<string | null>(null);
   const [linksError, setLinksError] = useState<string | null>(null);
+  const [copyLinkMessage, setCopyLinkMessage] = useState<string | null>(null);
   const membersDialogRef = useRef<HTMLDialogElement>(null);
   const linksDialogRef = useRef<HTMLDialogElement>(null);
 
@@ -497,10 +498,30 @@ export const DashboardPage = () => {
       return;
     }
 
-    const nextMemberIds = Array.from(
-      new Set([activeProject.createdBy, ...memberIds]),
+    const profiles = await getUsersByIds(memberIds);
+    const emailToUid = new Map(
+      profiles
+        .filter((p) => p.email)
+        .map((p) => [p.email!.toLowerCase(), p.uid]),
     );
-    const nextMemberRoles = buildMemberRoleMap(activeProject, nextMemberIds);
+
+    const nextMemberIdsSet = new Set<string>([activeProject.createdBy]);
+    const nextMemberRoles: Record<string, ProjectMemberRole> = {};
+
+    // assign roles based on drafts; use resolved uid by email when possible
+    memberDrafts.forEach((draft) => {
+      const email = draft.email.trim().toLowerCase();
+      const uid = (email && emailToUid.get(email)) || draft.id || "";
+      if (!uid) return;
+      nextMemberIdsSet.add(uid);
+      if (uid === activeProject.createdBy) {
+        nextMemberRoles[uid] = "owner";
+      } else {
+        nextMemberRoles[uid] = draft.role ?? "member";
+      }
+    });
+
+    const nextMemberIds = Array.from(nextMemberIdsSet);
 
     try {
       await updateProject(activeProject.id, {
@@ -801,6 +822,27 @@ export const DashboardPage = () => {
                     aria-label={`אימייל עבור ${member.name}`}
                     disabled={member.locked}
                   />
+                  <select
+                    className="dashboard-page__dialog-role-select"
+                    value={member.role}
+                    onChange={(event) => {
+                      const nextRole = event.target.value as ProjectMemberRole;
+                      setMemberDrafts((current) =>
+                        current.map((row, currentIndex) =>
+                          currentIndex === index
+                            ? { ...row, role: nextRole }
+                            : row,
+                        ),
+                      );
+                    }}
+                    aria-label={`תפקיד עבור ${member.name}`}
+                    disabled={member.locked}
+                  >
+                    <option value="owner">{ROLE_LABELS.owner}</option>
+                    <option value="faculty">{ROLE_LABELS.faculty}</option>
+                    <option value="member">{ROLE_LABELS.member}</option>
+                  </select>
+
                   <button
                     className="dashboard-page__dialog-remove"
                     type="button"
@@ -848,15 +890,39 @@ export const DashboardPage = () => {
             <Button
               variant="secondary"
               type="button"
-              onClick={() => setMembersDialogOpen(false)}
+              onClick={async () => {
+                if (!activeProject) return;
+                try {
+                  const joinLink = `${window.location.origin}/join/${activeProject.id}`;
+                  await navigator.clipboard.writeText(joinLink);
+                  setCopyLinkMessage("קישור ההצטרפות הועתק ללוח.");
+                  window.setTimeout(() => setCopyLinkMessage(null), 2500);
+                } catch (err) {
+                  setCopyLinkMessage("לא הצלחנו להעתיק את הקישור.");
+                  window.setTimeout(() => setCopyLinkMessage(null), 2500);
+                }
+              }}
             >
-              ביטול
+              העתק קישור הצטרפות
             </Button>
-            <Button type="submit" disabled={membersSaving}>
-              <Save size={16} />
-              שמירה
-            </Button>
+
+            <div>
+              <Button
+                variant="secondary"
+                type="button"
+                onClick={() => setMembersDialogOpen(false)}
+              >
+                ביטול
+              </Button>
+              <Button type="submit" disabled={membersSaving}>
+                <Save size={16} />
+                שמירה
+              </Button>
+            </div>
           </div>
+          {copyLinkMessage ? (
+            <p className="dashboard-page__dialog-copy-msg">{copyLinkMessage}</p>
+          ) : null}
         </form>
       </dialog>
 

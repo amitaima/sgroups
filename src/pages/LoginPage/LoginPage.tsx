@@ -13,6 +13,8 @@ import { PageSection } from "@components/layout/PageSection/PageSection";
 import { Button } from "@components/ui/Button/Button";
 import { useNavigate } from "react-router-dom";
 import "./LoginPage.scss";
+import loginImage from "@assets/images/login-image.webp";
+import { FcGoogle } from "react-icons/fc";
 
 export const LoginPage = () => {
   const { user, initializing } = useAuth();
@@ -106,100 +108,170 @@ export const LoginPage = () => {
   };
 
   return (
-    <PageSection className="login-page">
-      <div className="login-page__card">
-        <div className="login-page__header">
-          <h1 className="login-page__title">
-            {mode === "login" ? "התחברות" : "הרשמה"}
-          </h1>
-          <p className="login-page__subtitle">
-            {mode === "login"
-              ? "התחבר כדי להמשיך לאזור המוגן."
-              : "צור חשבון חדש כדי להתחיל."}
-          </p>
-        </div>
-        <form className="login-page__form" onSubmit={handleEmailSubmit}>
-          {mode !== "login" ? (
-            <label className="login-page__field">
-              <span className="login-page__label">שם משתמש</span>
-              <input
-                className="login-page__input"
-                type="text"
-                name="username"
-                autoComplete="username"
-                value={username}
-                onChange={(event) => {
-                  setUsername(event.target.value);
+    <PageSection className="login-page" aria-label="דף התחברות" dir="rtl">
+      <div className="login-page__split">
+        <aside className="login-page__hero" aria-hidden={false}>
+          <div className="login-page__hero-media" role="img" aria-label="מדיה">
+            <img src={loginImage} alt="תמונת סטודנטים" />
+            <div className="login-page__hero-overlay" />
+          </div>
+          <div className="login-page__brand">
+            <div className="login-page__logo" aria-hidden>
+              <svg
+                width="36"
+                height="36"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <rect
+                  width="24"
+                  height="24"
+                  rx="5"
+                  fill="var(--color-primary)"
+                />
+                <path
+                  d="M6 17L12 8l6 9"
+                  stroke="var(--color-primary-contrast)"
+                  strokeWidth="1.6"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </div>
+            <div className="login-page__brand-text">
+              <div className="login-page__brand-title">SGroups</div>
+              <div className="login-page__brand-sub">מרחב מחקר אקדמי</div>
+            </div>
+          </div>
+          <div className="login-page__hero-copy">
+            <h2>הגביהו את המסע האקדמי שלכם</h2>
+            <p>
+              הצטרפו לקהילה ממוקדת של חוקרים וסגל; שיתפו פעולה במרחב המיועד
+              לריכוז ועבודה עמוקה.
+            </p>
+          </div>
+        </aside>
+
+        <main className="login-page__panel">
+          <div className="login-page__panel-inner">
+            <header className="login-page__panel-header">
+              <h1>{mode === "login" ? "התחברות" : "הרשמה"}</h1>
+              <p className="muted">
+                {mode === "login" ? "התחבר כדי להמשיך" : "צור חשבון חדש"}
+              </p>
+            </header>
+
+            <form className="login-page__form" onSubmit={handleEmailSubmit}>
+              <div className="flex flex-col gap-4">
+                {mode !== "login" ? (
+                  <label className="login-page__field">
+                    <span className="login-page__label">שם משתמש</span>
+                    <input
+                      className="login-page__input"
+                      type="text"
+                      name="username"
+                      autoComplete="username"
+                      value={username}
+                      onChange={(event) => {
+                        setUsername(event.target.value);
+                        setSuccess(null);
+                      }}
+                      required
+                    />
+                  </label>
+                ) : null}
+
+                <label className="login-page__field">
+                  <span className="login-page__label">אימייל</span>
+                  <input
+                    className="login-page__input"
+                    type="email"
+                    name="email"
+                    autoComplete="email"
+                    value={email}
+                    onChange={(event) => {
+                      setEmail(event.target.value);
+                      setSuccess(null);
+                    }}
+                    placeholder="scholar@institution.edu"
+                    required
+                  />
+                </label>
+
+                <label className="login-page__field">
+                  <div className="login-page__field-row">
+                    <span className="login-page__label">סיסמה</span>
+                    {mode === "login" ? (
+                      <button
+                        className="login-page__forgot"
+                        type="button"
+                        onClick={() => {}}
+                      >
+                        שכחת סיסמה?
+                      </button>
+                    ) : null}
+                  </div>
+                  <input
+                    className="login-page__input"
+                    type="password"
+                    name="password"
+                    autoComplete={
+                      mode === "login" ? "current-password" : "new-password"
+                    }
+                    value={password}
+                    onChange={(event) => {
+                      setPassword(event.target.value);
+                      setSuccess(null);
+                    }}
+                    placeholder="••••••••"
+                    required
+                  />
+                </label>
+              </div>
+
+              {success ? (
+                <p className="login-page__success">{success}</p>
+              ) : null}
+              {error ? <p className="login-page__error">{error}</p> : null}
+
+              <div className="login-page__actions">
+                <Button type="submit" disabled={loading}>
+                  {loading ? "טוען..." : mode === "login" ? "כניסה" : "הרשמה"}
+                </Button>
+
+                <div className="login-page__social">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={handleGoogleSignIn}
+                    disabled={loading}
+                  >
+                    <FcGoogle size={24} />
+                    המשך עם Google
+                  </Button>
+                </div>
+              </div>
+            </form>
+
+            <div className="login-page__panel-footer">
+              <span>
+                {mode === "login" ? "אין לך חשבון?" : "כבר יש לך חשבון?"}
+              </span>
+              <button
+                type="button"
+                className="login-page__link"
+                onClick={() => {
+                  setMode(mode === "login" ? "signup" : "login");
+                  setError(null);
                   setSuccess(null);
                 }}
-                required
-              />
-            </label>
-          ) : (
-            ""
-          )}
-          <label className="login-page__field">
-            <span className="login-page__label">אימייל</span>
-            <input
-              className="login-page__input"
-              type="email"
-              name="email"
-              autoComplete="email"
-              value={email}
-              onChange={(event) => {
-                setEmail(event.target.value);
-                setSuccess(null);
-              }}
-              required
-            />
-          </label>
-          <label className="login-page__field">
-            <span className="login-page__label">סיסמה</span>
-            <input
-              className="login-page__input"
-              type="password"
-              name="password"
-              autoComplete={
-                mode === "login" ? "current-password" : "new-password"
-              }
-              value={password}
-              onChange={(event) => {
-                setPassword(event.target.value);
-                setSuccess(null);
-              }}
-              required
-            />
-          </label>
-          {success ? <p className="login-page__success">{success}</p> : null}
-          {error ? <p className="login-page__error">{error}</p> : null}
-          <div className="login-page__actions">
-            <Button type="submit" disabled={loading}>
-              {loading ? "טוען..." : mode === "login" ? "כניסה" : "הרשמה"}
-            </Button>
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={handleGoogleSignIn}
-              disabled={loading}
-            >
-              המשך עם Google
-            </Button>
+              >
+                {mode === "login" ? "ליצירת חשבון" : "להתחברות"}
+              </button>
+            </div>
           </div>
-        </form>
-        <div className="login-page__switch">
-          <span>{mode === "login" ? "אין לך חשבון?" : "כבר יש לך חשבון?"}</span>
-          <button
-            type="button"
-            className="login-page__link"
-            onClick={() => {
-              setMode(mode === "login" ? "signup" : "login");
-              setError(null);
-              setSuccess(null);
-            }}
-          >
-            {mode === "login" ? "להרשמה" : "להתחברות"}
-          </button>
-        </div>
+        </main>
       </div>
     </PageSection>
   );

@@ -53,7 +53,7 @@ export type ProjectType =
   | "research"
   | "lab";
 
-export type ProjectMemberRole = "owner" | "admin" | "member";
+export type ProjectMemberRole = "owner" | "faculty" | "member";
 
 export interface ProjectMilestone {
   id: string;

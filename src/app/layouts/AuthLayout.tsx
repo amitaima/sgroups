@@ -5,7 +5,7 @@ import "./AuthLayout.scss";
 export const AuthLayout = () => {
   return (
     <div className="auth-layout">
-      <PageContainer>
+      <PageContainer className="auth-layout__container">
         <Outlet />
       </PageContainer>
     </div>

@@ -236,7 +236,7 @@ const isTaskStatus = (value: unknown): value is TaskStatus =>
   value === "completed";
 
 const isProjectMemberRole = (value: unknown): value is ProjectMemberRole =>
-  value === "owner" || value === "admin" || value === "member";
+  value === "owner" || value === "faculty" || value === "member";
 
 const normalizeText = (value: unknown): string | undefined => {
   if (typeof value !== "string") {

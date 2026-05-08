@@ -4,6 +4,7 @@ import { AuthLayout } from "@app/layouts/AuthLayout";
 import { RootLayout } from "@app/layouts/RootLayout";
 import { ProtectedRoute } from "@app/router/ProtectedRoute";
 import { DashboardPage } from "@pages/DashboardPage/DashboardPage";
+import { JoinProjectPage } from "@pages/JoinProjectPage/JoinProjectPage";
 import { TasksPage } from "@pages/TasksPage/TasksPage";
 import { CalendarPage } from "@pages/CalendarPage/CalendarPage";
 import { SettingsPage } from "@pages/SettingsPage/SettingsPage";
@@ -20,6 +21,10 @@ export const routes: RouteObject[] = [
         element: <LoginPage />,
       },
     ],
+  },
+  {
+    path: "/join/:projectId",
+    element: <JoinProjectPage />,
   },
   {
     element: <ProtectedRoute />,

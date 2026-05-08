@@ -3,5 +3,11 @@
   display: flex;
   align-items: center;
   background: var(--color-bg);
-  padding-block: var(--space-10);
+  // padding-block: var(--space-10);
+}
+
+.auth-layout__container {
+  margin: 0;
+  padding: 0;
+  max-width: none;
 }

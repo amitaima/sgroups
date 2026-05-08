@@ -128,8 +128,10 @@
   --sys-shadow-dark: rgba(0, 0, 0, 0.06);
 
   /* Typography */
-  --font-family-base: "Manrope", "Segoe UI", system-ui, sans-serif;
-  --font-family-heading: "Manrope", "Segoe UI", system-ui, sans-serif;
+  --font-family-base:
+    "Heebo", "Assistant", "Noto Sans Hebrew", "Segoe UI", Arial, sans-serif;
+  --font-family-heading:
+    "Heebo", "Assistant", "Noto Sans Hebrew", "Segoe UI", Arial, sans-serif;
   --font-family-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   --font-weight-regular: 400;
   --font-weight-medium: 500;
