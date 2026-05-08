@@ -8,6 +8,7 @@ import "./DashboardHeader.scss";
 
 export const DashboardHeader = ({
   onOpenMenu,
+  isMenuOpen = false,
   currentProjectId,
   userLabel,
   userPhoto,
@@ -24,7 +25,7 @@ export const DashboardHeader = ({
             className="dashboard-header__menu"
             type="button"
             onClick={onOpenMenu}
-            aria-label="פתח תפריט"
+            aria-label={isMenuOpen ? "סגור תפריט" : "פתח תפריט"}
           >
             <Menu size={18} strokeWidth={2} />
           </button>

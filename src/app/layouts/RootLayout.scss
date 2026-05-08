@@ -20,6 +20,10 @@
   min-height: 100vh;
 }
 
+.app-shell__sidebar-backdrop {
+  display: none;
+}
+
 .special-background {
   background:
     radial-gradient(
@@ -108,6 +112,25 @@
 }
 
 @media (max-width: 900px) {
+  .app-shell--project .app-shell__sidebar-backdrop {
+    position: fixed;
+    inset: 0;
+    display: block;
+    border: 0;
+    background: color-mix(in srgb, var(--color-text) 24%, transparent);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--motion-base) var(--motion-ease);
+    z-index: calc(var(--z-modal) - 1);
+  }
+
+  .app-shell--project .app-shell__sidebar-backdrop.is-open {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
   .app-shell__main {
     padding: 0 var(--space-4) var(--space-5);
   }

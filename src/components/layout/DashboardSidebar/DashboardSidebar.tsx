@@ -1,5 +1,7 @@
 import { GlassPanel } from "@components/ui/GlassPanel/GlassPanel";
-import { Sparkles } from "lucide-react";
+import { getProjectWorkspacePath } from "@app/router/workspaceRoutes";
+import { Sparkles, X } from "lucide-react";
+import { NavLink } from "react-router-dom";
 import "./DashboardSidebar.scss";
 
 interface SidebarItem {
@@ -14,9 +16,6 @@ interface DashboardSidebarProps {
   onClose: () => void;
   currentProjectId?: string | null;
 }
-
-import { NavLink } from "react-router-dom";
-import { getProjectWorkspacePath } from "@app/router/workspaceRoutes";
 
 export const DashboardSidebar = ({
   items,
@@ -42,7 +41,7 @@ export const DashboardSidebar = ({
             onClick={onClose}
             aria-label="סגור תפריט"
           >
-            ✕
+            <X size={18} strokeWidth={2} />
           </button>
         </div>
         <nav className="dashboard-sidebar__nav">
@@ -60,6 +59,7 @@ export const DashboardSidebar = ({
                     .filter(Boolean)
                     .join(" ")
                 }
+                onClick={onClose}
               >
                 <span className="dashboard-sidebar__icon">{item.icon}</span>
                 <span className="dashboard-sidebar__label">{item.label}</span>

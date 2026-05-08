@@ -49,6 +49,14 @@ export const RootLayout = () => {
       className={`app-shell${isProjectView ? " app-shell--project" : " app-shell--home"}`}
     >
       {isProjectView ? (
+        <button
+          type="button"
+          className={`app-shell__sidebar-backdrop${sidebarOpen ? " is-open" : ""}`}
+          onClick={() => setSidebarOpen(false)}
+          aria-label="סגור תפריט"
+        />
+      ) : null}
+      {isProjectView ? (
         <DashboardSidebar
           items={createSidebarItems()}
           isOpen={sidebarOpen}
@@ -64,7 +72,8 @@ export const RootLayout = () => {
             currentProjectId={projectId}
             userLabel={user?.displayName || user?.email || "מחובר"}
             userPhoto={user?.photoURL || undefined}
-            onOpenMenu={() => setSidebarOpen(true)}
+            onOpenMenu={() => setSidebarOpen((prev) => !prev)}
+            isMenuOpen={sidebarOpen}
             onSignOut={signOutUser}
           />
         ) : (

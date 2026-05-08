@@ -54,7 +54,9 @@ export const ProfileMenuButton = ({
             <CircleUserRound size={18} strokeWidth={2.25} />
           )}
         </span>
-        <span className="profile-menu-button__label">{userLabel}</span>
+        <span className="profile-menu-button__label hidden md:block">
+          {userLabel}
+        </span>
         <ChevronDown size={16} className="profile-menu-button__chevron" />
       </button>
 
