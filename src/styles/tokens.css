@@ -207,6 +207,45 @@
   --breakpoint-md: 768px;
   --breakpoint-lg: 1024px;
   --breakpoint-xl: 1280px;
+  /* Consumer tokens: expose app-facing variables directly so they
+      exist at runtime even if unknown @rules are processed differently. */
+  --color-bg: var(--sys-color-bg);
+  --color-surface: var(--sys-color-surface);
+  --color-surface-alt: var(--sys-color-surface-alt);
+  --color-surface-muted: var(--sys-color-surface-muted);
+  --color-surface-raised: var(--sys-color-surface-raised);
+  --color-surface-glass: var(--sys-color-surface-glass);
+  --color-surface-glass-strong: var(--sys-color-surface-glass-strong);
+  --color-surface-glass-border: var(--sys-color-surface-glass-border);
+
+  --color-border: var(--sys-color-border);
+  --color-border-strong: var(--sys-color-border-strong);
+
+  --color-text: var(--sys-color-text);
+  --color-text-muted: var(--sys-color-text-muted);
+  --color-text-soft: var(--sys-color-text-soft);
+
+  --color-primary: var(--sys-color-primary);
+  --color-primary-hover: var(--sys-color-primary-hover);
+  --color-primary-active: var(--sys-color-primary-active);
+  --color-primary-contrast: var(--sys-color-primary-contrast);
+  --color-primary-container: var(--sys-color-primary-container);
+  --color-primary-fixed: var(--sys-color-primary-fixed);
+  --color-primary-fixed-dim: var(--sys-color-primary-fixed-dim);
+
+  --color-secondary: var(--sys-color-secondary);
+  --color-secondary-container: var(--sys-color-secondary-container);
+  --color-secondary-fixed: var(--sys-color-secondary-fixed);
+  --color-secondary-fixed-dim: var(--sys-color-secondary-fixed-dim);
+
+  --color-accent: var(--sys-color-accent);
+  --color-accent-hover: var(--sys-color-accent-hover);
+  --color-tertiary: var(--sys-color-tertiary);
+  --color-tertiary-container: var(--sys-color-tertiary-container);
+
+  --color-success: var(--sys-color-success);
+  --color-warning: var(--sys-color-warning);
+  --color-danger: var(--sys-color-danger);
 }
 
 /* DARK */
