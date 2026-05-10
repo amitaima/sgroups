@@ -117,7 +117,7 @@ const sameDate = (left: Date, right: Date) =>
 
 const getCalendarCells = (month: Date) => {
   const monthStart = toMonthStart(month);
-  const firstDayOffset = (monthStart.getDay() + 6) % 7;
+  const firstDayOffset = monthStart.getDay();
   const gridStart = new Date(monthStart);
   gridStart.setDate(monthStart.getDate() - firstDayOffset);
 
