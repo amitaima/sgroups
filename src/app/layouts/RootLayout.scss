@@ -28,12 +28,12 @@
   background:
     radial-gradient(
       circle at 20% 16%,
-      color-mix(in srgb, var(--color-accent) 18%, transparent) 0%,
+      color-mix(in srgb, var(--color-accent) 30%, transparent) 0%,
       transparent 45%
     ),
     radial-gradient(
       circle at 80% 0%,
-      color-mix(in srgb, var(--color-primary) 20%, transparent) 0%,
+      color-mix(in srgb, var(--color-primary) 30%, transparent) 0%,
       transparent 42%
     ),
     var(--color-bg);
