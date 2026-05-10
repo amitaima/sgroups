@@ -298,19 +298,25 @@ export const upsertUserProfile = async (user: User): Promise<void> => {
   const existingLinks = getUserLinks(data?.links);
   const provider = user.providerData[0]?.providerId || "password";
 
-  const payload: UserProfile = {
+  const payload: Record<string, unknown> = {
     uid: user.uid,
     email: user.email,
     displayName: user.displayName,
     photoURL: user.photoURL,
     theme: existingTheme,
     notifications: existingNotifications,
-    academicProfile: existingAcademicProfile,
-    links: existingLinks,
     provider,
     createdAt: existingCreatedAt ?? serverTimestamp(),
     lastLoginAt: serverTimestamp(),
   };
+
+  if (existingAcademicProfile !== undefined) {
+    payload.academicProfile = existingAcademicProfile;
+  }
+
+  if (existingLinks !== undefined) {
+    payload.links = existingLinks;
+  }
 
   await setDoc(ref, payload, { merge: true });
 };
