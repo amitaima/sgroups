@@ -8,6 +8,7 @@ import { JoinProjectPage } from "@pages/JoinProjectPage/JoinProjectPage";
 import { TasksPage } from "@pages/TasksPage/TasksPage";
 import { CalendarPage } from "@pages/CalendarPage/CalendarPage";
 import { SettingsPage } from "@pages/SettingsPage/SettingsPage";
+import { UserSettingsPage } from "@pages/UserSettingsPage";
 import { LoginPage } from "@pages/LoginPage/LoginPage";
 import { ProjectsHomePage } from "@pages/ProjectsHomePage/ProjectsHomePage";
 
@@ -29,6 +30,10 @@ export const routes: RouteObject[] = [
   {
     element: <ProtectedRoute />,
     children: [
+      {
+        path: "/settings",
+        element: <UserSettingsPage />,
+      },
       {
         path: "/",
         element: <Navigate to="/projects" replace />,

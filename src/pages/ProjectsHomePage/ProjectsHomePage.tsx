@@ -17,6 +17,7 @@ import {
   resolveMemberIdsByEmails,
 } from "@services/firebase/firebase";
 import "./ProjectsHomePage.scss";
+import { Logo } from "@components/ui/Logo/Logo";
 
 interface CreateProjectFormState {
   name: string;
@@ -201,7 +202,7 @@ export const ProjectsHomePage = () => {
       <PageContainer size="md">
         <div className="projects-home__hero">
           <div className="projects-home__hero-mark" aria-hidden="true">
-            <Sparkles size={24} strokeWidth={2.1} />
+            <Logo size={40} color="var(--color-primary)" />
           </div>
 
           <div className="projects-home__hero-copy">

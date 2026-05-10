@@ -8,6 +8,31 @@ export interface ApiResponse<T> {
   isLoading?: boolean;
 }
 
+export type ThemeMode = "light" | "dark" | "system";
+
+export interface UserNotificationPreferences {
+  deadlineReminders: boolean;
+  taskActivityNotifications: boolean;
+}
+
+export interface UserAcademicProfile {
+  university: string;
+  department: string;
+  studyYear: string;
+}
+
+export interface UserLinks {
+  googleDrive: string;
+  github: string;
+  linkedin: string;
+  portfolio: string;
+}
+
+export interface UserPreferenceProfile {
+  displayName: string;
+  photoURL: string;
+}
+
 export interface PageMeta {
   title: string;
   description?: string;

@@ -6,6 +6,7 @@ import "./ProfileMenuButton.scss";
 export const ProfileMenuButton = ({
   userLabel,
   userPhoto,
+  onOpenSettings,
   onSignOut,
   className,
 }: ProfileMenuButtonProps) => {
@@ -26,6 +27,11 @@ export const ProfileMenuButton = ({
   const handleSignOut = async () => {
     setMenuOpen(false);
     await onSignOut();
+  };
+
+  const handleOpenSettings = () => {
+    setMenuOpen(false);
+    onOpenSettings();
   };
 
   return (
@@ -65,7 +71,7 @@ export const ProfileMenuButton = ({
           <button
             className="profile-menu-button__menu-item"
             type="button"
-            disabled
+            onClick={handleOpenSettings}
           >
             <Settings2 size={16} />
             העדפות

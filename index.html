@@ -2,6 +2,23 @@
 <html lang="he" dir="rtl">
   <head>
     <meta charset="UTF-8" />
+    <script>
+      (function () {
+        try {
+          var KEY = "sgroups:theme";
+          var stored = localStorage.getItem(KEY);
+          var prefersDark =
+            window.matchMedia &&
+            window.matchMedia("(prefers-color-scheme: dark)").matches;
+          var mode = stored || "system";
+          var theme =
+            mode === "system" ? (prefersDark ? "dark" : "light") : mode;
+          document.documentElement.setAttribute("data-theme", theme);
+        } catch (e) {
+          /* ignore */
+        }
+      })();
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link

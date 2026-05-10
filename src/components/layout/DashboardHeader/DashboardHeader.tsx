@@ -12,6 +12,7 @@ export const DashboardHeader = ({
   currentProjectId,
   userLabel,
   userPhoto,
+  onOpenSettings,
   onSignOut,
 }: DashboardHeaderProps) => {
   const navigate = useNavigate();
@@ -52,24 +53,13 @@ export const DashboardHeader = ({
             <Bell size={18} strokeWidth={2} />
             <span className="dashboard-header__dot" />
           </button>
-          <button
-            className="dashboard-header__action"
-            type="button"
-            onClick={toggleTheme}
-            aria-label={theme === "light" ? "עבור למצב חשוך" : "עבור למצב בהיר"}
-          >
-            {theme === "light" ? (
-              <Moon size={18} strokeWidth={2} />
-            ) : (
-              <Sun size={18} strokeWidth={2} />
-            )}
-          </button>
         </div>
 
         <div className="dashboard-header__meta">
           <ProfileMenuButton
             userLabel={userLabel}
             userPhoto={userPhoto}
+            onOpenSettings={onOpenSettings}
             onSignOut={onSignOut}
           />
         </div>

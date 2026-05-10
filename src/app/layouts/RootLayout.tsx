@@ -1,17 +1,12 @@
 import { useState } from "react";
-import { Outlet, useParams } from "react-router-dom";
+import { Outlet, useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "@app/providers/AuthProvider";
 import { PageContainer } from "@components/layout/PageContainer/PageContainer";
 import { DashboardHeader } from "@components/layout/DashboardHeader/DashboardHeader";
 import { DashboardSidebar } from "@components/layout/DashboardSidebar/DashboardSidebar";
 import { ProfileMenuButton } from "@components/ui/ProfileMenuButton";
-import {
-  Sparkles,
-  LayoutGrid,
-  CheckSquare2,
-  Calendar,
-  Settings,
-} from "lucide-react";
+import { LayoutGrid, CheckSquare2, Calendar, Settings } from "lucide-react";
+import { Logo } from "@components/ui/Logo";
 import "./RootLayout.scss";
 
 const createSidebarItems = () => [
@@ -39,6 +34,7 @@ const createSidebarItems = () => [
 
 export const RootLayout = () => {
   const { user, signOutUser } = useAuth();
+  const navigate = useNavigate();
   const { projectId } = useParams();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -74,6 +70,7 @@ export const RootLayout = () => {
             userPhoto={user?.photoURL || undefined}
             onOpenMenu={() => setSidebarOpen((prev) => !prev)}
             isMenuOpen={sidebarOpen}
+            onOpenSettings={() => navigate("/settings")}
             onSignOut={signOutUser}
           />
         ) : (
@@ -81,17 +78,18 @@ export const RootLayout = () => {
             <PageContainer>
               <div className="app-shell__homebar-panel">
                 <div className="app-shell__homebar-brand">
-                  <div className="app-shell__homebar-mark">
-                    <Sparkles size={18} strokeWidth={2.25} />
-                  </div>
                   <div className="app-shell__homebar-copy">
-                    <strong>SGroups</strong>
+                    <strong>Groups</strong>
+                  </div>
+                  <div className="app-shell__homebar-mark">
+                    <Logo size={40} color="var(--color-primary)" />
                   </div>
                 </div>
 
                 <ProfileMenuButton
                   userLabel={user?.displayName || user?.email || "מחובר"}
                   userPhoto={user?.photoURL || undefined}
+                  onOpenSettings={() => navigate("/settings")}
                   onSignOut={signOutUser}
                   className="app-shell__homebar-profile"
                 />

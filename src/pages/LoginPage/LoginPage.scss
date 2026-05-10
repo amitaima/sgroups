@@ -62,7 +62,7 @@
   position: relative;
   z-index: 2;
   display: flex;
-  gap: var(--space-4);
+  // gap: var(--space-4);
   align-items: center;
 }
 
@@ -80,8 +80,8 @@
 }
 
 .login-page__brand-title {
-  font-size: 1.15rem;
-  color: #f6f2ef;
+  font-size: 2rem;
+  color: var(--color-primary);
   font-weight: var(--font-weight-bold);
 }
 
@@ -94,7 +94,7 @@
   position: relative;
   z-index: 2;
   color: var(--color-primary-contrast);
-  max-width: 42ch;
+  max-width: 55ch;
 }
 
 .login-page__hero-copy h2 {
@@ -112,6 +112,7 @@
 /* PANEL */
 .login-page__panel {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   padding: var(--space-8);
@@ -224,6 +225,10 @@
   border: none;
   color: var(--color-primary);
 }
+.login-page__logo_mobile {
+  display: none;
+  margin-bottom: var(--space-4);
+}
 
 /* Responsive: collapse hero on small screens */
 @media (max-width: 1024px) {
@@ -232,6 +237,9 @@
   }
   .login-page__hero {
     display: none;
+  }
+  .login-page__logo_mobile {
+    display: block;
   }
   .login-page__panel {
     padding: var(--space-6);

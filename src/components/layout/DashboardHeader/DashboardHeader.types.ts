@@ -4,5 +4,6 @@ export interface DashboardHeaderProps {
   currentProjectId?: string;
   userLabel: string;
   userPhoto?: string;
+  onOpenSettings: () => void;
   onSignOut: () => Promise<void>;
 }

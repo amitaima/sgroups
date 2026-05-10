@@ -15,6 +15,7 @@ import { useNavigate } from "react-router-dom";
 import "./LoginPage.scss";
 import loginImage from "@assets/images/login-image.webp";
 import { FcGoogle } from "react-icons/fc";
+import { Logo } from "@components/ui/Logo/Logo";
 
 export const LoginPage = () => {
   const { user, initializing } = useAuth();
@@ -116,44 +117,26 @@ export const LoginPage = () => {
             <div className="login-page__hero-overlay" />
           </div>
           <div className="login-page__brand">
-            <div className="login-page__logo" aria-hidden>
-              <svg
-                width="36"
-                height="36"
-                viewBox="0 0 24 24"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <rect
-                  width="24"
-                  height="24"
-                  rx="5"
-                  fill="var(--color-primary)"
-                />
-                <path
-                  d="M6 17L12 8l6 9"
-                  stroke="var(--color-primary-contrast)"
-                  strokeWidth="1.6"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </div>
             <div className="login-page__brand-text">
-              <div className="login-page__brand-title">SGroups</div>
-              <div className="login-page__brand-sub">מרחב מחקר אקדמי</div>
+              <div className="login-page__brand-title">Groups</div>
+            </div>
+            <div className="login-page__logo" aria-hidden>
+              <Logo size={68} color="var(--color-primary)" />
             </div>
           </div>
           <div className="login-page__hero-copy">
             <h2>הגביהו את המסע האקדמי שלכם</h2>
             <p>
-              הצטרפו לקהילה ממוקדת של חוקרים וסגל; שיתפו פעולה במרחב המיועד
-              לריכוז ועבודה עמוקה.
+              בואו לשפר את שיתוף הפעולה והניהול של קבוצות הלימוד והמחקר שלכם עם
+              SGroups - הפלטפורמה האולטימטיבית לניהול קבוצות אקדמיות.
             </p>
           </div>
         </aside>
 
         <main className="login-page__panel">
+          <div className="login-page__logo_mobile" aria-hidden>
+            <Logo size={76} color="var(--color-primary)" />
+          </div>
           <div className="login-page__panel-inner">
             <header className="login-page__panel-header">
               <h1>{mode === "login" ? "התחברות" : "הרשמה"}</h1>

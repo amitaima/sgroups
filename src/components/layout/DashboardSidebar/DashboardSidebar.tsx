@@ -1,6 +1,7 @@
 import { GlassPanel } from "@components/ui/GlassPanel/GlassPanel";
+import { Logo } from "@components/ui/Logo";
 import { getProjectWorkspacePath } from "@app/router/workspaceRoutes";
-import { Sparkles, X } from "lucide-react";
+import { X } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import "./DashboardSidebar.scss";
 
@@ -29,7 +30,7 @@ export const DashboardSidebar = ({
         <div className="dashboard-sidebar__header">
           <div className="dashboard-sidebar__brand">
             <div className="dashboard-sidebar__logo">
-              <Sparkles size={24} strokeWidth={2} />
+              <Logo size={28} color="var(--color-surface)" />
             </div>
             <div className="dashboard-sidebar__brand-copy">
               <strong>SGroups</strong>

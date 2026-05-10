@@ -785,10 +785,6 @@ export const DashboardPage = () => {
           </div>
 
           <div className="dashboard-page__dialog-body">
-            <p className="dashboard-page__dialog-hint">
-              עדכנו את כתובות האימייל של חברי הצוות. יוצר הפרויקט נשמר תמיד.
-            </p>
-
             {membersError ? (
               <p className="dashboard-page__dialog-error">{membersError}</p>
             ) : null}
@@ -906,7 +902,7 @@ export const DashboardPage = () => {
               העתק קישור הצטרפות
             </Button>
 
-            <div>
+            <div className="flex gap-4">
               <Button
                 variant="secondary"
                 type="button"
@@ -954,10 +950,6 @@ export const DashboardPage = () => {
           </div>
 
           <div className="dashboard-page__dialog-body">
-            <p className="dashboard-page__dialog-hint">
-              עדכנו את הקישורים של הפרויקט. כל שורה נשמרת ישירות ל-Firestore.
-            </p>
-
             {linksError ? (
               <p className="dashboard-page__dialog-error">{linksError}</p>
             ) : null}
@@ -1030,17 +1022,20 @@ export const DashboardPage = () => {
           </div>
 
           <div className="dashboard-page__dialog-actions">
-            <Button
-              variant="secondary"
-              type="button"
-              onClick={() => setLinksDialogOpen(false)}
-            >
-              ביטול
-            </Button>
-            <Button type="submit" disabled={linksSaving}>
-              <Save size={16} />
-              שמירה
-            </Button>
+            <div></div>
+            <div className="flex gap-4">
+              <Button
+                variant="secondary"
+                type="button"
+                onClick={() => setLinksDialogOpen(false)}
+              >
+                ביטול
+              </Button>
+              <Button type="submit" disabled={linksSaving}>
+                <Save size={16} />
+                שמירה
+              </Button>
+            </div>
           </div>
         </form>
       </dialog>

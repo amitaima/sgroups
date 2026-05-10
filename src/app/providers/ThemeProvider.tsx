@@ -1,10 +1,34 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
 import type { ReactNode } from "react";
+import { onAuthStateChanged } from "firebase/auth";
+import { doc, onSnapshot } from "firebase/firestore";
+import {
+  auth,
+  db,
+  updateUserThemePreference,
+} from "@services/firebase/firebase";
+import type { ThemeMode } from "../../types/common";
 
 type Theme = "light" | "dark";
 
+const THEME_OPTIONS: ThemeMode[] = ["light", "dark", "system"];
+
+const isThemeMode = (value: unknown): value is ThemeMode =>
+  typeof value === "string" && THEME_OPTIONS.includes(value as ThemeMode);
+
+const resolveTheme = (themeMode: ThemeMode, prefersDark: boolean): Theme =>
+  themeMode === "system" ? (prefersDark ? "dark" : "light") : themeMode;
+
 interface ThemeContextType {
+  themeMode: ThemeMode;
   theme: Theme;
+  setThemeMode: (themeMode: ThemeMode) => Promise<void>;
   toggleTheme: () => void;
 }
 
@@ -23,32 +47,87 @@ interface ThemeProviderProps {
 }
 
 export const ThemeProvider = ({ children }: ThemeProviderProps) => {
-  const [theme, setTheme] = useState<Theme>(() => {
-    // Check localStorage first
-    const saved = localStorage.getItem("theme") as Theme | null;
-    if (saved) return saved;
-
-    // Check system preference
-    if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
-      return "dark";
+  const [themeMode, setThemeModeState] = useState<ThemeMode>(() => {
+    try {
+      const stored = localStorage.getItem("sgroups:theme");
+      return isThemeMode(stored) ? stored : "system";
+    } catch (e) {
+      return "system";
     }
-
-    return "light";
   });
+  const [prefersDark, setPrefersDark] = useState(
+    () => window.matchMedia("(prefers-color-scheme: dark)").matches,
+  );
 
   useEffect(() => {
-    // Update DOM attribute
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+    const handleChange = (event: MediaQueryListEvent) => {
+      setPrefersDark(event.matches);
+    };
+
+    setPrefersDark(mediaQuery.matches);
+    mediaQuery.addEventListener("change", handleChange);
+
+    return () => mediaQuery.removeEventListener("change", handleChange);
+  }, []);
+
+  useEffect(() => {
+    let unsubscribeUserDoc: (() => void) | undefined;
+
+    const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
+      unsubscribeUserDoc?.();
+
+      if (!currentUser) {
+        setThemeModeState("system");
+        return;
+      }
+
+      unsubscribeUserDoc = onSnapshot(
+        doc(db, "users", currentUser.uid),
+        (snapshot) => {
+          const savedTheme = snapshot.data()?.theme;
+          setThemeModeState(isThemeMode(savedTheme) ? savedTheme : "system");
+        },
+      );
+    });
+
+    return () => {
+      unsubscribeUserDoc?.();
+      unsubscribeAuth();
+    };
+  }, []);
+
+  const theme = resolveTheme(themeMode, prefersDark);
+
+  useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
-    // Persist to localStorage
-    localStorage.setItem("theme", theme);
   }, [theme]);
 
-  const toggleTheme = () => {
-    setTheme((prev) => (prev === "light" ? "dark" : "light"));
-  };
+  const setThemeMode = useCallback(async (nextThemeMode: ThemeMode) => {
+    setThemeModeState(nextThemeMode);
+    try {
+      localStorage.setItem("sgroups:theme", nextThemeMode);
+    } catch (e) {
+      /* ignore */
+    }
+
+    if (auth.currentUser) {
+      try {
+        await updateUserThemePreference(auth.currentUser.uid, nextThemeMode);
+      } catch (error) {
+        console.error("Failed to persist theme preference", error);
+      }
+    }
+  }, []);
+
+  const toggleTheme = useCallback(() => {
+    void setThemeMode(theme === "light" ? "dark" : "light");
+  }, [setThemeMode, theme]);
 
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme }}>
+    <ThemeContext.Provider
+      value={{ themeMode, theme, setThemeMode, toggleTheme }}
+    >
       {children}
     </ThemeContext.Provider>
   );

@@ -1,6 +1,6 @@
 import { initializeApp } from "firebase/app";
 import type { User } from "firebase/auth";
-import { getAuth } from "firebase/auth";
+import { getAuth, updateProfile as updateAuthProfile } from "firebase/auth";
 import {
   addDoc,
   deleteDoc,
@@ -20,6 +20,11 @@ import {
   Timestamp,
   where,
 } from "firebase/firestore";
+import {
+  getDownloadURL,
+  ref as storageRef,
+  uploadBytes,
+} from "firebase/storage";
 import type {
   Project,
   ProjectLink,
@@ -30,6 +35,10 @@ import type {
   ProjectType,
   TaskPriority,
   TaskStatus,
+  ThemeMode,
+  UserAcademicProfile,
+  UserLinks,
+  UserNotificationPreferences,
 } from "../../types/common";
 import { getStorage } from "firebase/storage";
 
@@ -55,6 +64,10 @@ export interface UserProfile {
   email: string | null;
   displayName: string | null;
   photoURL: string | null;
+  theme: ThemeMode;
+  notifications: UserNotificationPreferences;
+  academicProfile?: UserAcademicProfile;
+  links?: UserLinks;
   provider: string;
   createdAt: unknown;
   lastLoginAt: unknown;
@@ -66,6 +79,90 @@ export interface MemberDirectoryUser {
   displayName: string | null;
   photoURL: string | null;
 }
+
+const USER_THEMES: ThemeMode[] = ["light", "dark", "system"];
+
+const isThemeMode = (value: unknown): value is ThemeMode =>
+  typeof value === "string" && USER_THEMES.includes(value as ThemeMode);
+
+const getUserDocRef = (uid: string) => doc(db, "users", uid);
+
+const normalizeUserText = (value: unknown): string => {
+  if (typeof value !== "string") {
+    return "";
+  }
+
+  return value.trim();
+};
+
+const getNotificationPreferences = (
+  value: unknown,
+): UserNotificationPreferences => {
+  if (!value || typeof value !== "object") {
+    return {
+      deadlineReminders: false,
+      taskActivityNotifications: false,
+    };
+  }
+
+  const data = value as Record<string, unknown>;
+
+  return {
+    deadlineReminders: Boolean(data.deadlineReminders),
+    taskActivityNotifications: Boolean(data.taskActivityNotifications),
+  };
+};
+
+const getAcademicProfile = (
+  value: unknown,
+): UserAcademicProfile | undefined => {
+  if (!value || typeof value !== "object") {
+    return undefined;
+  }
+
+  const data = value as Record<string, unknown>;
+  const university = normalizeUserText(data.university);
+  const department = normalizeUserText(data.department);
+  const studyYear = normalizeUserText(data.studyYear);
+
+  if (!university && !department && !studyYear) {
+    return undefined;
+  }
+
+  return {
+    university,
+    department,
+    studyYear,
+  };
+};
+
+const getUserLinks = (value: unknown): UserLinks | undefined => {
+  if (!value || typeof value !== "object") {
+    return undefined;
+  }
+
+  const data = value as Record<string, unknown>;
+  const links = {
+    googleDrive: normalizeUserText(data.googleDrive),
+    github: normalizeUserText(data.github),
+    linkedin: normalizeUserText(data.linkedin),
+    portfolio: normalizeUserText(data.portfolio),
+  };
+
+  if (
+    !links.googleDrive &&
+    !links.github &&
+    !links.linkedin &&
+    !links.portfolio
+  ) {
+    return undefined;
+  }
+
+  return links;
+};
+
+const getUserTheme = (value: unknown): ThemeMode =>
+  isThemeMode(value) ? value : "system";
 
 export interface CreateProjectInput {
   name: string;
@@ -191,11 +288,14 @@ export interface UpdateProjectTaskInput {
 }
 
 export const upsertUserProfile = async (user: User): Promise<void> => {
-  const ref = doc(db, "users", user.uid);
+  const ref = getUserDocRef(user.uid);
   const snapshot = await getDoc(ref);
-  const existingCreatedAt = snapshot.exists()
-    ? snapshot.data()?.createdAt
-    : null;
+  const data = snapshot.exists() ? snapshot.data() : null;
+  const existingCreatedAt = data?.createdAt ?? null;
+  const existingTheme = getUserTheme(data?.theme);
+  const existingNotifications = getNotificationPreferences(data?.notifications);
+  const existingAcademicProfile = getAcademicProfile(data?.academicProfile);
+  const existingLinks = getUserLinks(data?.links);
   const provider = user.providerData[0]?.providerId || "password";
 
   const payload: UserProfile = {
@@ -203,12 +303,89 @@ export const upsertUserProfile = async (user: User): Promise<void> => {
     email: user.email,
     displayName: user.displayName,
     photoURL: user.photoURL,
+    theme: existingTheme,
+    notifications: existingNotifications,
+    academicProfile: existingAcademicProfile,
+    links: existingLinks,
     provider,
     createdAt: existingCreatedAt ?? serverTimestamp(),
     lastLoginAt: serverTimestamp(),
   };
 
   await setDoc(ref, payload, { merge: true });
+};
+
+export const updateUserThemePreference = async (
+  uid: string,
+  theme: ThemeMode,
+): Promise<void> => {
+  await setDoc(getUserDocRef(uid), { theme }, { merge: true });
+};
+
+export const updateUserNotificationPreferences = async (
+  uid: string,
+  notifications: UserNotificationPreferences,
+): Promise<void> => {
+  await setDoc(getUserDocRef(uid), { notifications }, { merge: true });
+};
+
+export const updateUserAcademicProfile = async (
+  uid: string,
+  academicProfile: UserAcademicProfile,
+): Promise<void> => {
+  await setDoc(getUserDocRef(uid), { academicProfile }, { merge: true });
+};
+
+export const updateUserLinks = async (
+  uid: string,
+  links: UserLinks,
+): Promise<void> => {
+  await setDoc(getUserDocRef(uid), { links }, { merge: true });
+};
+
+export const updateUserDisplayProfile = async (
+  uid: string,
+  profile: { displayName?: string; photoURL?: string },
+): Promise<void> => {
+  const payload: Record<string, unknown> = {};
+
+  if (profile.displayName !== undefined) {
+    payload.displayName = profile.displayName;
+  }
+
+  if (profile.photoURL !== undefined) {
+    payload.photoURL = profile.photoURL;
+  }
+
+  if (Object.keys(payload).length === 0) {
+    return;
+  }
+
+  await setDoc(getUserDocRef(uid), payload, { merge: true });
+
+  if (auth.currentUser) {
+    await updateAuthProfile(auth.currentUser, {
+      displayName: profile.displayName ?? null,
+      photoURL: profile.photoURL ?? null,
+    });
+  }
+};
+
+export const uploadUserAvatar = async (
+  uid: string,
+  file: File,
+): Promise<string> => {
+  const extension = file.name.includes(".")
+    ? file.name.split(".").pop()?.toLowerCase() || "png"
+    : "png";
+  const avatarRef = storageRef(storage, `users/${uid}/avatar.${extension}`);
+
+  await uploadBytes(avatarRef, file);
+  const downloadUrl = await getDownloadURL(avatarRef);
+
+  await updateUserDisplayProfile(uid, { photoURL: downloadUrl });
+
+  return downloadUrl;
 };
 
 const PROJECTS_COLLECTION = "projects";
