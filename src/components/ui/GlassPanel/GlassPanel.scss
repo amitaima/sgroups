@@ -96,12 +96,12 @@
 
 @supports (backdrop-filter: blur(4px)) {
   .glass-panel {
-    backdrop-filter: blur(4px) saturate(138%);
     -webkit-backdrop-filter: blur(4px) saturate(138%);
+    backdrop-filter: blur(4px) saturate(138%);
   }
 
   .glass-panel--strong {
-    backdrop-filter: blur(6px) saturate(148%);
     -webkit-backdrop-filter: blur(6px) saturate(148%);
+    backdrop-filter: blur(6px) saturate(148%);
   }
 }

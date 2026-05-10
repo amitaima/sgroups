@@ -22,8 +22,8 @@
     color-mix(in srgb, var(--color-surface-glass) 88%, var(--color-surface))
       100%
   );
-  backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
 }
 
 .dashboard-header__start,

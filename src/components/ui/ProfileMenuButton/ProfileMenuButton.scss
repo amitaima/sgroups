@@ -87,8 +87,8 @@
     color-mix(in srgb, var(--color-surface-glass) 20%, var(--color-surface))
       100%
   );
-  backdrop-filter: blur(6px) saturate(145%);
   -webkit-backdrop-filter: blur(6px) saturate(145%);
+  backdrop-filter: blur(6px) saturate(145%);
   z-index: var(--z-dropdown);
 }
 
