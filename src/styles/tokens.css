@@ -251,6 +251,12 @@
   --color-success: var(--sys-color-success);
   --color-warning: var(--sys-color-warning);
   --color-danger: var(--sys-color-danger);
+
+  --shadow-sm: var(--sys-shadow-sm);
+  --shadow-md: var(--sys-shadow-md);
+  --shadow-lg: var(--sys-shadow-lg);
+  --shadow-glass: var(--sys-shadow-glass);
+  --shadow-glass-strong: var(--sys-shadow-glass-strong);
 }
 
 /* DARK */
