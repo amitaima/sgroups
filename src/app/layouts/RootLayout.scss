@@ -63,10 +63,10 @@
   gap: var(--space-5);
   border: 1px solid var(--color-surface-glass-border);
   border-radius: var(--radius-pill);
-  background: var(--color-surface-glass);
-  box-shadow: var(--shadow-glass-strong);
   backdrop-filter: blur(4px) saturate(140%);
   -webkit-backdrop-filter: blur(4px) saturate(140%);
+  background: var(--color-surface-glass);
+  box-shadow: var(--shadow-glass-strong);
 }
 
 .app-shell__homebar-brand {
