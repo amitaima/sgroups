@@ -19,7 +19,7 @@ import {
   getUsersByIds,
   updateProjectCalendarEvent,
 } from "@services/firebase/firebase";
-import type { Project } from "../../types/common";
+import type { Project, ProjectMilestone } from "../../types/common";
 import {
   ChevronLeft,
   ChevronRight,
@@ -225,14 +225,43 @@ const getDeadlineItems = (project: Project): CalendarDisplayItem[] => {
     });
   };
 
+  const addMilestone = (projectMilestone: ProjectMilestone) => {
+    const date = projectMilestone.dueDate.toDate();
+    const key = `milestone-${projectMilestone.id}-${date.getTime()}`;
+
+    if (seenKeys.has(key)) {
+      return;
+    }
+
+    seenKeys.add(key);
+    const { timeLabel, meridiem } = formatClockParts(date);
+
+    items.push({
+      id: `milestone-${projectMilestone.id}`,
+      kind: "deadline",
+      tone: "deadline",
+      title: projectMilestone.title,
+      date,
+      startDate: date,
+      endDate: date,
+      timeLabel,
+      meridiem,
+      description: null,
+      location: null,
+      accentId: projectMilestone.id,
+    });
+  };
+
+  project.milestones?.forEach(addMilestone);
+
   addDeadline("next-milestone", "דדליין ציון דרך", project.nextMilestoneAt);
-  addDeadline("final-submission", "דדליין סופי", project.finalSubmissionAt);
+  addDeadline("final-submission", "הגשה סופית", project.finalSubmissionAt);
 
   if (
     project.dueDate &&
     project.dueDate.toMillis() !== project.finalSubmissionAt?.toMillis()
   ) {
-    addDeadline("project-due-date", "תאריך הגשת פרויקט", project.dueDate);
+    addDeadline("project-due-date", "תאריך יעד לפרויקט", project.dueDate);
   }
 
   return items.sort(

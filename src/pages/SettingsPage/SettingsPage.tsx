@@ -951,17 +951,6 @@ export const SettingsPage = () => {
                 </label>
 
                 <label className="settings-page__field">
-                  <span>אבן הדרך הבאה</span>
-                  <input
-                    type="date"
-                    value={draft?.nextMilestoneAt ?? ""}
-                    onChange={(event) =>
-                      updateDraft("nextMilestoneAt", event.target.value)
-                    }
-                  />
-                </label>
-
-                <label className="settings-page__field">
                   <span>קורס</span>
                   <input
                     type="text"
@@ -985,7 +974,7 @@ export const SettingsPage = () => {
                   />
                 </label>
 
-                <label className="settings-page__field">
+                {/* <label className="settings-page__field">
                   <span>מרצה / מתרגל</span>
                   <input
                     type="text"
@@ -995,7 +984,7 @@ export const SettingsPage = () => {
                     }
                     placeholder="שם איש הסגל"
                   />
-                </label>
+                </label> */}
 
                 <label className="settings-page__field">
                   <span>מספר קורס</span>
