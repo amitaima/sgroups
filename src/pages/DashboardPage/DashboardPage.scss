@@ -159,10 +159,25 @@
   white-space: nowrap;
 }
 
+// .dashboard-page__dialog {
+//   width: min(92vw, 48rem);
+//   align-self: center;
+//   justify-self: center;
+//   border: none;
+//   padding: 0;
+//   border-radius: var(--radius-xl);
+//   background: transparent;
+//   color: inherit;
+//   overflow: visible;
+//   z-index: 60;
+// }
+
+// For Safari support, since it doesn't support `align-self` and `justify-self` on dialog elements
 .dashboard-page__dialog {
   width: min(92vw, 48rem);
-  align-self: center;
-  justify-self: center;
+  max-height: 90vh;
+  margin: auto;
+  inset: 0;
   border: none;
   padding: 0;
   border-radius: var(--radius-xl);
