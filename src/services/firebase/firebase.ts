@@ -394,6 +394,8 @@ export const uploadUserAvatar = async (
   return downloadUrl;
 };
 
+
+
 const PROJECTS_COLLECTION = "projects";
 const USERS_COLLECTION = "users";
 const PROJECT_CALENDAR_EVENTS_COLLECTION = "calendarEvents";

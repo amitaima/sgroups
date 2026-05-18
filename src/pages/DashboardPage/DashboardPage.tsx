@@ -739,10 +739,12 @@ export const DashboardPage = () => {
 
         <div className="dashboard-page__panel dashboard-page__panel--team">
           <TeamMembersCard
-            members={memberRows.map((member) => ({
-              name: member.name,
-              role: ROLE_LABELS[member.role],
-            }))}
+           members={memberRows.map((member) => ({
+  name: member.name,
+  role: ROLE_LABELS[member.role],
+  // Add ?.photoURL at the end to get just the string!
+  photoURL: projectMembers.find((p) => p.uid === member.id)?.photoURL 
+}))}
             actions={
               <Button
                 variant="secondary"

@@ -589,7 +589,7 @@ export const UserSettingsPage = () => {
                         <img
                           className="user-settings-page__avatar-image"
                           src={profileAvatarSource}
-                          alt={draft.profile.fullName || "תמונת פרופיל"}
+                          alt={draft.profile.fullName ||"תמונת פרופיל"}
                         />
                       ) : (
                         <span className="user-settings-page__avatar-initials">
