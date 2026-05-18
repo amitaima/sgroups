@@ -25,7 +25,22 @@ export const TeamMembersCard = ({ members, actions }: TeamMembersCardProps) => {
       <div className="team-card__list">
         {members.map((member) => (
           <div key={member.name} className="team-card__member">
-            <div className="team-card__avatar">{getInitials(member.name)}</div>
+            
+            {/* כאן הוספנו את ההיגיון של התמונה מ-MemberAvatarGroup */}
+            <div className="team-card__avatar">
+              {member.photoURL ? (
+                <img
+                  className="team-card__avatar-image" 
+                  src={member.photoURL}
+                  alt={member.name || "חבר צוות"}
+                />
+              ) : (
+                <span className="team-card__avatar-fallback">
+                  {getInitials(member.name)}
+                </span>
+              )}
+            </div>
+
             <div className="team-card__meta">
               <p className="team-card__name">{member.name}</p>
               <p className="team-card__role">{member.role}</p>
