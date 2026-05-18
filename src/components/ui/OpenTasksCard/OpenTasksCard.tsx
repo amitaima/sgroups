@@ -8,6 +8,7 @@ export const OpenTasksCard = ({
   actions,
   emptyState = "אין משימות פתוחות עדיין.",
   updatingTaskId,
+  onTaskClick,
   onToggleTask,
 }: OpenTasksCardProps) => {
   return (
@@ -26,8 +27,15 @@ export const OpenTasksCard = ({
             const isUpdating = updatingTaskId === task.id;
 
             return (
-              <li key={task.id} className="tasks-card__item">
-                <label className="tasks-card__checkbox-wrap">
+              <li
+                key={task.id}
+                className="tasks-card__item"
+                onClick={() => onTaskClick?.(task.id)}
+              >
+                <label
+                  className="tasks-card__checkbox-wrap"
+                  onClick={(event) => event.stopPropagation()}
+                >
                   <input
                     className="tasks-card__checkbox-input"
                     type="checkbox"

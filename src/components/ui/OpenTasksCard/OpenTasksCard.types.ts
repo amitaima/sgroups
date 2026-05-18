@@ -12,6 +12,7 @@ export interface OpenTasksCardProps {
   actions?: ReactNode;
   emptyState?: string;
   updatingTaskId?: string | null;
+  onTaskClick?: (taskId: string) => void;
   onToggleTask?: (
     taskId: string,
     nextCompleted: boolean,

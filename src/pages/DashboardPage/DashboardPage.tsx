@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import type { FormEvent } from "react";
 import { Navigate, useNavigate, useParams } from "react-router-dom";
 import {
   Link as LinkIcon,
@@ -18,6 +19,11 @@ import { TeamMembersCard } from "@components/ui/TeamMembersCard/TeamMembersCard"
 import { TaskDistributionCard } from "@components/ui/TaskDistributionCard/TaskDistributionCard";
 import { OpenTasksCard } from "@components/ui/OpenTasksCard/OpenTasksCard";
 import { TeamLinksCard } from "@components/ui/TeamLinksCard/TeamLinksCard";
+import { TaskDialog } from "@components/ui/TaskDialog";
+import type {
+  TaskAssigneeOption,
+  TaskDialogDraft,
+} from "@components/ui/TaskDialog";
 import { useWorkspaceProject } from "@hooks/useWorkspaceProject";
 import { getProjectWorkspacePath } from "@app/router/workspaceRoutes";
 import type {
@@ -36,6 +42,8 @@ import type {
   Project,
   ProjectLink,
   ProjectMemberRole,
+  TaskPriority,
+  TaskStatus,
 } from "../../types/common";
 import "./DashboardPage.scss";
 
@@ -59,6 +67,26 @@ type DashboardLinkRow = {
   id: string;
   label: string;
   url: string;
+};
+
+const TASK_STATUS_ORDER: TaskStatus[] = [
+  "todo",
+  "inProgress",
+  "review",
+  "completed",
+];
+
+const TASK_PRIORITY_LABELS: Record<TaskPriority, string> = {
+  high: "High",
+  medium: "Medium",
+  low: "Low",
+};
+
+const TASK_STATUS_LABELS: Record<TaskStatus, string> = {
+  todo: "To Do",
+  inProgress: "In Progress",
+  review: "Review",
+  completed: "Completed",
 };
 
 const ROLE_LABELS: Record<ProjectMemberRole, string> = {
@@ -116,6 +144,27 @@ const getTaskDueDateLabel = (task: ProjectTaskRecord) =>
     month: "short",
   }) ?? "ללא מועד מוגדר";
 
+const toDateInputValue = (value?: Date | null) => {
+  if (!value) {
+    return "";
+  }
+
+  const year = value.getFullYear();
+  const month = String(value.getMonth() + 1).padStart(2, "0");
+  const day = String(value.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+};
+
+const parseDateInputValue = (value: string) => {
+  if (!value) {
+    return null;
+  }
+
+  const parsedDate = new Date(`${value}T00:00:00`);
+  return Number.isNaN(parsedDate.getTime()) ? null : parsedDate;
+};
+
 const buildTaskItems = (tasks: ProjectTaskRecord[]): DashboardTaskItem[] =>
   [...tasks]
     .sort((left, right) => {
@@ -135,6 +184,44 @@ const buildTaskItems = (tasks: ProjectTaskRecord[]): DashboardTaskItem[] =>
       dueDateLabel: getTaskDueDateLabel(task),
       assigneeIds: task.assigneeIds,
     }));
+
+const buildEmptyTaskDraft = (): TaskDialogDraft => ({
+  title: "",
+  description: "",
+  priority: "medium",
+  status: "todo",
+  dueDate: "",
+  assigneeIds: [],
+});
+
+const buildTaskDraftFromRecord = (
+  task: ProjectTaskRecord,
+): TaskDialogDraft => ({
+  title: task.title,
+  description: task.description ?? "",
+  priority: task.priority,
+  status: task.status,
+  dueDate: toDateInputValue(task.dueDate?.toDate() ?? null),
+  assigneeIds: [...task.assigneeIds],
+});
+
+const buildTaskAssigneeOption = (
+  member: MemberDirectoryUser,
+): TaskAssigneeOption => ({
+  id: member.uid,
+  displayName: member.displayName ?? null,
+  email: member.email ?? null,
+  photoURL: member.photoURL ?? null,
+});
+
+const buildTaskAssigneeOptions = (
+  members: MemberDirectoryUser[],
+): TaskAssigneeOption[] =>
+  members.map(buildTaskAssigneeOption).sort((left, right) => {
+    const leftLabel = left.displayName ?? left.email ?? left.id;
+    const rightLabel = right.displayName ?? right.email ?? right.id;
+    return leftLabel.localeCompare(rightLabel, "he");
+  });
 
 const buildProjectMembers = (
   project: Project,
@@ -281,6 +368,15 @@ export const DashboardPage = () => {
   const [membersError, setMembersError] = useState<string | null>(null);
   const [linksError, setLinksError] = useState<string | null>(null);
   const [copyLinkMessage, setCopyLinkMessage] = useState<string | null>(null);
+  const [taskDialogOpen, setTaskDialogOpen] = useState(false);
+  const [taskDialogError, setTaskDialogError] = useState<string | null>(null);
+  const [taskDraft, setTaskDraft] = useState<TaskDialogDraft>(() =>
+    buildEmptyTaskDraft(),
+  );
+  const [selectedTask, setSelectedTask] = useState<ProjectTaskRecord | null>(
+    null,
+  );
+  const [isSavingTask, setIsSavingTask] = useState(false);
   const membersDialogRef = useRef<HTMLDialogElement>(null);
   const linksDialogRef = useRef<HTMLDialogElement>(null);
 
@@ -387,6 +483,33 @@ export const DashboardPage = () => {
       activeProject ? buildProjectMembers(activeProject, projectMembers) : [],
     [activeProject, projectMembers],
   );
+  const memberById = useMemo(
+    () => new Map(projectMembers.map((member) => [member.uid, member])),
+    [projectMembers],
+  );
+  const assigneeOptions = useMemo(
+    () => buildTaskAssigneeOptions(projectMembers),
+    [projectMembers],
+  );
+  const currentTaskMembers = useMemo(() => {
+    if (!selectedTask) {
+      return [];
+    }
+
+    return selectedTask.assigneeIds.map((memberId) => {
+      const member = memberById.get(memberId);
+      if (!member) {
+        return {
+          id: memberId,
+          displayName: null,
+          email: null,
+          photoURL: null,
+        };
+      }
+
+      return buildTaskAssigneeOption(member);
+    });
+  }, [memberById, selectedTask]);
   const taskItems = useMemo(() => buildTaskItems(projectTasks), [projectTasks]);
   const completedTaskCount = useMemo(
     () => taskItems.filter((task) => task.completed).length,
@@ -461,6 +584,37 @@ export const DashboardPage = () => {
     setLinksDialogOpen(true);
   };
 
+  const handleOpenTaskClick = (taskId: string) => {
+    const task = projectTasks.find((item) => item.id === taskId);
+    if (!task) {
+      return;
+    }
+
+    setSelectedTask(task);
+    setTaskDraft(buildTaskDraftFromRecord(task));
+    setTaskDialogError(null);
+    setTaskDialogOpen(true);
+  };
+
+  const closeTaskDialog = () => {
+    setTaskDialogOpen(false);
+    setSelectedTask(null);
+    setTaskDialogError(null);
+    setIsSavingTask(false);
+  };
+
+  const toggleTaskAssignee = (memberId: string) => {
+    setTaskDraft((current) => {
+      const hasAssignee = current.assigneeIds.includes(memberId);
+      return {
+        ...current,
+        assigneeIds: hasAssignee
+          ? current.assigneeIds.filter((item) => item !== memberId)
+          : [...current.assigneeIds, memberId],
+      };
+    });
+  };
+
   const handleTaskToggle = async (taskId: string, nextCompleted: boolean) => {
     if (!activeProject) {
       return;
@@ -477,6 +631,44 @@ export const DashboardPage = () => {
       console.error("Failed to update task", error);
     } finally {
       setUpdatingTaskId(null);
+    }
+  };
+
+  const handleTaskDialogSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    if (!activeProject || !selectedTask) {
+      return;
+    }
+
+    const title = taskDraft.title.trim();
+    if (!title) {
+      setTaskDialogError("Task title is required.");
+      return;
+    }
+
+    setIsSavingTask(true);
+    setTaskDialogError(null);
+
+    const dueDate = parseDateInputValue(taskDraft.dueDate);
+
+    try {
+      await updateProjectTask(activeProject.id, selectedTask.id, {
+        title,
+        description: taskDraft.description.trim() || null,
+        priority: taskDraft.priority,
+        status: taskDraft.status,
+        dueDate,
+        assigneeIds: taskDraft.assigneeIds,
+        completed: taskDraft.status === "completed",
+      });
+
+      closeTaskDialog();
+    } catch (error) {
+      console.error("Failed to save task", error);
+      setTaskDialogError("לא הצלחנו לשמור את המשימה.");
+    } finally {
+      setIsSavingTask(false);
     }
   };
 
@@ -698,6 +890,7 @@ export const DashboardPage = () => {
         <div className="dashboard-page__panel dashboard-page__panel--tasks row-span-2">
           <OpenTasksCard
             tasks={openTasks}
+            onTaskClick={handleOpenTaskClick}
             onToggleTask={handleTaskToggle}
             updatingTaskId={updatingTaskId}
             emptyState="אין עדיין אבני דרך פתוחות בפרויקט."
@@ -756,6 +949,23 @@ export const DashboardPage = () => {
           />
         </div>
       </div>
+
+      <TaskDialog
+        isOpen={taskDialogOpen}
+        mode="edit"
+        draft={taskDraft}
+        setDraft={setTaskDraft}
+        statusOptions={TASK_STATUS_ORDER}
+        statusLabels={TASK_STATUS_LABELS}
+        priorityLabels={TASK_PRIORITY_LABELS}
+        assigneeOptions={assigneeOptions}
+        currentTaskMembers={currentTaskMembers}
+        onToggleAssignee={toggleTaskAssignee}
+        onClose={closeTaskDialog}
+        onSubmit={handleTaskDialogSubmit}
+        error={taskDialogError}
+        isSaving={isSavingTask}
+      />
 
       <dialog
         ref={membersDialogRef}

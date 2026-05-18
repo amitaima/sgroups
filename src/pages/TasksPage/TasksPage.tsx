@@ -1,23 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Navigate, useParams } from "react-router-dom";
-import {
-  CalendarDays,
-  CheckCircle2,
-  Filter,
-  MoreHorizontal,
-  Plus,
-  SlidersHorizontal,
-  TriangleAlert,
-  Users,
-  X,
-} from "lucide-react";
+import { Filter, Plus, SlidersHorizontal, TriangleAlert } from "lucide-react";
 import { useAuth } from "@app/providers/AuthProvider";
 import { Button } from "@components/ui/Button/Button";
-import { GlassPanel } from "@components/ui/GlassPanel/GlassPanel";
 import { PageSection } from "@components/layout/PageSection/PageSection";
 import { SectionTitle } from "@components/ui/SectionTitle/SectionTitle";
 import { TaskCard } from "@components/dashboard/TaskCard";
-import { MemberAvatarGroup } from "@components/users/MemberAvatarGroup";
+import { TaskDialog } from "@components/ui/TaskDialog";
 import { useWorkspaceProject } from "@hooks/useWorkspaceProject";
 import type {
   MemberDirectoryUser,
@@ -723,241 +712,24 @@ export const TasksPage = () => {
         </div>
       )}
 
-      {taskDialogMode ? (
-        <div
-          className="tasks-page__dialog-backdrop"
-          role="presentation"
-          onClick={closeTaskDialog}
-        >
-          <GlassPanel
-            className="tasks-page__dialog"
-            intensity="strong"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="task-dialog-title"
-            onClick={(dialogClickEvent) => dialogClickEvent.stopPropagation()}
-          >
-            <div className="tasks-page__dialog-header">
-              <div className="tasks-page__dialog-heading">
-                <p className="tasks-page__dialog-eyebrow">
-                  {taskDialogMode === "edit" ? "עריכת משימה" : "משימה חדשה"}
-                </p>
-                <h2 id="task-dialog-title" className="tasks-page__dialog-title">
-                  {taskDraft.title.trim() || "פרטי משימה"}
-                </h2>
-                <p className="tasks-page__dialog-subtitle">
-                  עדכון כותרת, תיאור, אחראים, סטטוס ועדיפות.
-                </p>
-              </div>
-
-              <button
-                type="button"
-                className="tasks-page__dialog-close"
-                onClick={closeTaskDialog}
-                aria-label="סגירת חלון"
-              >
-                <X size={18} strokeWidth={2} />
-              </button>
-            </div>
-
-            {/* <div className="tasks-page__dialog-summary">
-              <div className="tasks-page__summary-chip">
-                <CheckCircle2 size={14} strokeWidth={2.1} />
-                <span>{TASK_STATUS_LABELS[taskDraft.status]}</span>
-              </div>
-              <div className="tasks-page__summary-chip">
-                <TriangleAlert size={14} strokeWidth={2.1} />
-                <span>{TASK_PRIORITY_LABELS[taskDraft.priority]}</span>
-              </div>
-              <div className="tasks-page__summary-chip">
-                <CalendarDays size={14} strokeWidth={2.1} />
-                <span>{taskDraft.dueDate || "ללא מועד מוגדר"}</span>
-              </div>
-              <div className="tasks-page__summary-chip">
-                <Users size={14} strokeWidth={2.1} />
-                <span>{taskDraft.assigneeIds.length || "0"} אחראים</span>
-              </div>
-            </div> */}
-
-            <form
-              className="tasks-page__dialog-form"
-              onSubmit={handleTaskSubmit}
-            >
-              <div className="tasks-page__dialog-grid">
-                <label className="tasks-page__field tasks-page__field--full">
-                  <span>כותרת</span>
-                  <input
-                    type="text"
-                    value={taskDraft.title}
-                    onChange={(changeEvent) =>
-                      setTaskDraft((current) => ({
-                        ...current,
-                        title: changeEvent.target.value,
-                      }))
-                    }
-                    placeholder="מקורות לסקירת הספרות"
-                    autoComplete="off"
-                    required
-                  />
-                </label>
-
-                <label className="tasks-page__field tasks-page__field--full">
-                  <span>תיאור</span>
-                  <textarea
-                    value={taskDraft.description}
-                    onChange={(changeEvent) =>
-                      setTaskDraft((current) => ({
-                        ...current,
-                        description: changeEvent.target.value,
-                      }))
-                    }
-                    rows={4}
-                    placeholder="הוספת הקשר, הערות או פרטים תומכים."
-                  />
-                </label>
-
-                <label className="tasks-page__field">
-                  <span>סטטוס</span>
-                  <select
-                    value={taskDraft.status}
-                    onChange={(changeEvent) =>
-                      setTaskDraft((current) => ({
-                        ...current,
-                        status: changeEvent.target.value as TaskStatus,
-                      }))
-                    }
-                  >
-                    {TASK_STATUS_ORDER.map((status) => (
-                      <option key={status} value={status}>
-                        {TASK_STATUS_LABELS[status]}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-
-                <label className="tasks-page__field">
-                  <span>עדיפות</span>
-                  <select
-                    value={taskDraft.priority}
-                    onChange={(changeEvent) =>
-                      setTaskDraft((current) => ({
-                        ...current,
-                        priority: changeEvent.target.value as TaskPriority,
-                      }))
-                    }
-                  >
-                    {Object.entries(TASK_PRIORITY_LABELS).map(
-                      ([priority, label]) => (
-                        <option key={priority} value={priority}>
-                          {label}
-                        </option>
-                      ),
-                    )}
-                  </select>
-                </label>
-
-                <label className="tasks-page__field">
-                  <span>תאריך יעד</span>
-                  <input
-                    type="date"
-                    value={taskDraft.dueDate}
-                    onChange={(changeEvent) =>
-                      setTaskDraft((current) => ({
-                        ...current,
-                        dueDate: changeEvent.target.value,
-                      }))
-                    }
-                  />
-                </label>
-
-                <div className="tasks-page__field tasks-page__field--full">
-                  <span>אחראים</span>
-                  {assigneeOptions.length ? (
-                    <div className="tasks-page__assignee-picker">
-                      {assigneeOptions.map((member) => {
-                        const isSelected = taskDraft.assigneeIds.includes(
-                          member.id,
-                        );
-
-                        return (
-                          <button
-                            key={member.id}
-                            type="button"
-                            className={`tasks-page__assignee-pill${isSelected ? " is-selected" : ""}`}
-                            onClick={() => toggleTaskAssignee(member.id)}
-                          >
-                            <MemberAvatarGroup
-                              members={[member]}
-                              size="sm"
-                              maxVisible={1}
-                            />
-                            <span>
-                              {member.displayName || member.email || member.id}
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <p className="tasks-page__dialog-empty">
-                      לא נמצאו חברי צוות לשיוך.
-                    </p>
-                  )}
-                </div>
-
-                {taskDialogMode === "edit" && selectedTask ? (
-                  <div className="tasks-page__field tasks-page__field--full">
-                    <span>אחראים נוכחיים</span>
-                    {currentTaskMembers.length ? (
-                      <div className="tasks-page__dialog-assignees">
-                        <MemberAvatarGroup
-                          members={currentTaskMembers}
-                          size="sm"
-                          maxVisible={4}
-                        />
-                        <p>
-                          {currentTaskMembers
-                            .map(
-                              (member) =>
-                                member.displayName || member.email || member.id,
-                            )
-                            .join(", ")}
-                        </p>
-                      </div>
-                    ) : (
-                      <p className="tasks-page__dialog-empty">
-                        אין עדיין אחראים.
-                      </p>
-                    )}
-                  </div>
-                ) : null}
-              </div>
-
-              {taskDialogError ? (
-                <p className="tasks-page__dialog-error">{taskDialogError}</p>
-              ) : null}
-
-              <div className="tasks-page__dialog-actions">
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="md"
-                  onClick={closeTaskDialog}
-                >
-                  ביטול
-                </Button>
-                <Button type="submit" size="md" disabled={isSavingTask}>
-                  {isSavingTask
-                    ? "שומר..."
-                    : taskDialogMode === "edit"
-                      ? "שמירת שינויים"
-                      : "יצירת משימה"}
-                </Button>
-              </div>
-            </form>
-          </GlassPanel>
-        </div>
-      ) : null}
+      <TaskDialog
+        isOpen={Boolean(taskDialogMode)}
+        mode={taskDialogMode ?? "create"}
+        draft={taskDraft}
+        setDraft={setTaskDraft}
+        statusOptions={TASK_STATUS_ORDER}
+        statusLabels={TASK_STATUS_LABELS}
+        priorityLabels={TASK_PRIORITY_LABELS}
+        assigneeOptions={assigneeOptions}
+        currentTaskMembers={
+          taskDialogMode === "edit" && selectedTask ? currentTaskMembers : []
+        }
+        onToggleAssignee={toggleTaskAssignee}
+        onClose={closeTaskDialog}
+        onSubmit={handleTaskSubmit}
+        error={taskDialogError}
+        isSaving={isSavingTask}
+      />
     </PageSection>
   );
 };
