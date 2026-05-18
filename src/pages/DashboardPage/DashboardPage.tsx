@@ -46,6 +46,7 @@ import type {
   TaskStatus,
 } from "../../types/common";
 import "./DashboardPage.scss";
+import { Podium } from "@components/dashboard/Podium/Podium";
 
 type DashboardTaskItem = {
   id: string;
@@ -189,6 +190,7 @@ const buildEmptyTaskDraft = (): TaskDialogDraft => ({
   title: "",
   description: "",
   priority: "medium",
+  difficulty: "medium",
   status: "todo",
   dueDate: "",
   assigneeIds: [],
@@ -200,6 +202,7 @@ const buildTaskDraftFromRecord = (
   title: task.title,
   description: task.description ?? "",
   priority: task.priority,
+  difficulty: task.difficulty,
   status: task.status,
   dueDate: toDateInputValue(task.dueDate?.toDate() ?? null),
   assigneeIds: [...task.assigneeIds],
@@ -657,6 +660,7 @@ export const DashboardPage = () => {
         title,
         description: taskDraft.description.trim() || null,
         priority: taskDraft.priority,
+        difficulty: taskDraft.difficulty,
         status: taskDraft.status,
         dueDate,
         assigneeIds: taskDraft.assigneeIds,
@@ -887,7 +891,7 @@ export const DashboardPage = () => {
           </GlassPanel>
         </div>
 
-        <div className="dashboard-page__panel dashboard-page__panel--tasks row-span-2">
+        <div className="dashboard-page__panel dashboard-page__panel--tasks">
           <OpenTasksCard
             tasks={openTasks}
             onTaskClick={handleOpenTaskClick}
@@ -908,6 +912,8 @@ export const DashboardPage = () => {
             }
           />
         </div>
+
+        <Podium tasks={projectTasks} members={projectMembers} />
 
         <div className="dashboard-page__panel dashboard-page__panel--links">
           <TeamLinksCard

@@ -67,6 +67,9 @@ export const TaskCard = ({
         >
           {PRIORITY_LABELS[task.priority]}
         </span>
+        <span className={`task-card__difficulty task-card__difficulty--${task.difficulty}`}>
+          {task.difficulty === "easy" ? "קל" : task.difficulty === "hard" ? "קשה" : "בינוני"}
+        </span>
         {isCompleted ? (
           <CheckCircle2
             size={18}

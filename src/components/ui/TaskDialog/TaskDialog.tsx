@@ -137,6 +137,23 @@ export const TaskDialog = ({
             </label>
 
             <label className="task-dialog__field">
+              <span>רמת קושי</span>
+              <select
+                value={draft.difficulty}
+                onChange={(event) =>
+                  setDraft((current) => ({
+                    ...current,
+                    difficulty: event.target.value as TaskDialogProps["draft"]["difficulty"],
+                  }))
+                }
+              >
+                <option value="easy">קל</option>
+                <option value="medium">בינוני</option>
+                <option value="hard">קשה</option>
+              </select>
+            </label>
+
+            <label className="task-dialog__field">
               <span>תאריך יעד</span>
               <input
                 type="date"

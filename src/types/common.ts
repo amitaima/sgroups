@@ -40,6 +40,8 @@ export interface PageMeta {
 
 export type TaskPriority = "high" | "medium" | "low";
 
+export type TaskDifficulty = "easy" | "medium" | "hard";
+
 export type TaskStatus = "todo" | "inProgress" | "review" | "completed";
 
 export type Project = {
@@ -62,6 +64,7 @@ export type Project = {
   memberRoles?: Record<string, ProjectMemberRole>;
   createdBy: string;
   memberIds: string[];
+  memberScores?: Record<string, number>;
   teacherIds?: string[];
   createdAt: Timestamp;
   updatedAt: Timestamp;

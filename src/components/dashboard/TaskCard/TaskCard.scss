@@ -92,6 +92,37 @@
   border: 1px solid transparent;
 }
 
+.task-card__difficulty {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.35rem 0.55rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.65rem;
+  font-weight: var(--font-weight-semibold);
+  line-height: 1;
+  color: var(--color-text-muted);
+  background: color-mix(in srgb, var(--color-surface-glass) 84%, var(--color-surface-raised));
+  border: 1px solid color-mix(in srgb, var(--color-surface-glass-border) 75%, transparent);
+}
+
+.task-card__difficulty--easy {
+  color: #2e7d32;
+  background: color-mix(in srgb, #c8e6c9 70%, var(--color-surface-raised));
+  border-color: color-mix(in srgb, #c8e6c9 80%, var(--color-surface-raised));
+}
+
+.task-card__difficulty--medium {
+  color: #ed6c02;
+  background: color-mix(in srgb, #ffe0b2 70%, var(--color-surface-raised));
+  border-color: color-mix(in srgb, #ffe0b2 80%, var(--color-surface-raised));
+}
+
+.task-card__difficulty--hard {
+  color: #b71c1c;
+  background: color-mix(in srgb, #ffcdd2 70%, var(--color-surface-raised));
+  border-color: color-mix(in srgb, #ffcdd2 80%, var(--color-surface-raised));
+}
+
 .task-card__priority--high {
   color: #93000a;
   background: color-mix(in srgb, #ffdad6 58%, var(--color-surface-raised));

@@ -1,6 +1,6 @@
 import type { MemberAvatarItem } from "@components/users/MemberAvatarGroup";
 import type { TaskCardData, TaskStatus } from "@components/dashboard/TaskCard";
-import type { TaskPriority } from "../../types/common";
+import type { TaskPriority, TaskDifficulty } from "../../types/common";
 
 export interface TaskBoardColumnData {
   id: TaskStatus;
@@ -19,6 +19,7 @@ export interface TaskDialogDraft {
   title: string;
   description: string;
   priority: TaskPriority;
+  difficulty: TaskDifficulty;
   status: TaskStatus;
   dueDate: string;
   assigneeIds: string[];

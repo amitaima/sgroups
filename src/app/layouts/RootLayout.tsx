@@ -67,6 +67,7 @@ export const RootLayout = () => {
           <DashboardHeader
             currentProjectId={projectId}
             userLabel={user?.displayName || user?.email || "מחובר"}
+            userId={user?.uid || ""}
             userPhoto={user?.photoURL || undefined}
             onOpenMenu={() => setSidebarOpen((prev) => !prev)}
             isMenuOpen={sidebarOpen}

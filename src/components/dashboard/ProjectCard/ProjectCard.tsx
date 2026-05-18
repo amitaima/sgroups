@@ -1,7 +1,7 @@
 import { Button } from "@components/ui/Button/Button";
 import { GlassPanel } from "@components/ui/GlassPanel/GlassPanel";
 import { MemberAvatarGroup } from "@components/users/MemberAvatarGroup";
-import { CalendarDays, UsersRound } from "lucide-react";
+import { Bell, CalendarDays } from "lucide-react";
 import type { ProjectCardProps } from "./ProjectCard.types";
 import "./ProjectCard.scss";
 
@@ -39,6 +39,7 @@ export const ProjectCard = ({
   project,
   members,
   creatorLabel,
+  score,
   onEnter,
 }: ProjectCardProps) => {
   const status = project.status ?? "active";
@@ -55,7 +56,14 @@ export const ProjectCard = ({
 
         <div className="project-card__copy">
           <div className="project-card__headline-row">
-            <h3 className="project-card__title">{project.name}</h3>
+            <div className="project-card__title-group">
+              <h3 className="project-card__title">{project.name}</h3>
+              {typeof score === "number" ? (
+                <span className="project-card__score-badge">
+                  {score} pts
+                </span>
+              ) : null}
+            </div>
             <span
               className={`project-card__status project-card__status--${status}`}
             >
@@ -83,6 +91,14 @@ export const ProjectCard = ({
                 <div className="project-card__meta-item">
                   <CalendarDays size={16} strokeWidth={2} />
                   <span>הגשת הפרויקט: {finalSubmissionDate}</span>
+                </div>
+              ) : null}
+
+              {project.notificationSettings &&
+              Object.values(project.notificationSettings).some(Boolean) ? (
+                <div className="project-card__meta-item project-card__meta-item--notification">
+                  <Bell size={16} strokeWidth={2} />
+                  <span>התראות פעילות</span>
                 </div>
               ) : null}
             </div>

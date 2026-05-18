@@ -5,5 +5,6 @@ export interface ProjectCardProps {
   project: Project;
   members: MemberAvatarItem[];
   creatorLabel: string;
+  score?: number;
   onEnter: () => void;
 }

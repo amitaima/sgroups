@@ -6,6 +6,7 @@ export interface TaskCardData {
   title: string;
   description?: string;
   priority: TaskPriority;
+  difficulty: TaskDifficulty;
   status: TaskStatus;
   dueDateLabel: string;
   assignees: MemberAvatarItem[];

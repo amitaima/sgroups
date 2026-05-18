@@ -19,7 +19,7 @@ import {
   updateProjectTask,
 } from "@services/firebase/firebase";
 import type { TaskCardData } from "@components/dashboard/TaskCard";
-import type { TaskPriority, TaskStatus } from "../../types/common";
+import type { TaskPriority, TaskStatus, TaskDifficulty } from "../../types/common";
 import type {
   TaskAssigneeOption,
   TaskBoardColumnData,
@@ -93,6 +93,7 @@ const buildEmptyTaskDraft = (assigneeId = ""): TaskDialogDraft => ({
   title: "",
   description: "",
   priority: "medium",
+  difficulty: "medium",
   status: "todo",
   dueDate: "",
   assigneeIds: assigneeId ? [assigneeId] : [],
@@ -104,6 +105,7 @@ const buildTaskDraftFromRecord = (
   title: task.title,
   description: task.description ?? "",
   priority: task.priority,
+  difficulty: task.difficulty ?? "medium",
   status: task.status,
   dueDate: toDateInputValue(task.dueDate?.toDate() ?? null),
   assigneeIds: [...task.assigneeIds],
@@ -142,6 +144,7 @@ const buildTaskCardData = (
   title: task.title,
   description: task.description ?? undefined,
   priority: task.priority,
+  difficulty: task.difficulty ?? "medium",
   status: task.status,
   dueDateLabel: formatDueDateLabel(task),
   assignees: task.assigneeIds.map((memberId) => {
@@ -494,6 +497,7 @@ export const TasksPage = () => {
           title,
           description: taskDraft.description.trim() || null,
           priority: taskDraft.priority,
+          difficulty: taskDraft.difficulty,
           status: taskDraft.status,
           dueDate,
           assigneeIds: taskDraft.assigneeIds,
@@ -504,6 +508,7 @@ export const TasksPage = () => {
           title,
           description: taskDraft.description.trim() || null,
           priority: taskDraft.priority,
+          difficulty: taskDraft.difficulty,
           status: taskDraft.status,
           dueDate,
           assigneeIds: taskDraft.assigneeIds,

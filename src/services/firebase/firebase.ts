@@ -33,6 +33,7 @@ import type {
   ProjectNotificationSettings,
   ProjectStatus,
   ProjectType,
+  TaskDifficulty,
   TaskPriority,
   TaskStatus,
   ThemeMode,
@@ -187,6 +188,7 @@ export interface CreateProjectInput {
   notificationSettings?: ProjectNotificationSettings;
   createdBy: string;
   memberIds?: string[];
+  memberScores?: Record<string, number>;
   teacherIds?: string[];
   memberRoles?: Record<string, ProjectMemberRole>;
   status?: "active" | "completed" | "archived";
@@ -214,6 +216,7 @@ export interface UpdateProjectInput {
   }>;
   notificationSettings?: ProjectNotificationSettings;
   memberIds?: string[];
+  memberScores?: Record<string, number>;
   memberRoles?: Record<string, ProjectMemberRole>;
   teacherIds?: string[];
   status?: ProjectStatus;
@@ -257,6 +260,7 @@ export interface ProjectTaskRecord {
   title: string;
   description: string | null;
   priority: TaskPriority;
+  difficulty: TaskDifficulty;
   status: TaskStatus;
   dueDate: Timestamp | null;
   assigneeIds: string[];
@@ -270,6 +274,7 @@ export interface CreateProjectTaskInput {
   title: string;
   description?: string | null;
   priority: TaskPriority;
+  difficulty?: TaskDifficulty;
   status?: TaskStatus;
   dueDate?: Date | null;
   assigneeIds?: string[];
@@ -281,6 +286,7 @@ export interface UpdateProjectTaskInput {
   title?: string;
   description?: string | null;
   priority?: TaskPriority;
+  difficulty?: TaskDifficulty;
   status?: TaskStatus;
   dueDate?: Date | null;
   assigneeIds?: string[];
@@ -413,6 +419,9 @@ const isProjectType = (value: unknown): value is ProjectType =>
 
 const isTaskPriority = (value: unknown): value is TaskPriority =>
   value === "high" || value === "medium" || value === "low";
+
+const isTaskDifficulty = (value: unknown): value is TaskDifficulty =>
+  value === "easy" || value === "medium" || value === "hard";
 
 const isTaskStatus = (value: unknown): value is TaskStatus =>
   value === "todo" ||
@@ -581,6 +590,30 @@ const normalizeProjectRoleMap = (
   return roles;
 };
 
+const mapProjectMemberScores = (
+  value: unknown,
+): Record<string, number> | undefined => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return undefined;
+  }
+
+  const scores = Object.entries(value as Record<string, unknown>).reduce<
+    Record<string, number>
+  >((accumulator, [memberId, score]) => {
+    if (
+      typeof memberId === "string" &&
+      typeof score === "number" &&
+      Number.isFinite(score) &&
+      score >= 0
+    ) {
+      accumulator[memberId] = score;
+    }
+    return accumulator;
+  }, {});
+
+  return Object.keys(scores).length > 0 ? scores : undefined;
+};
+
 const chunkArray = <T>(arr: T[], size: number): T[][] => {
   const chunks: T[][] = [];
   for (let index = 0; index < arr.length; index += size) {
@@ -613,6 +646,7 @@ const mapProjectSnapshot = (
     groupNumber: normalizeText(data.groupNumber),
     importantLinks: mapProjectLinks(data.importantLinks),
     milestones: mapProjectMilestones(data.milestones),
+    memberScores: mapProjectMemberScores(data.memberScores),
     notificationSettings: (() => {
       if (
         !data.notificationSettings ||
@@ -737,6 +771,9 @@ const mapProjectTaskSnapshot = (
   const data = (snapshot.data() ?? {}) as Record<string, unknown>;
   const status = isTaskStatus(data.status) ? data.status : "todo";
   const priority = isTaskPriority(data.priority) ? data.priority : "medium";
+  const difficulty = isTaskDifficulty(data.difficulty)
+    ? data.difficulty
+    : "medium";
   const assigneeIds = Array.isArray(data.assigneeIds)
     ? data.assigneeIds.filter(
         (item): item is string => typeof item === "string",
@@ -760,6 +797,7 @@ const mapProjectTaskSnapshot = (
         ? data.description
         : null,
     priority,
+    difficulty,
     status,
     dueDate: toTimestamp(data.dueDate) ?? null,
     assigneeIds:
@@ -834,6 +872,53 @@ const sortProjectTasks = (tasks: ProjectTaskRecord[]) =>
     return left.title.localeCompare(right.title, "he");
   });
 
+const taskDifficultyScore: Record<TaskDifficulty, number> = {
+  easy: 10,
+  medium: 20,
+  hard: 35,
+};
+
+const calculateTaskScore = (task: ProjectTaskRecord): number => {
+  if (task.status !== "completed") {
+    return 0;
+  }
+
+  return taskDifficultyScore[task.difficulty] ?? taskDifficultyScore.medium;
+};
+
+const calculateProjectMemberScores = (
+  tasks: ProjectTaskRecord[],
+): Record<string, number> => {
+  return tasks.reduce<Record<string, number>>((scores, task) => {
+    if (task.status !== "completed") {
+      return scores;
+    }
+
+    const taskPoints = calculateTaskScore(task);
+    task.assigneeIds.forEach((memberId) => {
+      if (!memberId) {
+        return;
+      }
+
+      scores[memberId] = (scores[memberId] ?? 0) + taskPoints;
+    });
+
+    return scores;
+  }, {});
+};
+
+const syncProjectMemberScores = async (
+  projectId: string,
+): Promise<void> => {
+  const tasks = await getProjectTasks(projectId);
+  const memberScores = calculateProjectMemberScores(tasks);
+
+  await updateDoc(doc(db, PROJECTS_COLLECTION, projectId), {
+    memberScores,
+    updatedAt: serverTimestamp(),
+  });
+};
+
 export const getProjectTasks = async (
   projectId: string,
 ): Promise<ProjectTaskRecord[]> => {
@@ -873,6 +958,7 @@ export const createProjectTask = async (
     title: input.title.trim(),
     description: input.description?.trim() || null,
     priority: input.priority,
+    difficulty: input.difficulty ?? "medium",
     status: input.status ?? "todo",
     dueDate: input.dueDate ? Timestamp.fromDate(input.dueDate) : null,
     assigneeIds: normalizeTaskAssignees(input.assigneeIds ?? []),
@@ -883,6 +969,8 @@ export const createProjectTask = async (
   };
 
   const docRef = await addDoc(getProjectTasksCollection(projectId), payload);
+
+  await syncProjectMemberScores(projectId);
   return docRef.id;
 };
 
@@ -907,6 +995,10 @@ export const updateProjectTask = async (
     payload.priority = input.priority;
   }
 
+  if (input.difficulty) {
+    payload.difficulty = input.difficulty;
+  }
+
   if (input.status) {
     payload.status = input.status;
   }
@@ -928,6 +1020,7 @@ export const updateProjectTask = async (
   }
 
   await updateDoc(doc(getProjectTasksCollection(projectId), taskId), payload);
+  await syncProjectMemberScores(projectId);
 };
 
 export const createProject = async (
@@ -964,6 +1057,13 @@ export const createProject = async (
     },
     createdBy: input.createdBy,
     memberIds: normalizedMemberIds,
+    memberScores: normalizedMemberIds.reduce<Record<string, number>>(
+      (scores, memberId) => {
+        scores[memberId] = 0;
+        return scores;
+      },
+      {},
+    ),
     teacherIds: input.teacherIds ?? [],
     memberRoles: normalizeProjectRoleMap(
       normalizedMemberIds,
@@ -1082,6 +1182,10 @@ export const updateProject = async (
 
   if (input.memberIds !== undefined) {
     payload.memberIds = normalizeMemberIds(input.memberIds);
+  }
+
+  if (input.memberScores !== undefined) {
+    payload.memberScores = input.memberScores;
   }
 
   if (input.memberRoles !== undefined) {

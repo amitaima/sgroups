@@ -1,5 +1,5 @@
 import type { Dispatch, FormEventHandler, SetStateAction } from "react";
-import type { TaskPriority, TaskStatus } from "../../../types/common";
+import type { TaskPriority, TaskStatus, TaskDifficulty } from "../../../types/common";
 
 export type TaskDialogMode = "create" | "edit";
 
@@ -7,6 +7,7 @@ export interface TaskDialogDraft {
   title: string;
   description: string;
   priority: TaskPriority;
+  difficulty: TaskDifficulty;
   status: TaskStatus;
   dueDate: string;
   assigneeIds: string[];

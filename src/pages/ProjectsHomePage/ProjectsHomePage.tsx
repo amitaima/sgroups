@@ -12,10 +12,12 @@ import type { Project } from "../../types/common";
 import { Plus, Sparkles } from "lucide-react";
 import {
   createProject,
+  getProjectTasks,
   getUserProjects,
   getUsersByIds,
   resolveMemberIdsByEmails,
 } from "@services/firebase/firebase";
+import { calculateProjectScore } from "@utils/scoreCalculation";
 import "./ProjectsHomePage.scss";
 import { Logo } from "@components/ui/Logo/Logo";
 
@@ -41,6 +43,7 @@ export const ProjectsHomePage = () => {
   const [membersById, setMembersById] = useState<
     Record<string, MemberAvatarItem>
   >({});
+  const [projectScores, setProjectScores] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -90,6 +93,23 @@ export const ProjectsHomePage = () => {
       );
 
       setMembersById(nextMembersById);
+
+      const scores = await Promise.all(
+        userProjects.map(async (project) => {
+          try {
+            const projectTasks = await getProjectTasks(project.id);
+            return [project.id, calculateProjectScore(projectTasks)] as const;
+          } catch (scoreError) {
+            console.error(
+              `Failed to calculate score for project ${project.id}`,
+              scoreError,
+            );
+            return [project.id, 0] as const;
+          }
+        }),
+      );
+
+      setProjectScores(Object.fromEntries(scores));
     } catch (loadError) {
       console.error("Failed to load projects", loadError);
       setError("לא הצלחנו לטעון את הפרויקטים כרגע. נסו שוב.");
@@ -115,8 +135,9 @@ export const ProjectsHomePage = () => {
               photoURL: null,
             },
         ),
+        score: projectScores[project.id],
       })),
-    [projects, membersById],
+    [projects, membersById, projectScores],
   );
 
   const getMemberLabel = (memberId: string) => {
@@ -250,11 +271,12 @@ export const ProjectsHomePage = () => {
                   projectStatus[a.project.status ?? "active"] -
                   projectStatus[b.project.status ?? "active"],
               )
-              .map(({ project, members }) => (
+              .map(({ project, members, score }) => (
                 <ProjectCard
                   key={project.id}
                   project={project}
                   members={members}
+                  score={score}
                   creatorLabel={getMemberLabel(project.createdBy)}
                   onEnter={() => navigate(`/projects/${project.id}/dashboard`)}
                 />
