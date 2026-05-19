@@ -385,6 +385,34 @@ export const TasksPage = () => {
     }, 180);
   };
 
+  const getTaskSuggestionTitleError = (title: string): string | null => {
+    const trimmedTitle = title.trim();
+    if (!trimmedTitle) {
+      return "שדה חובה - יש להזין כותרת למשימה";
+    }
+
+    const letters = trimmedTitle.match(/[A-Za-zא-ת]/g) ?? [];
+    const letterCount = letters.length;
+    const words = trimmedTitle.split(/\s+/).filter(Boolean);
+    const meaningfulWordCount = words.filter((word) => {
+      const letterMatches = word.match(/[A-Za-zא-ת]/g) ?? [];
+      return letterMatches.length >= 2;
+    }).length;
+    const isRepeatedCharacters =
+      letterCount > 1 &&
+      new Set(letters.map((char) => char.toLowerCase())).size === 1;
+
+    if (
+      letterCount === 0 ||
+      isRepeatedCharacters ||
+      (letterCount < 5 && meaningfulWordCount < 2)
+    ) {
+      return "כדי להשתמש ב-AI יש להזין כותרת משימה ברורה יותר";
+    }
+
+    return null;
+  };
+
   const handleTaskCardClick = (taskId: string) => {
     if (suppressTaskClickRef.current) {
       return;
@@ -546,8 +574,10 @@ export const TasksPage = () => {
     }
 
     const title = taskDraft.title.trim();
-    if (!title) {
-      setTaskSuggestionTitleError("שדה חובה - יש להזין כותרת למשימה");
+    const titleError = getTaskSuggestionTitleError(title);
+    if (titleError) {
+      setTaskSuggestionTitleError(titleError);
+      setTaskDialogError(null);
       return;
     }
 
