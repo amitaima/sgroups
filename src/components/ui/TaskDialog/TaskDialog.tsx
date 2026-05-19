@@ -18,6 +18,11 @@ export const TaskDialog = ({
   onToggleAssignee,
   onClose,
   onSubmit,
+  onGenerateSuggestion,
+  isAiGenerating,
+  isAiSuggestionUsed,
+  aiTitleError,
+  onClearAiTitleError,
   error,
   isSaving,
 }: TaskDialogProps) => {
@@ -25,12 +30,11 @@ export const TaskDialog = ({
     return null;
   }
 
+  const canUseAiSuggestion = mode === "create" && Boolean(onGenerateSuggestion);
+  const isAiSuggestionDisabled = Boolean(isAiGenerating || isAiSuggestionUsed);
+
   return (
-    <div
-      className="task-dialog__backdrop"
-      role="presentation"
-      onClick={onClose}
-    >
+    <div className="task-dialog__backdrop" role="presentation">
       <GlassPanel
         className="task-dialog"
         intensity="strong"
@@ -65,20 +69,68 @@ export const TaskDialog = ({
         <form className="task-dialog__form" onSubmit={onSubmit}>
           <div className="task-dialog__grid">
             <label className="task-dialog__field task-dialog__field--full">
-              <span>כותרת</span>
+              <div className="task-dialog__field-heading">
+                <span>כותרת</span>
+                {canUseAiSuggestion ? (
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    className="task-dialog__ai-button"
+                    disabled={isAiSuggestionDisabled}
+                    onClick={onGenerateSuggestion}
+                  >
+                    {isAiGenerating
+                      ? "מחולל..."
+                      : isAiSuggestionUsed
+                        ? "הצעת AI נוצרה"
+                        : "הצע ב-AI"}
+                  </Button>
+                ) : null}
+              </div>
               <input
                 type="text"
                 value={draft.title}
-                onChange={(event) =>
+                onChange={(event) => {
+                  const nextTitle = event.target.value;
+                  if (nextTitle.trim()) {
+                    onClearAiTitleError?.();
+                  }
+
                   setDraft((current) => ({
                     ...current,
-                    title: event.target.value,
-                  }))
+                    title: nextTitle,
+                  }));
+                }}
+                onKeyDown={(event) => {
+                  if (event.key !== "Enter" || !canUseAiSuggestion) {
+                    return;
+                  }
+
+                  event.preventDefault();
+                  if (isAiSuggestionDisabled) {
+                    return;
+                  }
+
+                  void onGenerateSuggestion?.();
+                }}
+                className={aiTitleError ? "is-invalid" : undefined}
+                aria-invalid={Boolean(aiTitleError)}
+                aria-describedby={
+                  aiTitleError ? "task-dialog-title-error" : undefined
                 }
                 placeholder="מקורות לסקירת הספרות"
                 autoComplete="off"
                 required
               />
+              {aiTitleError ? (
+                <p
+                  className="task-dialog__field-error"
+                  id="task-dialog-title-error"
+                >
+                  {aiTitleError}
+                </p>
+              ) : null}
             </label>
 
             <label className="task-dialog__field task-dialog__field--full">

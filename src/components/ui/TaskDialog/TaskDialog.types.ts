@@ -33,6 +33,11 @@ export interface TaskDialogProps {
   onToggleAssignee: (memberId: string) => void;
   onClose: () => void;
   onSubmit: FormEventHandler<HTMLFormElement>;
+  onGenerateSuggestion?: () => Promise<void>;
+  isAiGenerating?: boolean;
+  isAiSuggestionUsed?: boolean;
+  aiTitleError?: string | null;
+  onClearAiTitleError?: () => void;
   error?: string | null;
   isSaving?: boolean;
 }

@@ -72,7 +72,7 @@ export const Podium = ({ tasks, members }: PodiumProps) => {
 };
 
 interface PodiumMemberProps {
-  member: ProjectMemberScore;
+  member: ProjectMemberScore | ProjectMemberScoreWithTasks;
   position: "first" | "second" | "third";
 }
 

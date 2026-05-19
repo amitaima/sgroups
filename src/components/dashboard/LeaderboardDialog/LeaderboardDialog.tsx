@@ -5,6 +5,7 @@ import {
   getProjectMembersWithScores,
   type ProjectMemberScoreWithTasks,
 } from "@utils/scoreCalculation";
+import type { ProjectMemberScore } from "@utils/mockScoreData";
 import type { MemberDirectoryUser, ProjectTaskRecord } from "@services/firebase/firebase";
 import "./LeaderboardDialog.scss";
 
@@ -147,7 +148,7 @@ export const LeaderboardDialog = ({
 };
 
 interface LeaderboardRowProps {
-  member: ProjectMemberScoreWithTasks;
+  member: ProjectMemberScore | ProjectMemberScoreWithTasks;
   index: number;
 }
 

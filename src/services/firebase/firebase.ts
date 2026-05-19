@@ -25,6 +25,7 @@ import {
   ref as storageRef,
   uploadBytes,
 } from "firebase/storage";
+import { getAI, getGenerativeModel, GoogleAIBackend } from "firebase/ai";
 import type {
   Project,
   ProjectLink,
@@ -59,6 +60,11 @@ const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const storage = getStorage(app);
+
+const ai = getAI(app, { backend: new GoogleAIBackend() });
+export const taskSuggestionModel = getGenerativeModel(ai, {
+  model: "gemini-2.5-flash",
+});
 
 export interface UserProfile {
   uid: string;
