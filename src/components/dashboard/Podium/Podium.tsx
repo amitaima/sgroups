@@ -5,6 +5,7 @@ import type {
   ProjectTaskRecord,
 } from "@services/firebase/firebase";
 import { GlassPanel } from "@components/ui/GlassPanel";
+import "./Podium.scss";
 
 interface TopUser {
   id?: string;
@@ -20,6 +21,68 @@ interface PodiumProps {
   trophyName?: string | null;
 }
 
+const getInitials = (name?: string) => {
+  if (!name) return "?";
+  const parts = name.trim().split(/\s+/);
+  return parts.length > 1
+    ? `${parts[0][0]}${parts[1][0]}`.toUpperCase()
+    : name.slice(0, 2).toUpperCase();
+};
+
+const Avatar = ({
+  src,
+  name,
+  size = "md",
+}: {
+  src?: string | null;
+  name?: string;
+  size?: "sm" | "md" | "lg";
+}) => {
+  const [failed, setFailed] = useState(false);
+  const dims = { sm: 36, md: 44, lg: 56 };
+  const textSize = { sm: "0.7rem", md: "0.8rem", lg: "1rem" };
+  const d = dims[size];
+
+  if (!src || failed) {
+    return (
+      <div
+        style={{
+          width: d,
+          height: d,
+          borderRadius: "50%",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontWeight: 700,
+          fontSize: textSize[size],
+          background: "var(--color-primary-container)",
+          color: "var(--color-primary)",
+          border: "2.5px solid var(--color-surface-raised)",
+          boxShadow: "0 3px 12px rgba(0,0,0,0.1)",
+        }}
+      >
+        {getInitials(name)}
+      </div>
+    );
+  }
+
+  return (
+    <img
+      style={{
+        width: d,
+        height: d,
+        borderRadius: "50%",
+        objectFit: "cover",
+        border: "2.5px solid var(--color-surface-raised)",
+        boxShadow: "0 3px 12px rgba(0,0,0,0.1)",
+      }}
+      src={src}
+      alt={name ?? ""}
+      onError={() => setFailed(true)}
+    />
+  );
+};
+
 export const Podium = ({
   topUsers = [],
   tasks,
@@ -31,99 +94,191 @@ export const Podium = ({
 
   const podiumSlots = [
     {
-      position: "second",
-      label: "🥈",
-      heightClass: "h-[18vh]",
-      colorClass: "bg-slate-200",
+      position: "second" as const,
+      medal: "🥈",
+      heightPct: 70,
       user: podiumUsers[1],
+      rank: 2,
     },
     {
-      position: "first",
-      label: "🥇",
-      heightClass: "h-[24vh]",
-      colorClass: "bg-amber-300",
+      position: "first" as const,
+      medal: "🥇",
+      heightPct: 90,
       user: podiumUsers[0],
+      rank: 1,
     },
     {
-      position: "third",
-      label: "🥉",
-      heightClass: "h-[16vh]",
-      colorClass: "bg-amber-100",
+      position: "third" as const,
+      medal: "🥉",
+      heightPct: 50,
       user: podiumUsers[2],
+      rank: 3,
     },
   ];
 
-  const handleOpen = () => setIsDialogOpen(true);
-  const handleClose = () => setIsDialogOpen(false);
+  const barColors: Record<number, string> = {
+    1: "linear-gradient(180deg, #ffd700 0%, #b8860b 100%)",
+    2: "linear-gradient(180deg, #e8e8e8 0%, #a0a0a0 100%)",
+    3: "linear-gradient(180deg, #e8a060 0%, #a0522d 100%)",
+  };
 
   return (
     <>
       <div
-        className="w-full max-h-[40vh] h-full overflow-hidden flex items-center justify-center rounded-xl p-4 pb-6 cursor-pointer hover:bg-opacity-90 transition relative"
-        onClick={handleOpen}
+        style={{ width: "100%", height: "100%", cursor: "pointer" }}
+        onClick={() => setIsDialogOpen(true)}
         role="button"
         tabIndex={0}
-        onKeyDown={(event) => {
-          if (event.key === "Enter" || event.key === " ") {
-            handleOpen();
-          }
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") setIsDialogOpen(true);
         }}
       >
-        <GlassPanel className="distribution-card w-full h-full relative flex flex-col justify-end pt-8">
+        <GlassPanel
+          className="distribution-card"
+          style={{
+            width: "100%",
+            height: "100%",
+            position: "relative",
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "flex-end",
+            padding: "1.25rem",
+            paddingTop: "3.5rem",
+          }}
+        >
           {trophyName && (
             <div
-              className="absolute top-4 right-4 z-10 bg-gradient-to-l from-amber-50 to-yellow-100/90 backdrop-blur-md px-5 py-3 rounded-lg border border-amber-300/50 shadow-[0_2px_12px_rgba(217,164,6,0.15)] text-right max-w-[85%] flex items-center gap-3"
-              style={{ padding: "0.5rem" }}
+              style={{
+                position: "absolute",
+                top: "0.75rem",
+                right: "0.75rem",
+                zIndex: 10,
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "0.5rem",
+                padding: "0.5rem 0.85rem",
+                borderRadius: "0.5rem",
+                background:
+                  "color-mix(in srgb, var(--color-primary-container) 85%, var(--color-surface-raised))",
+                border:
+                  "1px solid color-mix(in srgb, var(--color-primary) 25%, transparent)",
+                boxShadow:
+                  "0 2px 8px color-mix(in srgb, var(--color-primary) 10%, transparent)",
+                maxWidth: "80%",
+              }}
             >
-              <span className="text-xl leading-none drop-shadow-sm">🏆</span>
-              <span className="text-m font-bold text-amber-900/90 whitespace-nowrap overflow-hidden text-ellipsis">
+              <span style={{ fontSize: "1.1rem", lineHeight: 1 }}>🏆</span>
+              <span
+                style={{
+                  fontSize: "0.75rem",
+                  fontWeight: 700,
+                  color: "var(--color-text)",
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                }}
+              >
                 {trophyName}
               </span>
             </div>
           )}
 
-          <div className="flex items-end justify-center gap-0 h-full">
-            {podiumSlots.map(
-              ({ position, label, heightClass, colorClass, user }) => {
-                const displayName = user?.name
-                  ? user.name.split(" ").slice(0, 2).join("\n")
-                  : "";
+          <div
+            style={{
+              display: "flex",
+              alignItems: "flex-end",
+              justifyContent: "center",
+              gap: "0",
+              height: "100%",
+              width: "100%",
+              maxWidth: "28rem",
+              margin: "0 auto",
+            }}
+          >
+            {podiumSlots.map(({ position, medal, heightPct, user, rank }) => {
+              const firstName = user?.name?.split(" ")[0] ?? "";
 
-                return (
-                  <div
-                    key={position}
-                    className="flex flex-col items-center gap-y-4"
-                  >
-                    <img
-                      className="w-10 h-10 rounded-full object-cover border border-black/10"
-                      src={
-                        user?.photoURL ??
-                        `https://i.pravatar.cc/150?u=${user?.id ?? position}`
-                      }
-                      alt={user?.name ?? `${position} place`}
-                    />
-
-                    <div
-                      className={`${heightClass} w-20 ${colorClass} rounded-t-2xl flex flex-col items-center justify-center gap-1 px-1 py-2`}
-                    >
-                      <span className="text-black font-semibold text-sm text-center whitespace-pre-line break-words leading-tight max-w-full">
-                        {displayName}
-                      </span>
-                      <span className="text-base" style={{ fontSize: "2rem" }}>
-                        {label}
-                      </span>
+              return (
+                <div
+                  key={position}
+                  className="podium-slot"
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    gap: "0.5rem",
+                    flex: "1 1 0",
+                    minWidth: 0,
+                    height: `${heightPct}%`,
+                    position: "relative",
+                  }}
+                >
+                  {user?.score != null && (
+                    <div className="podium-slot__tooltip">
+                      {user.score} נקודות
                     </div>
+                  )}
+
+                  <div style={{ position: "relative" }}>
+                    <Avatar
+                      src={user?.photoURL}
+                      name={user?.name}
+                      size={rank === 1 ? "lg" : "md"}
+                    />
                   </div>
-                );
-              },
-            )}
+
+                  <div
+                    className="podium-slot__bar"
+                    style={{
+                      height: "100%",
+                      width: "100%",
+                      borderRadius: "1rem 1rem 0 0",
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: "0.3rem",
+                      padding: "0.5rem 0.25rem",
+                      background: barColors[rank],
+                      border:
+                        "1px solid color-mix(in srgb, var(--color-primary) 8%, var(--color-surface-glass-border))",
+                      boxShadow: "inset 0 1px 0 rgba(255,255,255,0.4)",
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontSize: rank === 1 ? "1.75rem" : "1.4rem",
+                        lineHeight: 1,
+                      }}
+                    >
+                      {medal}
+                    </span>
+                    <span
+                      style={{
+                        fontSize: "0.7rem",
+                        fontWeight: 600,
+                        color: rank === 2 ? "var(--color-text)" : "#fff",
+                        textAlign: "center",
+                        lineHeight: 1.2,
+                        maxWidth: "100%",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {firstName}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </GlassPanel>
       </div>
 
       <LeaderboardDialog
         isOpen={isDialogOpen}
-        onClose={handleClose}
+        onClose={() => setIsDialogOpen(false)}
         tasks={tasks}
         members={members}
       />
