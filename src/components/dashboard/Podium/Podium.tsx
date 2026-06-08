@@ -147,39 +147,9 @@ export const Podium = ({
           }}
         >
           {trophyName && (
-            <div
-              style={{
-                position: "absolute",
-                top: "0.75rem",
-                right: "0.75rem",
-                zIndex: 10,
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "0.5rem",
-                padding: "0.5rem 0.85rem",
-                borderRadius: "0.5rem",
-                background:
-                  "color-mix(in srgb, var(--color-primary-container) 85%, var(--color-surface-raised))",
-                border:
-                  "1px solid color-mix(in srgb, var(--color-primary) 25%, transparent)",
-                boxShadow:
-                  "0 2px 8px color-mix(in srgb, var(--color-primary) 10%, transparent)",
-                maxWidth: "80%",
-              }}
-            >
-              <span style={{ fontSize: "1.1rem", lineHeight: 1 }}>🏆</span>
-              <span
-                style={{
-                  fontSize: "0.75rem",
-                  fontWeight: 700,
-                  color: "var(--color-text)",
-                  whiteSpace: "nowrap",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                }}
-              >
-                {trophyName}
-              </span>
+            <div className="podium-trophy">
+              <span className="podium-trophy__icon">🏆</span>
+              <span className="podium-trophy__text">{trophyName}</span>
             </div>
           )}
 
@@ -213,12 +183,6 @@ export const Podium = ({
                     position: "relative",
                   }}
                 >
-                  {user?.score != null && (
-                    <div className="podium-slot__tooltip">
-                      {user.score} נקודות
-                    </div>
-                  )}
-
                   <div style={{ position: "relative" }}>
                     <Avatar
                       src={user?.photoURL}
