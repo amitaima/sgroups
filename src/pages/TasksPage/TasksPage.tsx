@@ -18,8 +18,9 @@ import {
   subscribeProjectTasks,
   updateProjectTask,
 } from "@services/firebase/firebase";
+import { generateTaskSuggestion } from "@services/firebase/ai";
 import type { TaskCardData } from "@components/dashboard/TaskCard";
-import type { TaskPriority, TaskStatus, TaskDifficulty } from "../../types/common";
+import type { TaskPriority, TaskStatus } from "../../types/common";
 import type {
   TaskAssigneeOption,
   TaskBoardColumnData,
@@ -230,6 +231,11 @@ export const TasksPage = () => {
   );
   const [taskDialogError, setTaskDialogError] = useState<string | null>(null);
   const [isSavingTask, setIsSavingTask] = useState(false);
+  const [isGeneratingTaskSuggestion, setIsGeneratingTaskSuggestion] = useState(false);
+  const [isTaskSuggestionUsed, setIsTaskSuggestionUsed] = useState(false);
+  const [taskSuggestionTitleError, setTaskSuggestionTitleError] = useState<
+    string | null
+  >(null);
   const suppressTaskClickRef = useRef(false);
   const suppressTaskClickTimerRef = useRef<number | null>(null);
 
@@ -336,6 +342,8 @@ export const TasksPage = () => {
     setTaskDialogMode("edit");
     setActiveTaskId(task.id);
     setTaskDialogError(null);
+    setTaskSuggestionTitleError(null);
+    setIsTaskSuggestionUsed(false);
     setTaskDraft(buildTaskDraftFromRecord(task));
   };
 
@@ -348,6 +356,9 @@ export const TasksPage = () => {
     setTaskDialogMode("create");
     setActiveTaskId(null);
     setTaskDialogError(null);
+    setTaskSuggestionTitleError(null);
+    setIsTaskSuggestionUsed(false);
+    setIsGeneratingTaskSuggestion(false);
     setTaskDraft(buildEmptyTaskDraft(defaultAssigneeId));
   };
 
@@ -355,7 +366,10 @@ export const TasksPage = () => {
     setTaskDialogMode(null);
     setActiveTaskId(null);
     setTaskDialogError(null);
+    setTaskSuggestionTitleError(null);
+    setIsTaskSuggestionUsed(false);
     setIsSavingTask(false);
+    setIsGeneratingTaskSuggestion(false);
   };
 
   const suppressNextTaskClick = () => {
@@ -369,6 +383,34 @@ export const TasksPage = () => {
       suppressTaskClickRef.current = false;
       suppressTaskClickTimerRef.current = null;
     }, 180);
+  };
+
+  const getTaskSuggestionTitleError = (title: string): string | null => {
+    const trimmedTitle = title.trim();
+    if (!trimmedTitle) {
+      return "שדה חובה - יש להזין כותרת למשימה";
+    }
+
+    const letters = trimmedTitle.match(/[A-Za-zא-ת]/g) ?? [];
+    const letterCount = letters.length;
+    const words = trimmedTitle.split(/\s+/).filter(Boolean);
+    const meaningfulWordCount = words.filter((word) => {
+      const letterMatches = word.match(/[A-Za-zא-ת]/g) ?? [];
+      return letterMatches.length >= 2;
+    }).length;
+    const isRepeatedCharacters =
+      letterCount > 1 &&
+      new Set(letters.map((char) => char.toLowerCase())).size === 1;
+
+    if (
+      letterCount === 0 ||
+      isRepeatedCharacters ||
+      (letterCount < 5 && meaningfulWordCount < 2)
+    ) {
+      return "כדי להשתמש ב-AI יש להזין כותרת משימה ברורה יותר";
+    }
+
+    return null;
   };
 
   const handleTaskCardClick = (taskId: string) => {
@@ -523,6 +565,76 @@ export const TasksPage = () => {
       setTaskDialogError("לא הצלחנו לשמור את המשימה.");
     } finally {
       setIsSavingTask(false);
+    }
+  };
+
+  const handleGenerateTaskSuggestion = async () => {
+    if (!project || isTaskSuggestionUsed || isGeneratingTaskSuggestion) {
+      return;
+    }
+
+    const title = taskDraft.title.trim();
+    const titleError = getTaskSuggestionTitleError(title);
+    if (titleError) {
+      setTaskSuggestionTitleError(titleError);
+      setTaskDialogError(null);
+      return;
+    }
+
+    const mapTaskSummary = (task: ProjectTaskRecord) => ({
+      title: task.title,
+      dueDate: toDateInputValue(task.dueDate?.toDate() ?? null) || undefined,
+    });
+
+    setTaskSuggestionTitleError(null);
+    setIsGeneratingTaskSuggestion(true);
+    setTaskDialogError(null);
+
+    try {
+      const completedTasks = tasks
+        .filter((task) => task.status === "completed")
+        .map(mapTaskSummary);
+      const openTasks = tasks
+        .filter((task) => task.status === "todo")
+        .map(mapTaskSummary);
+      const inProgressTasks = tasks
+        .filter((task) => task.status === "inProgress")
+        .map(mapTaskSummary);
+      // const reviewTasks = tasks
+      //   .filter((task) => task.status === "review")
+      //   .map(mapTaskSummary);
+
+      const suggestion = await generateTaskSuggestion(
+        project,
+        title,
+        completedTasks,
+        openTasks,
+        inProgressTasks,
+        // reviewTasks,
+      );
+
+      const combinedDescription = [
+        ...suggestion.description,
+        "",
+        "דרך יעילה לביצוע:",
+        ...suggestion.suggestedApproach,
+      ].join("\n");
+
+      setTaskDraft((current) => ({
+        ...current,
+        description: combinedDescription,
+        priority: suggestion.priority,
+        difficulty: suggestion.difficulty,
+        dueDate: suggestion.recommendedDueDate,
+      }));
+      setIsTaskSuggestionUsed(true);
+    } catch (nextError) {
+      console.error("Failed to generate task suggestion", nextError);
+      setTaskDialogError(
+        "לא הצלחנו לקבל הצעה מה-AI. נסה שוב או ערוך ידנית את המשימה.",
+      );
+    } finally {
+      setIsGeneratingTaskSuggestion(false);
     }
   };
 
@@ -730,6 +842,11 @@ export const TasksPage = () => {
           taskDialogMode === "edit" && selectedTask ? currentTaskMembers : []
         }
         onToggleAssignee={toggleTaskAssignee}
+        onGenerateSuggestion={handleGenerateTaskSuggestion}
+        isAiGenerating={isGeneratingTaskSuggestion}
+        isAiSuggestionUsed={isTaskSuggestionUsed}
+        aiTitleError={taskSuggestionTitleError}
+        onClearAiTitleError={() => setTaskSuggestionTitleError(null)}
         onClose={closeTaskDialog}
         onSubmit={handleTaskSubmit}
         error={taskDialogError}

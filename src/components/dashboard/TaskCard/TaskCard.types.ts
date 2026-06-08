@@ -1,5 +1,5 @@
 import type { MemberAvatarItem } from "@components/users/MemberAvatarGroup";
-import type { TaskPriority, TaskStatus } from "../../../types/common";
+import type { TaskDifficulty, TaskPriority, TaskStatus } from "../../../types/common";
 
 export interface TaskCardData {
   id: string;
