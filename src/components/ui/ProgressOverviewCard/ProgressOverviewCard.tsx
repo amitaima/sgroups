@@ -4,10 +4,9 @@ import "./ProgressOverviewCard.scss";
 
 export const ProgressOverviewCard = ({
   progress,
-  title = "התקדמות פרויקט",
-  // subtitle = "מבט כללי על סטטוס העבודה",
+  title = "התקדמות הפרויקט",
   hint = "המדד מתעדכן לפי נתוני הפרויקט",
-  // badgeLabel = "מבט כללי",
+  actions,
 }: ProgressOverviewCardProps) => {
   return (
     <GlassPanel className="progress-card">
@@ -16,9 +15,8 @@ export const ProgressOverviewCard = ({
           <div className="progress-card__copy">
             <p className="progress-card__label">{title}</p>
             <h3 className="progress-card__value">{progress}%</h3>
-            {/* <p className="progress-card__subtitle">{subtitle}</p> */}
           </div>
-          {/* <span className="progress-card__badge">{badgeLabel}</span> */}
+          {actions ? <div className="progress-card__actions">{actions}</div> : null}
         </div>
         <div>
           <div className="progress-card__bar">

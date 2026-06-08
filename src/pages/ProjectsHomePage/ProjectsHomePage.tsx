@@ -9,15 +9,18 @@ import { Button } from "@components/ui/Button/Button";
 import { GlassPanel } from "@components/ui/GlassPanel/GlassPanel";
 import type { MemberAvatarItem } from "@components/users/MemberAvatarGroup";
 import type { Project } from "../../types/common";
-import { Plus, Sparkles } from "lucide-react";
+import { Plus, Sparkles, X } from "lucide-react";
 import {
   createProject,
   getProjectTasks,
+  getUserProfile,
+  saveAiSummary,
   getUserProjects,
   getUsersByIds,
   resolveMemberIdsByEmails,
 } from "@services/firebase/firebase";
 import { calculateProjectScore } from "@utils/scoreCalculation";
+import { generateUserActivitySummary, type UserActivitySummaryResult } from "@services/firebase/ai";
 import "./ProjectsHomePage.scss";
 import { Logo } from "@components/ui/Logo/Logo";
 
@@ -28,6 +31,21 @@ interface CreateProjectFormState {
   people: string;
 }
 
+
+const toActivityDate = (value: unknown): Date | null => {
+  if (value && typeof value === "object" && "toDate" in value) {
+    const date = (value as { toDate: () => Date }).toDate();
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+
+  return null;
+};
+
+const toActivityDateLabel = (date: Date) =>
+  new Intl.DateTimeFormat("he-IL", {
+    dateStyle: "short",
+    timeStyle: "short",
+  }).format(date);
 const INITIAL_FORM: CreateProjectFormState = {
   name: "",
   description: "",
@@ -52,6 +70,10 @@ export const ProjectsHomePage = () => {
   const [createLoading, setCreateLoading] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
   const [createWarning, setCreateWarning] = useState<string | null>(null);
+  const [activitySummary, setActivitySummary] = useState<UserActivitySummaryResult | null>(null);
+  const [activitySummaryError, setActivitySummaryError] = useState<string | null>(null);
+  const [isActivitySummaryOpen, setIsActivitySummaryOpen] = useState(false);
+  const [isActivitySummaryLoading, setIsActivitySummaryLoading] = useState(false);
 
   const projectStatus = {
     active: 1,
@@ -122,6 +144,127 @@ export const ProjectsHomePage = () => {
     void loadProjects();
   }, [loadProjects]);
 
+  useEffect(() => {
+    if (!user || loading || projects.length === 0) {
+      return;
+    }
+
+    const sessionKey = `sgroups:activity-summary:${user.uid}`;
+    if (sessionStorage.getItem(sessionKey)) {
+      return;
+    }
+
+    let cancelled = false;
+
+    const loadActivitySummary = async () => {
+      setIsActivitySummaryLoading(true);
+      setActivitySummaryError(null);
+
+      try {
+        const profile = await getUserProfile(user.uid);
+        const previousLoginAt = toActivityDate(profile?.previousLoginAt);
+        const currentLoginAt = toActivityDate(profile?.lastLoginAt) ?? new Date();
+
+        if (!previousLoginAt) {
+          sessionStorage.setItem(sessionKey, "shown");
+          return;
+        }
+
+        const projectTasksPairs = await Promise.all(
+          projects.map(async (project) => {
+            const tasks = await getProjectTasks(project.id);
+            return { project, tasks };
+          }),
+        );
+
+        const updatedProjects = projects
+          .filter((project) => project.updatedAt.toMillis() > previousLoginAt.getTime())
+          .map((project) => ({
+            id: project.id,
+            name: project.name,
+            description: project.description,
+            updatedAt: toActivityDateLabel(project.updatedAt.toDate()),
+          }));
+
+        const allRelevantTasks = projectTasksPairs.flatMap(({ project, tasks }) =>
+          tasks
+            .filter((task) => task.updatedAt.toMillis() > previousLoginAt.getTime())
+            .filter(
+              (task) =>
+                task.createdBy === user.uid || task.assigneeIds.includes(user.uid),
+            )
+            .map((task) => ({ project, task })),
+        );
+
+        const mapTask = ({ project, task }: (typeof allRelevantTasks)[number]) => ({
+          id: task.id,
+          projectName: project.name,
+          title: task.title,
+          status: task.status,
+          priority: task.priority,
+          difficulty: task.difficulty,
+          dueDate: task.dueDate ? toActivityDateLabel(task.dueDate.toDate()) : null,
+          updatedAt: toActivityDateLabel(task.updatedAt.toDate()),
+          createdByCurrentUser: task.createdBy === user.uid,
+          assignedToCurrentUser: task.assigneeIds.includes(user.uid),
+        });
+
+        const createdTasks = allRelevantTasks
+          .filter(({ task }) => task.createdBy === user.uid && task.createdAt.toMillis() > previousLoginAt.getTime())
+          .map(mapTask);
+        const updatedTasks = allRelevantTasks.map(mapTask);
+
+        const summary = await generateUserActivitySummary({
+          userName: user.displayName || user.email || "המשתמש",
+          previousLoginAt: toActivityDateLabel(previousLoginAt),
+          currentLoginAt: toActivityDateLabel(currentLoginAt),
+          updatedProjects,
+          createdTasks,
+          updatedTasks,
+        });
+
+        if (cancelled) {
+          return;
+        }
+
+        await saveAiSummary({
+          userId: user.uid,
+          projectId: null,
+          source: "loginActivity",
+          headline: summary.headline,
+          summaryLines: summary.summaryLines,
+          highlights: summary.highlights,
+          nextFocus: summary.nextFocus,
+          context: {
+            previousLoginAt: previousLoginAt.toISOString(),
+            currentLoginAt: currentLoginAt.toISOString(),
+            updatedProjectCount: updatedProjects.length,
+            createdTaskCount: createdTasks.length,
+            updatedTaskCount: updatedTasks.length,
+          },
+        });
+
+        setActivitySummary(summary);
+        setIsActivitySummaryOpen(true);
+        sessionStorage.setItem(sessionKey, "shown");
+      } catch (summaryError) {
+        console.error("Failed to generate activity summary", summaryError);
+        if (!cancelled) {
+          setActivitySummaryError("לא הצלחנו ליצור סיכום פעילות כרגע.");
+        }
+      } finally {
+        if (!cancelled) {
+          setIsActivitySummaryLoading(false);
+        }
+      }
+    };
+
+    void loadActivitySummary();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [loading, projects, user]);
   const projectCards = useMemo(
     () =>
       projects.map((project) => ({
@@ -285,6 +428,70 @@ export const ProjectsHomePage = () => {
         ) : null}
       </PageContainer>
 
+      {isActivitySummaryOpen && activitySummary ? (
+        <div
+          className="projects-home__modal-overlay"
+          role="presentation"
+          onClick={() => setIsActivitySummaryOpen(false)}
+        >
+          <GlassPanel
+            className="projects-home__modal projects-home__activity-dialog"
+            intensity="strong"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="activity-summary-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="projects-home__modal-header">
+              <div>
+                <p className="projects-home__activity-eyebrow">AI Activity</p>
+                <h3 id="activity-summary-title" className="projects-home__modal-title">
+                  {activitySummary.headline}
+                </h3>
+              </div>
+              <button
+                className="projects-home__close"
+                type="button"
+                onClick={() => setIsActivitySummaryOpen(false)}
+                aria-label="סגירת סיכום פעילות"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="projects-home__activity-content">
+              <ul className="projects-home__activity-lines">
+                {activitySummary.summaryLines.map((line) => (
+                  <li key={line}>{line}</li>
+                ))}
+              </ul>
+
+              {activitySummary.highlights.length > 0 ? (
+                <div className="projects-home__activity-highlights">
+                  {activitySummary.highlights.map((highlight) => (
+                    <span key={highlight}>{highlight}</span>
+                  ))}
+                </div>
+              ) : null}
+
+              <p className="projects-home__activity-next">{activitySummary.nextFocus}</p>
+            </div>
+
+            <div className="projects-home__form-actions">
+              <Button type="button" onClick={() => setIsActivitySummaryOpen(false)}>
+                הבנתי
+              </Button>
+            </div>
+          </GlassPanel>
+        </div>
+      ) : null}
+
+      {activitySummaryError ? (
+        <p className="projects-home__activity-error">{activitySummaryError}</p>
+      ) : null}
+
+      {isActivitySummaryLoading ? null : null}
+
       {isCreateModalOpen ? (
         <div
           className="projects-home__modal-overlay"
@@ -313,7 +520,7 @@ export const ProjectsHomePage = () => {
                 disabled={createLoading}
                 aria-label="סגור"
               >
-                ×
+                &times;
               </button>
             </div>
 
@@ -408,3 +615,4 @@ export const ProjectsHomePage = () => {
     </PageSection>
   );
 };
+

@@ -1,4 +1,4 @@
-import { initializeApp } from "firebase/app";
+﻿import { initializeApp } from "firebase/app";
 import type { User } from "firebase/auth";
 import { getAuth, updateProfile as updateAuthProfile } from "firebase/auth";
 import {
@@ -78,6 +78,7 @@ export interface UserProfile {
   provider: string;
   createdAt: unknown;
   lastLoginAt: unknown;
+  previousLoginAt: unknown;
 }
 
 export interface MemberDirectoryUser {
@@ -299,6 +300,27 @@ export interface UpdateProjectTaskInput {
   completed?: boolean;
 }
 
+export type AiSummarySource = "loginActivity" | "taskBoard";
+
+export interface SaveAiSummaryInput {
+  userId: string;
+  projectId?: string | null;
+  source: AiSummarySource;
+  headline: string;
+  summaryLines: string[];
+  highlights: string[];
+  nextFocus: string;
+  context?: Record<string, unknown>;
+}
+export const getUserProfile = async (uid: string): Promise<UserProfile | null> => {
+  const snapshot = await getDoc(getUserDocRef(uid));
+  if (!snapshot.exists()) {
+    return null;
+  }
+
+  return snapshot.data() as UserProfile;
+};
+
 export const upsertUserProfile = async (user: User): Promise<void> => {
   const ref = getUserDocRef(user.uid);
   const snapshot = await getDoc(ref);
@@ -308,6 +330,7 @@ export const upsertUserProfile = async (user: User): Promise<void> => {
   const existingNotifications = getNotificationPreferences(data?.notifications);
   const existingAcademicProfile = getAcademicProfile(data?.academicProfile);
   const existingLinks = getUserLinks(data?.links);
+  const existingLastLoginAt = data?.lastLoginAt ?? null;
   const provider = user.providerData[0]?.providerId || "password";
 
   const payload: Record<string, unknown> = {
@@ -319,6 +342,7 @@ export const upsertUserProfile = async (user: User): Promise<void> => {
     notifications: existingNotifications,
     provider,
     createdAt: existingCreatedAt ?? serverTimestamp(),
+    previousLoginAt: existingLastLoginAt,
     lastLoginAt: serverTimestamp(),
   };
 
@@ -412,6 +436,7 @@ const PROJECTS_COLLECTION = "projects";
 const USERS_COLLECTION = "users";
 const PROJECT_CALENDAR_EVENTS_COLLECTION = "calendarEvents";
 const PROJECT_TASKS_COLLECTION = "tasks";
+const AI_SUMMARIES_COLLECTION = "aiSummaries";
 
 const isProjectStatus = (value: unknown): value is ProjectStatus =>
   value === "active" || value === "completed" || value === "archived";
@@ -925,6 +950,23 @@ const syncProjectMemberScores = async (
   });
 };
 
+export const saveAiSummary = async (
+  input: SaveAiSummaryInput,
+): Promise<string> => {
+  const docRef = await addDoc(collection(db, AI_SUMMARIES_COLLECTION), {
+    userId: input.userId,
+    projectId: input.projectId ?? null,
+    source: input.source,
+    headline: input.headline,
+    summaryLines: input.summaryLines,
+    highlights: input.highlights,
+    nextFocus: input.nextFocus,
+    context: input.context ?? {},
+    createdAt: serverTimestamp(),
+  });
+
+  return docRef.id;
+};
 export const getProjectTasks = async (
   projectId: string,
 ): Promise<ProjectTaskRecord[]> => {
@@ -1026,6 +1068,14 @@ export const updateProjectTask = async (
   }
 
   await updateDoc(doc(getProjectTasksCollection(projectId), taskId), payload);
+  await syncProjectMemberScores(projectId);
+};
+
+export const deleteProjectTask = async (
+  projectId: string,
+  taskId: string,
+): Promise<void> => {
+  await deleteDoc(doc(getProjectTasksCollection(projectId), taskId));
   await syncProjectMemberScores(projectId);
 };
 
@@ -1422,3 +1472,5 @@ export const resolveMemberIdsByEmails = async (
 
   return { memberIds, missingEmails };
 };
+
+

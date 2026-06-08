@@ -5,11 +5,14 @@ import {
   Link as LinkIcon,
   ListCheck,
   Plus,
+  Sparkles,
+  Trophy,
   Save,
   Trash2,
   UserPlus,
   X,
 } from "lucide-react";
+import { useAuth } from "@app/providers/AuthProvider";
 import { Button } from "@components/ui/Button/Button";
 import { GlassPanel } from "@components/ui/GlassPanel/GlassPanel";
 import { PageSection } from "@components/layout/PageSection/PageSection";
@@ -47,6 +50,14 @@ import type {
 } from "../../types/common";
 import "./DashboardPage.scss";
 import { Podium } from "@components/dashboard/Podium/Podium";
+import { getProjectMemberScores } from "@utils/scoreCalculation";
+import {
+  generateCompetitionCoachPlan,
+  generateProjectProgressSummary,
+  type CompetitionCoachResult,
+  type ProjectProgressSummaryResult,
+  type CompetitionTaskSummary,
+} from "@services/firebase/ai";
 
 type DashboardTaskItem = {
   id: string;
@@ -339,6 +350,7 @@ const createEmptyLink = (): DashboardLinkRow => ({
 });
 
 export const DashboardPage = () => {
+  const { user } = useAuth();
   const { projectId } = useParams();
   const navigate = useNavigate();
   const {
@@ -380,6 +392,15 @@ export const DashboardPage = () => {
     null,
   );
   const [isSavingTask, setIsSavingTask] = useState(false);
+  const [showLeaderSpotlight, setShowLeaderSpotlight] = useState(false);
+  const [competitionPlan, setCompetitionPlan] = useState<CompetitionCoachResult | null>(null);
+  const [competitionPlanError, setCompetitionPlanError] = useState<string | null>(null);
+  const [isGeneratingCompetitionPlan, setIsGeneratingCompetitionPlan] = useState(false);
+  const [isCompetitionCoachOpen, setIsCompetitionCoachOpen] = useState(false);
+  const [progressSummary, setProgressSummary] = useState<ProjectProgressSummaryResult | null>(null);
+  const [progressSummaryError, setProgressSummaryError] = useState<string | null>(null);
+  const [isGeneratingProgressSummary, setIsGeneratingProgressSummary] = useState(false);
+  const [isProgressSummaryOpen, setIsProgressSummaryOpen] = useState(false);
   const membersDialogRef = useRef<HTMLDialogElement>(null);
   const linksDialogRef = useRef<HTMLDialogElement>(null);
 
@@ -566,6 +587,183 @@ export const DashboardPage = () => {
     href: link.url,
   }));
   const activeMembersCount = activeProject?.memberIds.length ?? 0;
+  const rankedMembers = useMemo(
+    () => getProjectMemberScores(projectTasks, projectMembers),
+    [projectMembers, projectTasks],
+  );
+  const leader = rankedMembers[0] ?? null;
+  const currentUserScore = useMemo(
+    () => rankedMembers.find((member) => member.id === user?.uid) ?? null,
+    [rankedMembers, user?.uid],
+  );
+  const scoreGap = leader && currentUserScore
+    ? Math.max(0, leader.totalScore - currentUserScore.totalScore)
+    : 0;
+
+  useEffect(() => {
+    if (!activeProject || !leader) {
+      setShowLeaderSpotlight(false);
+      return;
+    }
+
+    const storageKey = `sgroups:leader-spotlight:${activeProject.id}`;
+    if (sessionStorage.getItem(storageKey)) {
+      return;
+    }
+
+    setShowLeaderSpotlight(true);
+  }, [activeProject, leader]);
+
+  useEffect(() => {
+    if (!activeProject || !leader || !showLeaderSpotlight) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      sessionStorage.setItem(`sgroups:leader-spotlight:${activeProject.id}`, "shown");
+      setShowLeaderSpotlight(false);
+    }, 3200);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [activeProject, leader, showLeaderSpotlight]);
+
+  const closeLeaderSpotlight = () => {
+    if (activeProject) {
+      sessionStorage.setItem(`sgroups:leader-spotlight:${activeProject.id}`, "shown");
+    }
+    setShowLeaderSpotlight(false);
+  };
+
+  const buildCompetitionTaskSummary = (
+    task: ProjectTaskRecord,
+  ): CompetitionTaskSummary => ({
+    id: task.id,
+    title: task.title,
+    priority: task.priority,
+    difficulty: task.difficulty,
+    status: task.status,
+    dueDate: toDateInputValue(task.dueDate?.toDate() ?? null) || null,
+    assigneeNames: task.assigneeIds.map((memberId) => {
+      const member = memberById.get(memberId);
+      return member?.displayName ?? member?.email ?? memberId;
+    }),
+  });
+
+  const handleGenerateCompetitionPlan = async () => {
+    if (!leader || !currentUserScore) {
+      setCompetitionPlanError("אין עדיין מספיק נתוני ניקוד כדי ליצור תוכנית.");
+      return;
+    }
+
+    const rawOpenTasks = projectTasks.filter(
+      (task) => task.status !== "completed" && !task.completed,
+    );
+
+    if (rawOpenTasks.length === 0) {
+      setCompetitionPlanError("אין כרגע משימות פתוחות שאפשר להמליץ עליהן.");
+      return;
+    }
+
+    setCompetitionPlanError(null);
+    setIsGeneratingCompetitionPlan(true);
+
+    try {
+      const plan = await generateCompetitionCoachPlan({
+        currentUser: {
+          id: currentUserScore.id,
+          name: currentUserScore.name,
+          totalScore: currentUserScore.totalScore,
+          rank: currentUserScore.rank,
+        },
+        leader: {
+          id: leader.id,
+          name: leader.name,
+          totalScore: leader.totalScore,
+          rank: leader.rank,
+        },
+        scoreGap,
+        openTasks: rawOpenTasks.map(buildCompetitionTaskSummary),
+        completedTasks: projectTasks
+          .filter((task) => task.status === "completed" || task.completed)
+          .map(buildCompetitionTaskSummary),
+      });
+
+      setCompetitionPlan(plan);
+    } catch (error) {
+      console.error("Failed to generate competition plan", error);
+      setCompetitionPlanError("לא הצלחנו ליצור תוכנית AI כרגע. נסי שוב עוד רגע.");
+    } finally {
+      setIsGeneratingCompetitionPlan(false);
+    }
+  };
+  const openCompetitionCoach = () => {
+    setIsCompetitionCoachOpen(true);
+
+    if (!competitionPlan && !isGeneratingCompetitionPlan) {
+      void handleGenerateCompetitionPlan();
+    }
+  };
+
+  const closeCompetitionCoach = () => {
+    setIsCompetitionCoachOpen(false);
+  };
+
+  const handleGenerateProgressSummary = async () => {
+    if (!activeProject) {
+      setProgressSummaryError("לא נמצא פרויקט פעיל לסיכום.");
+      return;
+    }
+
+    const completedTasks = projectTasks.filter(
+      (task) => task.status === "completed" || task.completed,
+    );
+    const inProgressTasks = projectTasks.filter((task) => task.status === "inProgress");
+    const reviewTasks = projectTasks.filter((task) => task.status === "review");
+    const rawOpenTasks = projectTasks.filter(
+      (task) => task.status !== "completed" && !task.completed,
+    );
+
+    if (projectTasks.length === 0) {
+      setProgressSummaryError("עדיין אין מספיק משימות כדי להסביר את ההתקדמות.");
+      return;
+    }
+
+    setProgressSummaryError(null);
+    setIsGeneratingProgressSummary(true);
+
+    try {
+      const summary = await generateProjectProgressSummary({
+        project: {
+          name: activeProject.name,
+          description: activeProject.description,
+          progress: progressValue,
+        },
+        completedTasks: completedTasks.map(buildCompetitionTaskSummary),
+        openTasks: rawOpenTasks.map(buildCompetitionTaskSummary),
+        inProgressTasks: inProgressTasks.map(buildCompetitionTaskSummary),
+        reviewTasks: reviewTasks.map(buildCompetitionTaskSummary),
+      });
+
+      setProgressSummary(summary);
+    } catch (error) {
+      console.error("Failed to generate project progress summary", error);
+      setProgressSummaryError("לא הצלחנו ליצור סיכום התקדמות כרגע. נסי שוב עוד רגע.");
+    } finally {
+      setIsGeneratingProgressSummary(false);
+    }
+  };
+
+  const openProgressSummary = () => {
+    setIsProgressSummaryOpen(true);
+
+    if (!progressSummary && !isGeneratingProgressSummary) {
+      void handleGenerateProgressSummary();
+    }
+  };
+
+  const closeProgressSummary = () => {
+    setIsProgressSummaryOpen(false);
+  };
 
   const openMembersDialog = () => {
     if (!activeProject) {
@@ -834,6 +1032,33 @@ export const DashboardPage = () => {
         />
       </div>
 
+      {showLeaderSpotlight && leader ? (
+        <div className="dashboard-page__leader-spotlight" role="status">
+          <button
+            type="button"
+            className="dashboard-page__leader-spotlight-close"
+            onClick={closeLeaderSpotlight}
+            aria-label="סגירת הצגת מוביל"
+          >
+            <X size={16} />
+          </button>
+          <div className="dashboard-page__leader-beams" aria-hidden="true" />
+          <div className="dashboard-page__leader-sparkles" aria-hidden="true">
+            <span />
+            <span />
+            <span />
+          </div>
+          <div className="dashboard-page__leader-podium">
+            <Trophy size={34} />
+            <span>#1</span>
+          </div>
+          <div className="dashboard-page__leader-copy">
+            <p>מוביל/ת הקבוצה כרגע</p>
+            <strong>{leader.name}</strong>
+            <span>{leader.totalScore} נקודות</span>
+          </div>
+        </div>
+      ) : null}
       <div className="dashboard-page__summary-grid">
         <div className="dashboard-page__panel dashboard-page__panel--overview">
           <ProgressOverviewCard
@@ -842,6 +1067,18 @@ export const DashboardPage = () => {
             subtitle={selectedProject.description ?? "לוח ניהול לפרויקט הנבחר."}
             hint={progressHint}
             badgeLabel={`${openTasks.length} פתוחות`}
+            actions={
+              <Button
+                className="dashboard-page__progress-ai-button"
+                variant="secondary"
+                size="sm"
+                type="button"
+                onClick={openProgressSummary}
+              >
+                <Sparkles size={14} />
+                מה נעשה?
+              </Button>
+            }
           />
         </div>
 
@@ -913,7 +1150,22 @@ export const DashboardPage = () => {
           />
         </div>
 
-        <Podium tasks={projectTasks} members={projectMembers} />
+        <div className="dashboard-page__panel dashboard-page__panel--podium">
+          <div className="dashboard-page__podium-stack">
+            <Button
+              className="dashboard-page__coach-trigger"
+              variant="secondary"
+              size="md"
+              type="button"
+              onClick={openCompetitionCoach}
+            >
+              <Sparkles size={18} />
+              איך לנצח עם AI?
+            </Button>
+
+            <Podium tasks={projectTasks} members={projectMembers} />
+          </div>
+        </div>
 
         <div className="dashboard-page__panel dashboard-page__panel--links">
           <TeamLinksCard
@@ -957,6 +1209,164 @@ export const DashboardPage = () => {
           />
         </div>
       </div>
+
+      {isProgressSummaryOpen ? (
+        <div
+          className="dashboard-page__coach-backdrop"
+          role="presentation"
+          onMouseDown={closeProgressSummary}
+        >
+          <GlassPanel
+            className="dashboard-page__coach-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="progress-summary-title"
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <div className="dashboard-page__coach-dialog-header">
+              <div>
+                <p className="dashboard-page__eyebrow">AI Summary</p>
+                <h3 id="progress-summary-title" className="dashboard-page__card-title">
+                  מה נעשה עד כה?
+                </h3>
+              </div>
+              <Button
+                variant="secondary"
+                size="sm"
+                type="button"
+                onClick={closeProgressSummary}
+                aria-label="סגירת סיכום AI"
+              >
+                <X size={16} />
+              </Button>
+            </div>
+
+            {progressSummaryError ? (
+              <p className="dashboard-page__coach-error">{progressSummaryError}</p>
+            ) : null}
+
+            {isGeneratingProgressSummary ? (
+              <p className="dashboard-page__coach-summary">מסכם את התקדמות הפרויקט...</p>
+            ) : null}
+
+            {progressSummary ? (
+              <div className="dashboard-page__coach-result dashboard-page__progress-summary-result">
+                <strong>{progressSummary.headline}</strong>
+                <ul>
+                  {progressSummary.summaryLines.map((line) => (
+                    <li key={line}>{line}</li>
+                  ))}
+                </ul>
+                {progressSummary.completedHighlights.length > 0 ? (
+                  <div className="dashboard-page__progress-highlights">
+                    {progressSummary.completedHighlights.map((highlight) => (
+                      <span key={highlight}>{highlight}</span>
+                    ))}
+                  </div>
+                ) : null}
+                <p>{progressSummary.nextFocus}</p>
+                <p>{progressSummary.motivation}</p>
+              </div>
+            ) : null}
+
+            <div className="dashboard-page__coach-dialog-actions">
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                onClick={() => void handleGenerateProgressSummary()}
+                disabled={isGeneratingProgressSummary}
+              >
+                <Sparkles size={14} />
+                {progressSummary ? "רענון סיכום" : "יצירת סיכום"}
+              </Button>
+            </div>
+          </GlassPanel>
+        </div>
+      ) : null}
+
+      {isCompetitionCoachOpen ? (
+        <div
+          className="dashboard-page__coach-backdrop"
+          role="presentation"
+          onMouseDown={closeCompetitionCoach}
+        >
+          <GlassPanel
+            className="dashboard-page__coach-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="competition-coach-title"
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <div className="dashboard-page__coach-dialog-header">
+              <div>
+                <p className="dashboard-page__eyebrow">AI Coach</p>
+                <h3 id="competition-coach-title" className="dashboard-page__card-title">
+                  איך לעקוף את המוביל?
+                </h3>
+              </div>
+              <Button
+                variant="secondary"
+                size="sm"
+                type="button"
+                onClick={closeCompetitionCoach}
+                aria-label="סגירת חלון AI"
+              >
+                <X size={16} />
+              </Button>
+            </div>
+
+            <p className="dashboard-page__coach-summary">
+              {leader && currentUserScore
+                ? scoreGap > 0
+                  ? `הפער מ-${leader.name}: ${scoreGap} נקודות.`
+                  : "את כרגע במקום הראשון. ה-AI יעזור לך לשמור על ההובלה."
+                : "ברגע שיהיו נתוני ניקוד, ה-AI יציע תוכנית תחרותית."}
+            </p>
+
+            {competitionPlanError ? (
+              <p className="dashboard-page__coach-error">{competitionPlanError}</p>
+            ) : null}
+
+            {isGeneratingCompetitionPlan ? (
+              <p className="dashboard-page__coach-summary">מחשב תוכנית ניצחון...</p>
+            ) : null}
+
+            {competitionPlan ? (
+              <div className="dashboard-page__coach-result">
+                <strong>{competitionPlan.headline}</strong>
+                <ul>
+                  {competitionPlan.strategy.map((step) => (
+                    <li key={step}>{step}</li>
+                  ))}
+                </ul>
+                <div className="dashboard-page__coach-task-list">
+                  {competitionPlan.recommendedTasks.map((task) => (
+                    <div key={task.taskId ?? task.title} className="dashboard-page__coach-task">
+                      <span>{task.title}</span>
+                      <small>{task.reason}</small>
+                    </div>
+                  ))}
+                </div>
+                <p>{competitionPlan.motivation}</p>
+              </div>
+            ) : null}
+
+            <div className="dashboard-page__coach-dialog-actions">
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                onClick={() => void handleGenerateCompetitionPlan()}
+                disabled={isGeneratingCompetitionPlan}
+              >
+                <Sparkles size={14} />
+                {competitionPlan ? "רענון עצה" : "יצירת עצה"}
+              </Button>
+            </div>
+          </GlassPanel>
+        </div>
+      ) : null}
 
       <TaskDialog
         isOpen={taskDialogOpen}

@@ -18,6 +18,9 @@ export interface TaskCardProps {
   task: TaskCardData;
   isDragging?: boolean;
   onClick?: React.MouseEventHandler<HTMLDivElement>;
+  onContextMenu?: React.MouseEventHandler<HTMLDivElement>;
   onDragStart?: (e: React.DragEvent) => void;
   onDragEnd?: (e: React.DragEvent) => void;
+  onDelete?: (taskId: string) => void;
+  isDeleting?: boolean;
 }

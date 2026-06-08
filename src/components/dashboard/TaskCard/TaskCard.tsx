@@ -2,6 +2,7 @@ import {
   CalendarDays,
   CheckCircle2,
   MoreHorizontal,
+  Trash2,
   TriangleAlert,
 } from "lucide-react";
 import { GlassPanel } from "@components/ui/GlassPanel/GlassPanel";
@@ -19,8 +20,11 @@ export const TaskCard = ({
   task,
   isDragging,
   onClick,
+  onContextMenu,
   onDragStart,
   onDragEnd,
+  onDelete,
+  isDeleting,
 }: TaskCardProps & {
   isDragging?: boolean;
   onClick?: React.MouseEventHandler<HTMLDivElement>;
@@ -59,6 +63,7 @@ export const TaskCard = ({
       role={onClick ? "button" : undefined}
       tabIndex={onClick ? 0 : undefined}
       onClick={onClick}
+      onContextMenu={onContextMenu}
       onKeyDown={handleKeyDown}
     >
       <div className="task-card__top">
@@ -70,28 +75,35 @@ export const TaskCard = ({
         <span className={`task-card__difficulty task-card__difficulty--${task.difficulty}`}>
           {task.difficulty === "easy" ? "קל" : task.difficulty === "hard" ? "קשה" : "בינוני"}
         </span>
-        {isCompleted ? (
-          <CheckCircle2
-            size={18}
-            strokeWidth={2.1}
-            className="task-card__status"
-          />
-        ) : task.overdue ? (
-          <span className="task-card__overdue-pill">
-            <TriangleAlert size={14} strokeWidth={2.25} />
-            באיחור
-          </span>
-        ) : (
-          ""
-          // <button
-          //   className="task-card__menu"
-          //   type="button"
-          //   aria-label={`אפשרויות עבור ${task.title}`}
-          //   onClick={(event) => event.stopPropagation()}
-          // >
-          //   <MoreHorizontal size={18} strokeWidth={2} />
-          // </button>
-        )}
+        <div className="task-card__top-actions">
+          {isCompleted ? (
+            <CheckCircle2
+              size={18}
+              strokeWidth={2.1}
+              className="task-card__status"
+            />
+          ) : task.overdue ? (
+            <span className="task-card__overdue-pill">
+              <TriangleAlert size={14} strokeWidth={2.25} />
+              באיחור
+            </span>
+          ) : null}
+          {onDelete ? (
+            <button
+              className="task-card__delete"
+              type="button"
+              disabled={isDeleting}
+              aria-label={`מחיקת המשימה ${task.title}`}
+              onClick={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                onDelete(task.id);
+              }}
+            >
+              <Trash2 size={16} strokeWidth={2.1} />
+            </button>
+          ) : null}
+        </div>
       </div>
 
       <div className="task-card__body">
