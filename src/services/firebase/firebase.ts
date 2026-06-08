@@ -1029,6 +1029,32 @@ export const updateProjectTask = async (
   await syncProjectMemberScores(projectId);
 };
 
+export const reassignRemovedMemberTasks = async (
+  projectId: string,
+  removedMemberIds: string[],
+  remainingMemberIds: string[],
+): Promise<void> => {
+  if (!removedMemberIds.length || !remainingMemberIds.length) return;
+
+  const tasks = await getProjectTasks(projectId);
+  const targetMemberId = remainingMemberIds[0];
+
+  const updates = tasks
+    .filter((task) => task.assigneeIds.some((id) => removedMemberIds.includes(id)))
+    .map((task) => {
+      const newAssignees = task.assigneeIds.filter((id) => !removedMemberIds.includes(id));
+      if (newAssignees.length === 0) {
+        newAssignees.push(targetMemberId);
+      }
+      return updateDoc(doc(getProjectTasksCollection(projectId), task.id), {
+        assigneeIds: newAssignees,
+        updatedAt: serverTimestamp(),
+      });
+    });
+
+  await Promise.all(updates);
+};
+
 export const createProject = async (
   input: CreateProjectInput,
 ): Promise<string> => {

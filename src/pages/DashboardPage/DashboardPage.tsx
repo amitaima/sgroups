@@ -32,6 +32,7 @@ import type {
 import {
   getProjectTasks,
   getUsersByIds,
+  reassignRemovedMemberTasks,
   resolveMemberIdsByEmails,
   subscribeProjectTasks,
   updateProject,
@@ -714,10 +715,18 @@ export const DashboardPage = () => {
     const nextMemberIds = Array.from(nextMemberIdsSet);
 
     try {
+      const removedIds = activeProject.memberIds.filter(
+        (id) => !nextMemberIdsSet.has(id),
+      );
+
       await updateProject(activeProject.id, {
         memberIds: nextMemberIds,
         memberRoles: nextMemberRoles,
       });
+
+      if (removedIds.length > 0) {
+        await reassignRemovedMemberTasks(activeProject.id, removedIds, nextMemberIds);
+      }
 
       const refreshedMembers = await getUsersByIds(nextMemberIds);
       setProjectMembers(refreshedMembers);

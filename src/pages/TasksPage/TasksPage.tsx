@@ -238,6 +238,8 @@ export const TasksPage = () => {
   >(null);
   const suppressTaskClickRef = useRef(false);
   const suppressTaskClickTimerRef = useRef<number | null>(null);
+  const boardRef = useRef<HTMLDivElement>(null);
+  const boardDragState = useRef<{ isDown: boolean; startX: number; scrollLeft: number }>({ isDown: false, startX: 0, scrollLeft: 0 });
 
   useEffect(() => {
     if (!project) {
@@ -657,6 +659,23 @@ export const TasksPage = () => {
           taskDraft.assigneeIds.includes(member.id),
         );
 
+  const handleBoardPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    const board = boardRef.current;
+    if (!board || e.button !== 0) return;
+    boardDragState.current = { isDown: true, startX: e.clientX, scrollLeft: board.scrollLeft };
+  };
+
+  const handleBoardPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    const state = boardDragState.current;
+    if (!state.isDown) return;
+    e.preventDefault();
+    boardRef.current!.scrollLeft = state.scrollLeft - (e.clientX - state.startX);
+  };
+
+  const handleBoardPointerUp = () => {
+    boardDragState.current.isDown = false;
+  };
+
   if (loading) {
     return (
       <PageSection className="tasks-page">
@@ -753,7 +772,15 @@ export const TasksPage = () => {
       ) : null}
 
       {boardView === "board" ? (
-        <div className="tasks-page__board" aria-label="עמודות לוח המשימות">
+        <div
+          className="tasks-page__board"
+          aria-label="עמודות לוח המשימות"
+          ref={boardRef}
+          onPointerDown={handleBoardPointerDown}
+          onPointerMove={handleBoardPointerMove}
+          onPointerUp={handleBoardPointerUp}
+          onPointerLeave={handleBoardPointerUp}
+        >
           {taskColumns.map((column) => (
             <section
               key={column.id}

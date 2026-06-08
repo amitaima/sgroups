@@ -31,6 +31,7 @@ import type {
 import {
   deleteProject,
   getUsersByIds,
+  reassignRemovedMemberTasks,
   resolveMemberIdsByEmails,
   updateProject,
 } from "@services/firebase/firebase";
@@ -544,6 +545,11 @@ export const SettingsPage = () => {
         );
 
         await updateProject(project.id, { memberIds, memberRoles });
+
+        const removedIds = project.memberIds.filter((id) => !memberIds.includes(id));
+        if (removedIds.length > 0) {
+          await reassignRemovedMemberTasks(project.id, removedIds, memberIds);
+        }
 
         lastSavedMembersRef.current = currentMembersKey;
         setSaveSuccess("שינויים בצוות נשמרו.");

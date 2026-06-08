@@ -17,7 +17,7 @@ import {
   getUsersByIds,
   resolveMemberIdsByEmails,
 } from "@services/firebase/firebase";
-import { calculateProjectScore } from "@utils/scoreCalculation";
+import { calculateUserScore } from "@utils/scoreCalculation";
 import "./ProjectsHomePage.scss";
 import { Logo } from "@components/ui/Logo/Logo";
 
@@ -56,6 +56,9 @@ export const ProjectsHomePage = () => {
   const [createLoading, setCreateLoading] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
   const [createWarning, setCreateWarning] = useState<string | null>(null);
+  const [isJoinModalOpen, setIsJoinModalOpen] = useState(false);
+  const [joinLink, setJoinLink] = useState("");
+  const [joinError, setJoinError] = useState<string | null>(null);
 
   const projectStatus = {
     active: 1,
@@ -102,7 +105,7 @@ export const ProjectsHomePage = () => {
         userProjects.map(async (project) => {
           try {
             const projectTasks = await getProjectTasks(project.id);
-            return [project.id, calculateProjectScore(projectTasks)] as const;
+            return [project.id, calculateUserScore(projectTasks, user.uid)] as const;
           } catch (scoreError) {
             console.error(
               `Failed to calculate score for project ${project.id}`,
@@ -244,8 +247,8 @@ export const ProjectsHomePage = () => {
               <Plus size={16} />
               פרויקט חדש
             </Button>
-            <Button variant="secondary" size="lg" onClick={openCreateModal}>
-              הזמנה באמצעות אימייל
+            <Button variant="secondary" size="lg" onClick={() => { setJoinLink(""); setJoinError(null); setIsJoinModalOpen(true); }}>
+              הצטרפות עם קישור
             </Button>
           </div>
         </div>
@@ -418,6 +421,74 @@ export const ProjectsHomePage = () => {
                   onClick={closeCreateModal}
                   disabled={createLoading}
                 >
+                  ביטול
+                </Button>
+              </div>
+            </form>
+          </GlassPanel>
+        </div>
+      ) : null}
+
+      {isJoinModalOpen ? (
+        <div
+          className="projects-home__modal-overlay"
+          role="presentation"
+          onClick={() => setIsJoinModalOpen(false)}
+        >
+          <GlassPanel
+            className="projects-home__modal"
+            intensity="strong"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="join-project-title"
+            onClick={(event) => event.stopPropagation()}
+            style={{ maxWidth: "24rem" }}
+          >
+            <div className="projects-home__modal-header">
+              <h3 id="join-project-title" className="projects-home__modal-title">
+                הצטרפות לפרויקט
+              </h3>
+              <button
+                className="projects-home__close"
+                type="button"
+                onClick={() => setIsJoinModalOpen(false)}
+                aria-label="סגור"
+              >
+                ×
+              </button>
+            </div>
+
+            <form
+              className="projects-home__form"
+              onSubmit={(e) => {
+                e.preventDefault();
+                const match = joinLink.trim().match(/\/join\/([^/?#]+)/);
+                if (!match) {
+                  setJoinError("הקישור לא תקין. הדביקו קישור הצטרפות לפרויקט.");
+                  return;
+                }
+                navigate(`/join/${match[1]}`);
+              }}
+            >
+              <label className="projects-home__field">
+                <span>קישור הצטרפות</span>
+                <input
+                  type="text"
+                  value={joinLink}
+                  onChange={(e) => { setJoinLink(e.target.value); setJoinError(null); }}
+                  placeholder="https://sgroups.netlify.app/join/..."
+                  required
+                  dir="ltr"
+                />
+              </label>
+
+              {joinError ? (
+                <p className="projects-home__error">{joinError}</p>
+              ) : null}
+
+              <div className="projects-home__form-actions">
+                <Button type="submit">הצטרף</Button>
+                <Button type="button" variant="secondary" onClick={() => setIsJoinModalOpen(false)}>
                   ביטול
                 </Button>
               </div>
