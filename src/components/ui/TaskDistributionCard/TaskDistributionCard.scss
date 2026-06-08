@@ -16,8 +16,8 @@
 .distribution-card__content {
   flex: 1 1 auto;
   min-height: 0;
-  overflow-y: auto;
-  padding-right: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .distribution-card__eyebrow {
@@ -34,10 +34,12 @@
 
 .distribution-card__body {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: stretch;
+  justify-content: space-between;
   gap: var(--space-4);
+  flex: 1 1 auto;
   min-height: 0;
 }
 
@@ -45,8 +47,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  flex: 1;
   min-width: 0;
-  width: min(200px, 100%);
 }
 
 .distribution-card__donut {
@@ -119,11 +121,13 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
+  flex: 1;
   min-width: 0;
-  width: 100%;
-  overflow: visible;
+  min-height: 0;
+  overflow-y: auto;
   margin: 0;
   padding: 0;
+  padding-right: 0.5rem;
 }
 
 .distribution-card__row {

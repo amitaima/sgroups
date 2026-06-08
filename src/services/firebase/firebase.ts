@@ -198,6 +198,7 @@ export interface CreateProjectInput {
   teacherIds?: string[];
   memberRoles?: Record<string, ProjectMemberRole>;
   status?: "active" | "completed" | "archived";
+  trophyName?: string;
 }
 
 export interface UpdateProjectInput {
@@ -226,6 +227,7 @@ export interface UpdateProjectInput {
   memberRoles?: Record<string, ProjectMemberRole>;
   teacherIds?: string[];
   status?: ProjectStatus;
+  trophyName?: string | null;
 }
 
 export type CalendarEventAudience = "selected" | "everyone";
@@ -405,8 +407,6 @@ export const uploadUserAvatar = async (
 
   return downloadUrl;
 };
-
-
 
 const PROJECTS_COLLECTION = "projects";
 const USERS_COLLECTION = "users";
@@ -702,6 +702,8 @@ const mapProjectSnapshot = (
         ? data.updatedAt
         : Timestamp.fromDate(new Date()),
     status: isProjectStatus(data.status) ? data.status : "active",
+    logoLink: normalizeText(data.logoLink),
+    trophyName: normalizeText(data.trophyName),
   };
 };
 
@@ -913,9 +915,7 @@ const calculateProjectMemberScores = (
   }, {});
 };
 
-const syncProjectMemberScores = async (
-  projectId: string,
-): Promise<void> => {
+const syncProjectMemberScores = async (projectId: string): Promise<void> => {
   const tasks = await getProjectTasks(projectId);
   const memberScores = calculateProjectMemberScores(tasks);
 
@@ -1077,6 +1077,7 @@ export const createProject = async (
       input.createdBy,
     ),
     status: input.status ?? "active",
+    trophyName: input.trophyName?.trim() || "",
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   };
@@ -1168,6 +1169,10 @@ export const updateProject = async (
 
   if (input.groupNumber !== undefined) {
     payload.groupNumber = normalizeText(input.groupNumber) ?? null;
+  }
+
+  if (input.trophyName !== undefined) {
+    payload.trophyName = normalizeText(input.trophyName) ?? null;
   }
 
   if (input.importantLinks !== undefined) {

@@ -5,9 +5,11 @@ import { ProjectSwitcher } from "@components/layout/ProjectSwitcher/ProjectSwitc
 import { ProfileMenuButton } from "@components/ui/ProfileMenuButton";
 import { ArrowRight, Bell, Menu } from "lucide-react";
 import { useWorkspaceProject } from "@hooks/useWorkspaceProject";
-import { getProjectTasks, getUsersByIds } from "@services/firebase/firebase";
+import { subscribeProjectTasks, getUsersByIds } from "@services/firebase/firebase";
+import type { ProjectTaskRecord, MemberDirectoryUser } from "@services/firebase/firebase";
 import { getProjectMemberScores } from "@utils/scoreCalculation";
 import { ScoreDisplay } from "@components/ui/ScoreDisplay";
+import { LeaderboardDialog } from "@components/dashboard/LeaderboardDialog";
 import "./DashboardHeader.scss";
 
 export const DashboardHeader = ({
@@ -22,43 +24,49 @@ export const DashboardHeader = ({
 }: DashboardHeaderProps) => {
   const navigate = useNavigate();
   const { project } = useWorkspaceProject(currentProjectId);
+  const [tasks, setTasks] = useState<ProjectTaskRecord[]>([]);
+  const [members, setMembers] = useState<MemberDirectoryUser[]>([]);
   const [computedScore, setComputedScore] = useState<number | undefined>(undefined);
   const [computedRank, setComputedRank] = useState<number | undefined>(undefined);
+  const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false);
 
   useEffect(() => {
+    if (!project || !userId || !project.memberIds?.length) {
+      return;
+    }
+
     let active = true;
 
-    const loadMemberScore = async () => {
-      if (!project || !userId || !project.memberIds?.length) {
-        return;
+    // Fetch members once
+    void getUsersByIds(project.memberIds).then((fetchedMembers) => {
+      if (active) {
+        setMembers(fetchedMembers);
       }
+    });
 
-      try {
-        const [tasks, members] = await Promise.all([
-          getProjectTasks(project.id),
-          getUsersByIds(project.memberIds),
-        ]);
-
-        if (!active) {
-          return;
-        }
-
-        const rankedMembers = getProjectMemberScores(tasks, members);
-        const member = rankedMembers.find((item) => item.id === userId);
-
-        setComputedScore(member?.totalScore);
-        setComputedRank(member?.rank);
-      } catch (error) {
-        console.error("Failed to compute dashboard header score", error);
+    // Subscribe to tasks for live updates
+    const unsubscribe = subscribeProjectTasks(project.id, (updatedTasks) => {
+      if (active) {
+        setTasks(updatedTasks);
       }
-    };
-
-    void loadMemberScore();
+    });
 
     return () => {
       active = false;
+      unsubscribe();
     };
   }, [project, userId]);
+
+  useEffect(() => {
+    if (!userId || !tasks.length || !members.length || !project) {
+      return;
+    }
+    const rankedMembers = getProjectMemberScores(tasks, members);
+    const member = rankedMembers.find((item) => item.id === userId);
+
+    setComputedScore(member?.totalScore);
+    setComputedRank(member?.rank);
+  }, [tasks, members, userId, project]);
 
   const userScore = computedScore ?? project?.memberScores?.[userId];
   const displayRank = computedRank ?? (project?.memberScores
@@ -102,7 +110,13 @@ export const DashboardHeader = ({
             <Bell size={18} strokeWidth={2} />
             <span className="dashboard-header__dot" />
           </button>
-          <div className="dashboard-header__user-score">
+          <div 
+            className="dashboard-header__user-score" 
+            onClick={() => setIsLeaderboardOpen(true)}
+            role="button"
+            tabIndex={0}
+            style={{ cursor: "pointer", color: "var(--color-text)" }}
+          >
             {userScore !== undefined ? (
               <ScoreDisplay
                 score={userScore}
@@ -122,6 +136,13 @@ export const DashboardHeader = ({
           />
         </div>
       </div>
+      
+      <LeaderboardDialog 
+        isOpen={isLeaderboardOpen} 
+        onClose={() => setIsLeaderboardOpen(false)} 
+        tasks={tasks.length > 0 ? tasks : undefined}
+        members={members.length > 0 ? members : undefined}
+      />
     </header>
   );
 };

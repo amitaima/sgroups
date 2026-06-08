@@ -70,6 +70,7 @@ export type Project = {
   updatedAt: Timestamp;
   logoLink?: string;
   status?: "active" | "completed" | "archived";
+  trophyName?: string;
 };
 
 export type ProjectStatus = "active" | "completed" | "archived";

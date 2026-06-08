@@ -26,6 +26,7 @@ interface CreateProjectFormState {
   description: string;
   finalSubmissionAt: string;
   people: string;
+  trophyName: string;
 }
 
 const INITIAL_FORM: CreateProjectFormState = {
@@ -33,6 +34,7 @@ const INITIAL_FORM: CreateProjectFormState = {
   description: "",
   finalSubmissionAt: "",
   people: "",
+  trophyName: "",
 };
 
 export const ProjectsHomePage = () => {
@@ -43,7 +45,9 @@ export const ProjectsHomePage = () => {
   const [membersById, setMembersById] = useState<
     Record<string, MemberAvatarItem>
   >({});
-  const [projectScores, setProjectScores] = useState<Record<string, number>>({});
+  const [projectScores, setProjectScores] = useState<Record<string, number>>(
+    {},
+  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -205,6 +209,7 @@ export const ProjectsHomePage = () => {
           : undefined,
         createdBy: user.uid,
         memberIds,
+        trophyName: formState.trophyName,
       });
 
       setIsCreateModalOpen(false);
@@ -378,6 +383,21 @@ export const ProjectsHomePage = () => {
                   }
                   rows={3}
                   placeholder="student1@school.org, student2@school.org"
+                />
+              </label>
+
+              <label className="projects-home__field">
+                <span>פרס אלוף העבודה (אופציונלי)</span>
+                <input
+                  type="text"
+                  value={formState.trophyName}
+                  onChange={(event) =>
+                    setFormState((prev) => ({
+                      ...prev,
+                      trophyName: event.target.value,
+                    }))
+                  }
+                  placeholder="לדוגמה: ארוחת צהריים עלינו"
                 />
               </label>
 

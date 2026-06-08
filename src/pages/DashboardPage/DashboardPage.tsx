@@ -830,17 +830,19 @@ export const DashboardPage = () => {
 
       <div className="grid grid-cols-1 gap-4">
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-4">
-          <div className="dashboard-page__panel dashboard-page__panel--overview min-w-0">
+          <div className="dashboard-page__panel dashboard-page__panel--overview min-w-0 max-h-[36vh] min-h-[20rem]">
             <ProgressOverviewCard
               progress={progressValue}
               title="התקדמות הפרויקט"
-              subtitle={selectedProject.description ?? "לוח ניהול לפרויקט הנבחר."}
+              subtitle={
+                selectedProject.description ?? "לוח ניהול לפרויקט הנבחר."
+              }
               hint={progressHint}
               badgeLabel={`${openTasks.length} פתוחות`}
             />
           </div>
 
-          <div className="dashboard-page__panel dashboard-page__panel--deadline min-w-0">
+          <div className="dashboard-page__panel dashboard-page__panel--deadline min-w-0 max-h-[36vh] min-h-[20rem]">
             <GlassPanel className="dashboard-page__deadline-card p-4">
               <div className="dashboard-page__card-header">
                 <div>
@@ -886,7 +888,7 @@ export const DashboardPage = () => {
             </GlassPanel>
           </div>
 
-          <div className="dashboard-page__panel dashboard-page__panel--tasks min-w-0">
+          <div className="dashboard-page__panel dashboard-page__panel--tasks min-w-0 max-h-[36vh] min-h-[20rem]">
             <OpenTasksCard
               tasks={openTasks}
               onTaskClick={handleOpenTaskClick}
@@ -899,7 +901,9 @@ export const DashboardPage = () => {
                   size="sm"
                   type="button"
                   onClick={() =>
-                    navigate(getProjectWorkspacePath(selectedProject.id, "tasks"))
+                    navigate(
+                      getProjectWorkspacePath(selectedProject.id, "tasks"),
+                    )
                   }
                 >
                   <ListCheck size={14} />
@@ -908,7 +912,7 @@ export const DashboardPage = () => {
             />
           </div>
 
-          <div className="dashboard-page__panel dashboard-page__panel--links min-w-0">
+          <div className="dashboard-page__panel dashboard-page__panel--links min-w-0 max-h-[36vh] min-h-[20rem]">
             <TeamLinksCard
               links={links}
               actions={
@@ -927,12 +931,17 @@ export const DashboardPage = () => {
         </div>
 
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-4">
-          <div className="col-span-1 xl:col-span-2 overflow-hidden max-h-[40vh] min-w-0 h-full">
+          <div className="col-span-1 xl:col-span-2 overflow-hidden max-h-[36vh] min-h-[20rem] min-w-0 h-full">
             <TaskDistributionCard data={distributionData} />
           </div>
 
-          <div className="col-span-1 xl:col-span-2 overflow-hidden max-h-[40vh] min-w-0 h-full">
-            <Podium topUsers={topUsers} tasks={projectTasks} members={projectMembers} />
+          <div className="col-span-1 xl:col-span-2 overflow-hidden max-h-[36vh] min-h-[20rem] min-w-0 h-full">
+            <Podium
+              topUsers={topUsers}
+              tasks={projectTasks}
+              members={projectMembers}
+              trophyName={activeProject?.trophyName}
+            />
           </div>
         </div>
       </div>
