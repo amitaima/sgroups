@@ -67,60 +67,62 @@ export const TaskDistributionCard = ({ data }: TaskDistributionCardProps) => {
         </div>
       </div>
 
-      {data.length > 0 ? (
-        <div className="distribution-card__body">
-          <div className="distribution-card__chartColumn">
-            <div
-              className="distribution-card__donut"
-              style={
-                {
-                  "--distribution-gradient": `conic-gradient(${gradient})`,
-                } as React.CSSProperties
-              }
-              aria-label={`סה״כ ${total} משימות`}
-            >
-              <div className="distribution-card__donutCenter">
-                <span className="distribution-card__total">{total}</span>
-                <span className="distribution-card__totalLabel">סה״כ</span>
+      <div className="distribution-card__content">
+        {data.length > 0 ? (
+          <div className="distribution-card__body">
+            <div className="distribution-card__chartColumn">
+              <div
+                className="distribution-card__donut"
+                style={
+                  {
+                    "--distribution-gradient": `conic-gradient(${gradient})`,
+                  } as React.CSSProperties
+                }
+                aria-label={`סה״כ ${total} משימות`}
+              >
+                <div className="distribution-card__donutCenter">
+                  <span className="distribution-card__total">{total}</span>
+                  <span className="distribution-card__totalLabel">סה״כ</span>
+                </div>
               </div>
             </div>
-          </div>
 
-          <div className="distribution-card__list">
-            {data.map((item, index) => {
-              const percent =
-                total > 0 ? Math.round((item.value / total) * 100) : 0;
+            <div className="distribution-card__list">
+              {data.map((item, index) => {
+                const percent =
+                  total > 0 ? Math.round((item.value / total) * 100) : 0;
 
-              return (
-                <div
-                  key={item.name}
-                  className="distribution-card__row"
-                  title={`${item.name} — ${item.value} משימות (${percent}%)`}
-                >
-                  <span
-                    className="distribution-card__dot"
-                    style={{
-                      backgroundColor:
-                        CHART_COLORS[index % CHART_COLORS.length],
-                    }}
-                  />
-                  <div className="distribution-card__text">
-                    <span className="distribution-card__name">{item.name}</span>
-                    <span className="distribution-card__meta">
-                      {percent}% מהעומס
-                    </span>
+                return (
+                  <div
+                    key={item.name}
+                    className="distribution-card__row"
+                    title={`${item.name} — ${item.value} משימות (${percent}%)`}
+                  >
+                    <span
+                      className="distribution-card__dot"
+                      style={{
+                        backgroundColor:
+                          CHART_COLORS[index % CHART_COLORS.length],
+                      }}
+                    />
+                    <div className="distribution-card__text">
+                      <span className="distribution-card__name">{item.name}</span>
+                      <span className="distribution-card__meta">
+                        {percent}% מהעומס
+                      </span>
+                    </div>
+                    <span className="distribution-card__count">{item.value}</span>
                   </div>
-                  <span className="distribution-card__count">{item.value}</span>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
-        </div>
-      ) : (
-        <p className="distribution-card__empty">
-          אין עדיין מספיק נתונים לחישוב חלוקת המשימות.
-        </p>
-      )}
+        ) : (
+          <p className="distribution-card__empty">
+            אין עדיין מספיק נתונים לחישוב חלוקת המשימות.
+          </p>
+        )}
+      </div>
     </GlassPanel>
   );
 };

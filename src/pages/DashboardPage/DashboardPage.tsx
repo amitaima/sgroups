@@ -18,7 +18,6 @@ import { GlassPanel } from "@components/ui/GlassPanel/GlassPanel";
 import { PageSection } from "@components/layout/PageSection/PageSection";
 import { SectionTitle } from "@components/ui/SectionTitle/SectionTitle";
 import { ProgressOverviewCard } from "@components/ui/ProgressOverviewCard/ProgressOverviewCard";
-import { TeamMembersCard } from "@components/ui/TeamMembersCard/TeamMembersCard";
 import { TaskDistributionCard } from "@components/ui/TaskDistributionCard/TaskDistributionCard";
 import { OpenTasksCard } from "@components/ui/OpenTasksCard/OpenTasksCard";
 import { TeamLinksCard } from "@components/ui/TeamLinksCard/TeamLinksCard";
@@ -36,6 +35,7 @@ import type {
 import {
   getProjectTasks,
   getUsersByIds,
+  reassignRemovedMemberTasks,
   resolveMemberIdsByEmails,
   subscribeProjectTasks,
   updateProject,
@@ -48,6 +48,7 @@ import type {
   TaskPriority,
   TaskStatus,
 } from "../../types/common";
+import { getTopProjectMembers } from "@utils/scoreCalculation";
 import "./DashboardPage.scss";
 import { Podium } from "@components/dashboard/Podium/Podium";
 import { getProjectMemberScores } from "@utils/scoreCalculation";
@@ -84,7 +85,7 @@ type DashboardLinkRow = {
 const TASK_STATUS_ORDER: TaskStatus[] = [
   "todo",
   "inProgress",
-  "review",
+  // "review",
   "completed",
 ];
 
@@ -97,7 +98,7 @@ const TASK_PRIORITY_LABELS: Record<TaskPriority, string> = {
 const TASK_STATUS_LABELS: Record<TaskStatus, string> = {
   todo: "To Do",
   inProgress: "In Progress",
-  review: "Review",
+  // review: "Review",
   completed: "Completed",
 };
 
@@ -543,6 +544,10 @@ export const DashboardPage = () => {
     () => taskItems.filter((task) => !task.completed),
     [taskItems],
   );
+  const topUsers = useMemo(
+    () => getTopProjectMembers(projectTasks, projectMembers, 3),
+    [projectTasks, projectMembers],
+  );
   const progressValue = taskItems.length
     ? Math.round((completedTaskCount / taskItems.length) * 100)
     : 0;
@@ -918,10 +923,18 @@ export const DashboardPage = () => {
     const nextMemberIds = Array.from(nextMemberIdsSet);
 
     try {
+      const removedIds = activeProject.memberIds.filter(
+        (id) => !nextMemberIdsSet.has(id),
+      );
+
       await updateProject(activeProject.id, {
         memberIds: nextMemberIds,
         memberRoles: nextMemberRoles,
       });
+
+      if (removedIds.length > 0) {
+        await reassignRemovedMemberTasks(activeProject.id, removedIds, nextMemberIds);
+      }
 
       const refreshedMembers = await getUsersByIds(nextMemberIds);
       setProjectMembers(refreshedMembers);
@@ -1032,6 +1045,19 @@ export const DashboardPage = () => {
         />
       </div>
 
+      <div className="grid grid-cols-1 gap-4">
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-4">
+          <div className="dashboard-page__panel dashboard-page__panel--overview min-w-0 max-h-[36vh] min-h-[20rem]">
+            <ProgressOverviewCard
+              progress={progressValue}
+              title="התקדמות הפרויקט"
+              subtitle={
+                selectedProject.description ?? "לוח ניהול לפרויקט הנבחר."
+              }
+              hint={progressHint}
+              badgeLabel={`${openTasks.length} פתוחות`}
+            />
+          </div>
       {showLeaderSpotlight && leader ? (
         <div className="dashboard-page__leader-spotlight" role="status">
           <button
@@ -1082,51 +1108,51 @@ export const DashboardPage = () => {
           />
         </div>
 
-        <div className="dashboard-page__panel dashboard-page__panel--deadline">
-          <GlassPanel className="dashboard-page__deadline-card">
-            <div className="dashboard-page__card-header">
-              <div>
-                <p className="dashboard-page__eyebrow">Deadlines</p>
-                <h3 className="dashboard-page__card-title">דדליינים</h3>
-              </div>
-              <span className="dashboard-page__deadline-badge">
-                {closestDeadlineLabel}
-              </span>
-            </div>
-
-            <div className="dashboard-page__deadline-list">
-              <div className="dashboard-page__deadline-item">
-                <div className="dashboard-page__deadline-copy">
-                  <span className="dashboard-page__deadline-label">
-                    היעד הקרוב
-                  </span>
-                  <strong className="dashboard-page__deadline-value">
-                    {closestDeadline ? closestDeadline.label : "טרם הוגדר"}
-                  </strong>
+          <div className="dashboard-page__panel dashboard-page__panel--deadline min-w-0 max-h-[36vh] min-h-[20rem]">
+            <GlassPanel className="dashboard-page__deadline-card p-4">
+              <div className="dashboard-page__card-header">
+                <div>
+                  <p className="dashboard-page__eyebrow">Deadlines</p>
+                  <h3 className="dashboard-page__card-title">דדליינים</h3>
                 </div>
-                <div className="dashboard-page__deadline-meta">
-                  <span>{closestDeadlineDate}</span>
-                  <span>{closestDeadlineLabel}</span>
-                </div>
+                <span className="dashboard-page__deadline-badge">
+                  {closestDeadlineLabel}
+                </span>
               </div>
 
-              <div className="dashboard-page__deadline-item dashboard-page__deadline-item--accent">
-                <div className="dashboard-page__deadline-copy">
-                  <span className="dashboard-page__deadline-label">
-                    הגשה סופית
-                  </span>
-                  <strong className="dashboard-page__deadline-value">
-                    {finalDeadline ? "הגשה סופית" : "טרם הוגדר"}
-                  </strong>
+              <div className="dashboard-page__deadline-list">
+                <div className="dashboard-page__deadline-item">
+                  <div className="dashboard-page__deadline-copy">
+                    <span className="dashboard-page__deadline-label">
+                      היעד הקרוב
+                    </span>
+                    <strong className="dashboard-page__deadline-value">
+                      {closestDeadline ? closestDeadline.label : "טרם הוגדר"}
+                    </strong>
+                  </div>
+                  <div className="dashboard-page__deadline-meta">
+                    <span>{closestDeadlineDate}</span>
+                    <span>{closestDeadlineLabel}</span>
+                  </div>
                 </div>
-                <div className="dashboard-page__deadline-meta">
-                  <span>{finalDeadlineDate}</span>
-                  <span>{finalDeadlineLabel}</span>
+
+                <div className="dashboard-page__deadline-item dashboard-page__deadline-item--accent">
+                  <div className="dashboard-page__deadline-copy">
+                    <span className="dashboard-page__deadline-label">
+                      הגשה סופית
+                    </span>
+                    <strong className="dashboard-page__deadline-value">
+                      {finalDeadline ? "הגשה סופית" : "טרם הוגדר"}
+                    </strong>
+                  </div>
+                  <div className="dashboard-page__deadline-meta">
+                    <span>{finalDeadlineDate}</span>
+                    <span>{finalDeadlineLabel}</span>
+                  </div>
                 </div>
               </div>
-            </div>
-          </GlassPanel>
-        </div>
+            </GlassPanel>
+          </div>
 
         <div className="dashboard-page__panel dashboard-page__panel--tasks">
           <OpenTasksCard
@@ -1162,7 +1188,46 @@ export const DashboardPage = () => {
               <Sparkles size={18} />
               איך לנצח עם AI?
             </Button>
+          <div className="dashboard-page__panel dashboard-page__panel--tasks min-w-0 max-h-[36vh] min-h-[20rem]">
+            <OpenTasksCard
+              tasks={openTasks}
+              onTaskClick={handleOpenTaskClick}
+              onToggleTask={handleTaskToggle}
+              updatingTaskId={updatingTaskId}
+              emptyState="אין עדיין אבני דרך פתוחות בפרויקט."
+              actions={
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  type="button"
+                  onClick={() =>
+                    navigate(
+                      getProjectWorkspacePath(selectedProject.id, "tasks"),
+                    )
+                  }
+                >
+                  <ListCheck size={14} />
+                </Button>
+              }
+            />
+          </div>
 
+          <div className="dashboard-page__panel dashboard-page__panel--links min-w-0 max-h-[36vh] min-h-[20rem]">
+            <TeamLinksCard
+              links={links}
+              actions={
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  type="button"
+                  onClick={openLinksDialog}
+                >
+                  <LinkIcon size={14} />
+                  <Plus size={12} />
+                </Button>
+              }
+            />
+          </div>
             <Podium tasks={projectTasks} members={projectMembers} />
           </div>
         </div>
@@ -1184,9 +1249,10 @@ export const DashboardPage = () => {
           />
         </div>
 
-        <div className="dashboard-page__panel dashboard-page__panel--distribution col-span-2">
-          <TaskDistributionCard data={distributionData} />
-        </div>
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-4">
+          <div className="col-span-1 xl:col-span-2 overflow-hidden max-h-[36vh] min-h-[20rem] min-w-0 h-full">
+            <TaskDistributionCard data={distributionData} />
+          </div>
 
         <div className="dashboard-page__panel dashboard-page__panel--team">
           <TeamMembersCard

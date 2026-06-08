@@ -31,6 +31,7 @@ import type {
 import {
   deleteProject,
   getUsersByIds,
+  reassignRemovedMemberTasks,
   resolveMemberIdsByEmails,
   updateProject,
 } from "@services/firebase/firebase";
@@ -93,6 +94,7 @@ interface SettingsDraft {
   notificationMentions: boolean;
   milestones: MilestoneDraft[];
   importantLinks: LinkDraft[];
+  trophyName: string;
 }
 
 interface SavePayload {
@@ -114,6 +116,7 @@ interface SavePayload {
   notificationSettings: ProjectNotificationSettings;
   milestones: MilestoneDraft[];
   importantLinks: LinkDraft[];
+  trophyName: string;
 }
 
 interface MemberRow {
@@ -266,6 +269,7 @@ const buildDraftFromProject = (project: Project): SettingsDraft => {
         label: link.label,
         url: link.url,
       })) ?? [],
+    trophyName: project.trophyName ?? "",
   };
 };
 
@@ -310,6 +314,7 @@ const buildSavePayload = (
     },
     milestones: draft.milestones,
     importantLinks: draft.importantLinks,
+    trophyName: draft.trophyName,
   };
 };
 
@@ -361,6 +366,7 @@ export const SettingsPage = () => {
       courseCode: d.courseCode,
       semesterLabel: d.semesterLabel,
       groupNumber: d.groupNumber,
+      trophyName: d.trophyName,
     });
   }, []);
 
@@ -540,6 +546,11 @@ export const SettingsPage = () => {
 
         await updateProject(project.id, { memberIds, memberRoles });
 
+        const removedIds = project.memberIds.filter((id) => !memberIds.includes(id));
+        if (removedIds.length > 0) {
+          await reassignRemovedMemberTasks(project.id, removedIds, memberIds);
+        }
+
         lastSavedMembersRef.current = currentMembersKey;
         setSaveSuccess("שינויים בצוות נשמרו.");
       } catch (e) {
@@ -689,6 +700,7 @@ export const SettingsPage = () => {
         courseCode: normalizeOptionalText(payload.courseCode),
         semesterLabel: normalizeOptionalText(payload.semesterLabel),
         groupNumber: normalizeOptionalText(payload.groupNumber),
+        trophyName: normalizeOptionalText(payload.trophyName),
         memberIds: payload.memberIds,
         memberRoles: payload.memberRoles,
         notificationSettings: payload.notificationSettings,
@@ -889,6 +901,18 @@ export const SettingsPage = () => {
                     onChange={(event) =>
                       updateDraft("description", event.target.value)
                     }
+                  />
+                </label>
+
+                <label className="settings-page__field settings-page__field--wide">
+                  <span>פרס אלוף העבודה🏆 (אופציונלי)</span>
+                  <input
+                    type="text"
+                    value={draft?.trophyName ?? ""}
+                    onChange={(event) =>
+                      updateDraft("trophyName", event.target.value)
+                    }
+                    placeholder="לדוגמה: ארוחת צהריים עלינו"
                   />
                 </label>
 

@@ -42,14 +42,14 @@ const TASK_COLUMN_CONFIG: Record<
 > = {
   todo: { title: "To Do", tone: "neutral" },
   inProgress: { title: "In Progress", tone: "teal" },
-  review: { title: "Review", tone: "olive" },
+  // review: { title: "Review", tone: "olive" },
   completed: { title: "Completed", tone: "primary" },
 };
 
 const TASK_STATUS_ORDER: TaskStatus[] = [
   "todo",
   "inProgress",
-  "review",
+  // "review",
   "completed",
 ];
 
@@ -62,7 +62,7 @@ const TASK_PRIORITY_LABELS: Record<TaskPriority, string> = {
 const TASK_STATUS_LABELS: Record<TaskStatus, string> = {
   todo: "To Do",
   inProgress: "In Progress",
-  review: "Review",
+  // review: "Review",
   completed: "Completed",
 };
 
@@ -337,6 +337,8 @@ export const TasksPage = () => {
   );
   const suppressTaskClickRef = useRef(false);
   const suppressTaskClickTimerRef = useRef<number | null>(null);
+  const boardRef = useRef<HTMLDivElement>(null);
+  const boardDragState = useRef<{ isDown: boolean; startX: number; scrollLeft: number }>({ isDown: false, startX: 0, scrollLeft: 0 });
 
   useEffect(() => {
     if (!project) {
@@ -1021,9 +1023,9 @@ export const TasksPage = () => {
       const inProgressTasks = tasks
         .filter((task) => task.status === "inProgress")
         .map(mapTaskSummary);
-      const reviewTasks = tasks
-        .filter((task) => task.status === "review")
-        .map(mapTaskSummary);
+      // const reviewTasks = tasks
+      //   .filter((task) => task.status === "review")
+      //   .map(mapTaskSummary);
 
       const suggestion = await generateTaskSuggestion(
         project,
@@ -1031,7 +1033,7 @@ export const TasksPage = () => {
         completedTasks,
         openTasks,
         inProgressTasks,
-        reviewTasks,
+        // reviewTasks,
       );
 
       const combinedDescription = [
@@ -1077,6 +1079,23 @@ export const TasksPage = () => {
       : assigneeOptions.filter((member) =>
           taskDraft.assigneeIds.includes(member.id),
         );
+
+  const handleBoardPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    const board = boardRef.current;
+    if (!board || e.button !== 0) return;
+    boardDragState.current = { isDown: true, startX: e.clientX, scrollLeft: board.scrollLeft };
+  };
+
+  const handleBoardPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    const state = boardDragState.current;
+    if (!state.isDown) return;
+    e.preventDefault();
+    boardRef.current!.scrollLeft = state.scrollLeft - (e.clientX - state.startX);
+  };
+
+  const handleBoardPointerUp = () => {
+    boardDragState.current.isDown = false;
+  };
 
   if (loading) {
     return (
@@ -1341,7 +1360,15 @@ export const TasksPage = () => {
           <span>לא נמצאו משימות שתואמות לסינון</span>
         </div>
       ) : boardView === "board" ? (
-        <div className="tasks-page__board" aria-label="עמודות לוח המשימות">
+        <div
+          className="tasks-page__board"
+          aria-label="עמודות לוח המשימות"
+          ref={boardRef}
+          onPointerDown={handleBoardPointerDown}
+          onPointerMove={handleBoardPointerMove}
+          onPointerUp={handleBoardPointerUp}
+          onPointerLeave={handleBoardPointerUp}
+        >
           {taskColumns.map((column) => (
             <section
               key={column.id}

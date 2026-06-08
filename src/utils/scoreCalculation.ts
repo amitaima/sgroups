@@ -111,6 +111,18 @@ export const calculateProjectScore = (
 };
 
 /**
+ * Calculate score for a specific user from completed tasks assigned to them.
+ */
+export const calculateUserScore = (
+  tasks: ProjectTaskRecord[],
+  userId: string,
+): number => {
+  return tasks
+    .filter((task) => task.status === "completed" && task.assigneeIds.includes(userId))
+    .reduce((total, task) => total + difficultyScore[task.difficulty ?? "medium"], 0);
+};
+
+/**
  * Build project member score from project tasks and member profiles.
  */
 export const getProjectMemberScores = (

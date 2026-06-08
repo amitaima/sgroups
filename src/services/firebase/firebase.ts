@@ -199,6 +199,7 @@ export interface CreateProjectInput {
   teacherIds?: string[];
   memberRoles?: Record<string, ProjectMemberRole>;
   status?: "active" | "completed" | "archived";
+  trophyName?: string;
 }
 
 export interface UpdateProjectInput {
@@ -227,6 +228,7 @@ export interface UpdateProjectInput {
   memberRoles?: Record<string, ProjectMemberRole>;
   teacherIds?: string[];
   status?: ProjectStatus;
+  trophyName?: string | null;
 }
 
 export type CalendarEventAudience = "selected" | "everyone";
@@ -429,8 +431,6 @@ export const uploadUserAvatar = async (
 
   return downloadUrl;
 };
-
-
 
 const PROJECTS_COLLECTION = "projects";
 const USERS_COLLECTION = "users";
@@ -727,6 +727,8 @@ const mapProjectSnapshot = (
         ? data.updatedAt
         : Timestamp.fromDate(new Date()),
     status: isProjectStatus(data.status) ? data.status : "active",
+    logoLink: normalizeText(data.logoLink),
+    trophyName: normalizeText(data.trophyName),
   };
 };
 
@@ -885,8 +887,8 @@ const sortProjectTasks = (tasks: ProjectTaskRecord[]) =>
     const statusOrder: Record<TaskStatus, number> = {
       todo: 0,
       inProgress: 1,
-      review: 2,
-      completed: 3,
+      // review: 2,
+      completed: 2,
     };
 
     if (statusOrder[left.status] !== statusOrder[right.status]) {
@@ -938,9 +940,7 @@ const calculateProjectMemberScores = (
   }, {});
 };
 
-const syncProjectMemberScores = async (
-  projectId: string,
-): Promise<void> => {
+const syncProjectMemberScores = async (projectId: string): Promise<void> => {
   const tasks = await getProjectTasks(projectId);
   const memberScores = calculateProjectMemberScores(tasks);
 
@@ -1071,6 +1071,32 @@ export const updateProjectTask = async (
   await syncProjectMemberScores(projectId);
 };
 
+export const reassignRemovedMemberTasks = async (
+  projectId: string,
+  removedMemberIds: string[],
+  remainingMemberIds: string[],
+): Promise<void> => {
+  if (!removedMemberIds.length || !remainingMemberIds.length) return;
+
+  const tasks = await getProjectTasks(projectId);
+  const targetMemberId = remainingMemberIds[0];
+
+  const updates = tasks
+    .filter((task) => task.assigneeIds.some((id) => removedMemberIds.includes(id)))
+    .map((task) => {
+      const newAssignees = task.assigneeIds.filter((id) => !removedMemberIds.includes(id));
+      if (newAssignees.length === 0) {
+        newAssignees.push(targetMemberId);
+      }
+      return updateDoc(doc(getProjectTasksCollection(projectId), task.id), {
+        assigneeIds: newAssignees,
+        updatedAt: serverTimestamp(),
+      });
+    });
+
+  await Promise.all(updates);
+};
+
 export const deleteProjectTask = async (
   projectId: string,
   taskId: string,
@@ -1127,6 +1153,7 @@ export const createProject = async (
       input.createdBy,
     ),
     status: input.status ?? "active",
+    trophyName: input.trophyName?.trim() || "",
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   };
@@ -1218,6 +1245,10 @@ export const updateProject = async (
 
   if (input.groupNumber !== undefined) {
     payload.groupNumber = normalizeText(input.groupNumber) ?? null;
+  }
+
+  if (input.trophyName !== undefined) {
+    payload.trophyName = normalizeText(input.trophyName) ?? null;
   }
 
   if (input.importantLinks !== undefined) {

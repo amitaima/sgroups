@@ -42,7 +42,7 @@ export type TaskPriority = "high" | "medium" | "low";
 
 export type TaskDifficulty = "easy" | "medium" | "hard";
 
-export type TaskStatus = "todo" | "inProgress" | "review" | "completed";
+export type TaskStatus = "todo" | "inProgress" | "completed";
 
 export type Project = {
   id: string;
@@ -70,6 +70,7 @@ export type Project = {
   updatedAt: Timestamp;
   logoLink?: string;
   status?: "active" | "completed" | "archived";
+  trophyName?: string;
 };
 
 export type ProjectStatus = "active" | "completed" | "archived";

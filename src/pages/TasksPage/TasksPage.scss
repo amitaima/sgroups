@@ -4,23 +4,25 @@
   gap: var(--space-5);
   min-height: calc(100vh - var(--size-header-height));
   padding-block: var(--space-3);
-  overflow-x: hidden;
+  width: 100%;
+  min-width: 0;
 }
 
 .tasks-page::-webkit-scrollbar,
 .tasks-page__board::-webkit-scrollbar {
   width: 6px;
-  height: 6px;
+  height: 8px;
 }
 
 .tasks-page::-webkit-scrollbar-track,
 .tasks-page__board::-webkit-scrollbar-track {
-  background: transparent;
+  background: color-mix(in srgb, var(--color-text-muted) 8%, transparent);
+  border-radius: 10px;
 }
 
 .tasks-page::-webkit-scrollbar-thumb,
 .tasks-page__board::-webkit-scrollbar-thumb {
-  background: color-mix(in srgb, var(--color-text-muted) 20%, transparent);
+  background: color-mix(in srgb, var(--color-text-muted) 35%, transparent);
   border-radius: 10px;
 }
 
@@ -148,10 +150,13 @@
 // }
 
 .tasks-page__board {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
+  display: flex;
   gap: var(--space-4);
   align-items: stretch;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x proximity;
+  padding-bottom: var(--space-3);
   //   I changes on purpose do not change!
   min-height: calc(90vh - var(--size-header-height));
 }
@@ -161,7 +166,8 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
-  min-width: 0;
+  min-width: 18rem;
+  flex: 1 0 18rem;
   padding: var(--space-4);
   border-radius: var(--radius-xl);
   border: 1px solid transparent;
@@ -1045,8 +1051,8 @@ select {
     flex: 1 1 10rem;
   }
 
-  .tasks-page__board {
-    grid-template-columns: 1fr;
+  .tasks-page__column {
+    min-width: 15rem;
   }
 
   .tasks-page__dialog-grid {

@@ -27,7 +27,11 @@
   max-height: 90vh;
   width: 90%;
   max-width: 700px;
-  background: var(--color-background, white);
+  // background: var(--color-background, white);
+  background:
+    linear-gradient(rgba(255, 193, 7, 0.08), rgba(255, 193, 7, 0.08)),
+    var(--color-bg);
+  color: var(--color-text);
   border-radius: var(--radius-lg, 12px);
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
   animation: slideUp var(--motion-base, 200ms);
@@ -41,10 +45,6 @@
       opacity: 1;
       transform: translate(-50%, -50%);
     }
-  }
-
-  @media (prefers-color-scheme: dark) {
-    background: var(--color-background-dark, #2a2a2a);
   }
 }
 
@@ -64,7 +64,7 @@
   display: flex;
   align-items: center;
   gap: var(--space-3, 0.75rem);
-  color: var(--color-on-background, #1a1a1a);
+  color: var(--color-text);
 
   @media (prefers-color-scheme: dark) {
     color: var(--color-on-background-dark, #e0e0e0);
@@ -92,7 +92,7 @@
   border: none;
   border-radius: var(--radius-md, 8px);
   cursor: pointer;
-  color: var(--color-on-background, #1a1a1a);
+  color: var(--color-text);
   transition:
     background-color var(--motion-base, 200ms),
     transform var(--motion-base, 200ms);
@@ -168,52 +168,26 @@
 .leaderboard-table__head {
   position: sticky;
   top: 0;
-  background: rgba(255, 193, 7, 0.08);
   z-index: 1;
-
-  @media (prefers-color-scheme: dark) {
-    background: rgba(255, 193, 7, 0.05);
-  }
-}
-
-.leaderboard-table__header-row {
-  border-bottom: 2px solid rgba(255, 193, 7, 0.3);
-}
-
-.leaderboard-table__body {
-  background: var(--color-background, white);
-
-  @media (prefers-color-scheme: dark) {
-    background: var(--color-background-dark, #2a2a2a);
-  }
 }
 
 .leaderboard-table__row {
   border-bottom: 1px solid rgba(0, 0, 0, 0.08);
-  transition: background-color var(--motion-base, 200ms);
 
   @media (prefers-color-scheme: dark) {
     border-bottom-color: rgba(255, 255, 255, 0.08);
   }
 
   &:hover {
+    transition: background-color 150ms ease;
     background-color: rgba(255, 193, 7, 0.05);
   }
 
   &.leaderboard-table__row--podium {
-    background-color: rgba(255, 193, 7, 0.1);
     font-weight: var(--font-weight-semibold, 600);
 
     &:hover {
-      background-color: rgba(255, 193, 7, 0.15);
-    }
-
-    @media (prefers-color-scheme: dark) {
-      background-color: rgba(255, 193, 7, 0.08);
-
-      &:hover {
-        background-color: rgba(255, 193, 7, 0.12);
-      }
+      background-color: rgba(255, 193, 7, 0.05);
     }
   }
 }
@@ -221,7 +195,7 @@
 .leaderboard-table__cell {
   padding: var(--space-4, 1rem);
   text-align: right;
-  color: var(--color-on-background, #1a1a1a);
+  color: var(--color-text);
 
   @media (prefers-color-scheme: dark) {
     color: var(--color-on-background-dark, #e0e0e0);
@@ -251,7 +225,11 @@
   align-items: center;
   gap: var(--space-2, 0.5rem);
   padding: var(--space-2, 0.5rem) var(--space-3, 0.75rem);
-  background: linear-gradient(135deg, rgba(255, 193, 7, 0.2), rgba(255, 152, 0, 0.15));
+  background: linear-gradient(
+    135deg,
+    rgba(255, 193, 7, 0.2),
+    rgba(255, 152, 0, 0.15)
+  );
   border: 1px solid rgba(255, 193, 7, 0.3);
   border-radius: var(--radius-full, 9999px);
   font-weight: var(--font-weight-semibold, 600);
@@ -293,11 +271,15 @@
   align-items: center;
   gap: var(--space-1, 0.25rem);
   padding: var(--space-2, 0.5rem) var(--space-3, 0.75rem);
-  background: linear-gradient(135deg, rgba(255, 193, 7, 0.2), rgba(255, 152, 0, 0.15));
+  background: linear-gradient(
+    135deg,
+    rgba(255, 193, 7, 0.2),
+    rgba(255, 152, 0, 0.15)
+  );
   border: 1px solid rgba(255, 193, 7, 0.3);
   border-radius: var(--radius-md, 8px);
   font-weight: var(--font-weight-bold, 700);
-  color: var(--color-on-background, #1a1a1a);
+  color: var(--color-text);
   white-space: nowrap;
 
   @media (prefers-color-scheme: dark) {
@@ -313,13 +295,6 @@
   display: flex;
   gap: var(--space-4, 1rem);
   padding: var(--space-4, 1rem) var(--space-5, 1.25rem);
-  border-top: 1px solid rgba(0, 0, 0, 0.1);
-  background: rgba(255, 193, 7, 0.05);
-
-  @media (prefers-color-scheme: dark) {
-    border-top-color: rgba(255, 255, 255, 0.1);
-    background: rgba(255, 193, 7, 0.03);
-  }
 }
 
 .leaderboard-dialog__stat {
@@ -331,7 +306,6 @@
 
 .leaderboard-dialog__stat-label {
   font-size: var(--font-size-xs, 0.75rem);
-  color: rgba(0, 0, 0, 0.6);
   font-weight: var(--font-weight-semibold, 600);
   letter-spacing: var(--letter-spacing-tight, -0.5px);
   text-transform: uppercase;
@@ -344,7 +318,7 @@
 .leaderboard-dialog__stat-value {
   font-size: var(--font-size-lg, 1.125rem);
   font-weight: var(--font-weight-bold, 700);
-  color: var(--color-on-background, #1a1a1a);
+  color: var(--color-text);
 
   @media (prefers-color-scheme: dark) {
     color: var(--color-on-background-dark, #e0e0e0);

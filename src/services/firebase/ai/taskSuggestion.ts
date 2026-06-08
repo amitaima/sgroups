@@ -184,7 +184,7 @@ const buildPrompt = (
   completedTasks: TaskSuggestionTaskSummary[],
   openTasks: TaskSuggestionTaskSummary[],
   inProgressTasks: TaskSuggestionTaskSummary[],
-  reviewTasks: TaskSuggestionTaskSummary[],
+  // reviewTasks: TaskSuggestionTaskSummary[],
 ): string => {
   return `אתה עוזר תכנון משימות אקדמי.
 השב אך ורק ב-JSON תקני בלבד, ללא markdown, ללא bullets, ללא הסברים נוספים וללא טקסט מעבר ל-JSON.
@@ -214,7 +214,6 @@ ${buildTaskListBlock("משימות פתוחות", openTasks)}
 
 ${buildTaskListBlock("משימות בתהליך עבודה", inProgressTasks)}
 
-${buildTaskListBlock("משימות בבדיקה", reviewTasks)}
 
 כותרת המשימה החדשה: ${taskTitle}
 
@@ -227,7 +226,7 @@ export const generateTaskSuggestion = async (
   completedTasks: TaskSuggestionTaskSummary[],
   openTasks: TaskSuggestionTaskSummary[],
   inProgressTasks: TaskSuggestionTaskSummary[],
-  reviewTasks: TaskSuggestionTaskSummary[],
+  // reviewTasks: TaskSuggestionTaskSummary[],
 ): Promise<TaskSuggestionResult> => {
   const prompt = buildPrompt(
     project,
@@ -235,7 +234,7 @@ export const generateTaskSuggestion = async (
     completedTasks,
     openTasks,
     inProgressTasks,
-    reviewTasks,
+    // reviewTasks,
   );
 
   const result = await taskSuggestionModel.generateContent(prompt);

@@ -1,64 +1,279 @@
 import { useState } from "react";
-import {
-  getProjectMemberScores,
-  getTopMembers,
-  getTopProjectMembers,
-  type ProjectMemberScoreWithTasks,
-} from "@utils/scoreCalculation";
-import type { ProjectMemberScore } from "@utils/mockScoreData";
 import { LeaderboardDialog } from "@components/dashboard/LeaderboardDialog";
-import type { MemberDirectoryUser, ProjectTaskRecord } from "@services/firebase/firebase";
+import type {
+  MemberDirectoryUser,
+  ProjectTaskRecord,
+} from "@services/firebase/firebase";
+import { GlassPanel } from "@components/ui/GlassPanel";
 import "./Podium.scss";
 
-interface PodiumProps {
-  tasks?: ProjectTaskRecord[];
-  members?: MemberDirectoryUser[];
+interface TopUser {
+  id?: string;
+  name?: string;
+  photoURL?: string;
+  score?: number;
 }
 
-/**
- * Kahoot-style podium component
- * Displays top 3 members with ranking (1st place center/highest, 2nd place left, 3rd place right)
- */
-export const Podium = ({ tasks, members }: PodiumProps) => {
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const hasProjectData = Array.isArray(tasks) && tasks.length > 0 && Array.isArray(members) && members.length > 0;
-  const topMembers = hasProjectData
-    ? getTopProjectMembers(tasks, members, 3)
-    : getTopMembers(3);
+interface PodiumProps {
+  topUsers?: TopUser[];
+  tasks?: ProjectTaskRecord[];
+  members?: MemberDirectoryUser[];
+  trophyName?: string | null;
+}
 
-  // Arrange members in podium order: [2nd, 1st, 3rd]
-  const podiumOrder: (ProjectMemberScoreWithTasks | ProjectMemberScore | undefined)[] = [
-    topMembers[1], // 2nd place on left
-    topMembers[0], // 1st place in center (highest)
-    topMembers[2], // 3rd place on right
+const getInitials = (name?: string) => {
+  if (!name) return "?";
+  const parts = name.trim().split(/\s+/);
+  return parts.length > 1
+    ? `${parts[0][0]}${parts[1][0]}`.toUpperCase()
+    : name.slice(0, 2).toUpperCase();
+};
+
+const Avatar = ({
+  src,
+  name,
+  size = "md",
+}: {
+  src?: string | null;
+  name?: string;
+  size?: "sm" | "md" | "lg";
+}) => {
+  const [failed, setFailed] = useState(false);
+  const dims = { sm: 36, md: 44, lg: 56 };
+  const textSize = { sm: "0.7rem", md: "0.8rem", lg: "1rem" };
+  const d = dims[size];
+
+  if (!src || failed) {
+    return (
+      <div
+        style={{
+          width: d,
+          height: d,
+          borderRadius: "50%",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontWeight: 700,
+          fontSize: textSize[size],
+          background: "var(--color-primary-container)",
+          color: "var(--color-primary)",
+          border: "2.5px solid var(--color-surface-raised)",
+          boxShadow: "0 3px 12px rgba(0,0,0,0.1)",
+        }}
+      >
+        {getInitials(name)}
+      </div>
+    );
+  }
+
+  return (
+    <img
+      style={{
+        width: d,
+        height: d,
+        borderRadius: "50%",
+        objectFit: "cover",
+        border: "2.5px solid var(--color-surface-raised)",
+        boxShadow: "0 3px 12px rgba(0,0,0,0.1)",
+      }}
+      src={src}
+      alt={name ?? ""}
+      onError={() => setFailed(true)}
+    />
+  );
+};
+
+export const Podium = ({
+  topUsers = [],
+  tasks,
+  members,
+  trophyName,
+}: PodiumProps) => {
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const podiumUsers = topUsers?.slice(0, 3) ?? [];
+
+  const podiumSlots = [
+    {
+      position: "second" as const,
+      medal: "🥈",
+      heightPct: 70,
+      user: podiumUsers[1],
+      rank: 2,
+    },
+    {
+      position: "first" as const,
+      medal: "🥇",
+      heightPct: 90,
+      user: podiumUsers[0],
+      rank: 1,
+    },
+    {
+      position: "third" as const,
+      medal: "🥉",
+      heightPct: 50,
+      user: podiumUsers[2],
+      rank: 3,
+    },
   ];
 
-  const handlePodiumClick = () => {
-    setIsDialogOpen(true);
+  const barColors: Record<number, string> = {
+    1: "linear-gradient(180deg, #ffd700 0%, #b8860b 100%)",
+    2: "linear-gradient(180deg, #e8e8e8 0%, #a0a0a0 100%)",
+    3: "linear-gradient(180deg, #e8a060 0%, #a0522d 100%)",
   };
 
   return (
     <>
-      <div className="podium" onClick={handlePodiumClick} role="button" tabIndex={0}>
-        <div className="podium__container">
-          <div className="podium__step podium__step--second">
-            {podiumOrder[0] && (
-              <PodiumMember member={podiumOrder[0]} position="second" />
-            )}
-          </div>
+      <div
+        style={{ width: "100%", height: "100%", cursor: "pointer" }}
+        onClick={() => setIsDialogOpen(true)}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") setIsDialogOpen(true);
+        }}
+      >
+        <GlassPanel
+          className="distribution-card"
+          style={{
+            width: "100%",
+            height: "100%",
+            position: "relative",
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "flex-end",
+            padding: "1.25rem",
+            paddingTop: "3.5rem",
+          }}
+        >
+          {trophyName && (
+            <div
+              style={{
+                position: "absolute",
+                top: "0.75rem",
+                right: "0.75rem",
+                zIndex: 10,
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "0.5rem",
+                padding: "0.5rem 0.85rem",
+                borderRadius: "0.5rem",
+                background:
+                  "color-mix(in srgb, var(--color-primary-container) 85%, var(--color-surface-raised))",
+                border:
+                  "1px solid color-mix(in srgb, var(--color-primary) 25%, transparent)",
+                boxShadow:
+                  "0 2px 8px color-mix(in srgb, var(--color-primary) 10%, transparent)",
+                maxWidth: "80%",
+              }}
+            >
+              <span style={{ fontSize: "1.1rem", lineHeight: 1 }}>🏆</span>
+              <span
+                style={{
+                  fontSize: "0.75rem",
+                  fontWeight: 700,
+                  color: "var(--color-text)",
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                }}
+              >
+                {trophyName}
+              </span>
+            </div>
+          )}
 
-          <div className="podium__step podium__step--first">
-            {podiumOrder[1] && (
-              <PodiumMember member={podiumOrder[1]} position="first" />
-            )}
-          </div>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "flex-end",
+              justifyContent: "center",
+              gap: "0",
+              height: "100%",
+              width: "100%",
+              maxWidth: "28rem",
+              margin: "0 auto",
+            }}
+          >
+            {podiumSlots.map(({ position, medal, heightPct, user, rank }) => {
+              const firstName = user?.name?.split(" ")[0] ?? "";
 
-          <div className="podium__step podium__step--third">
-            {podiumOrder[2] && (
-              <PodiumMember member={podiumOrder[2]} position="third" />
-            )}
+              return (
+                <div
+                  key={position}
+                  className="podium-slot"
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    gap: "0.5rem",
+                    flex: "1 1 0",
+                    minWidth: 0,
+                    height: `${heightPct}%`,
+                    position: "relative",
+                  }}
+                >
+                  {user?.score != null && (
+                    <div className="podium-slot__tooltip">
+                      {user.score} נקודות
+                    </div>
+                  )}
+
+                  <div style={{ position: "relative" }}>
+                    <Avatar
+                      src={user?.photoURL}
+                      name={user?.name}
+                      size={rank === 1 ? "lg" : "md"}
+                    />
+                  </div>
+
+                  <div
+                    className="podium-slot__bar"
+                    style={{
+                      height: "100%",
+                      width: "100%",
+                      borderRadius: "1rem 1rem 0 0",
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: "0.3rem",
+                      padding: "0.5rem 0.25rem",
+                      background: barColors[rank],
+                      border:
+                        "1px solid color-mix(in srgb, var(--color-primary) 8%, var(--color-surface-glass-border))",
+                      boxShadow: "inset 0 1px 0 rgba(255,255,255,0.4)",
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontSize: rank === 1 ? "1.75rem" : "1.4rem",
+                        lineHeight: 1,
+                      }}
+                    >
+                      {medal}
+                    </span>
+                    <span
+                      style={{
+                        fontSize: "0.7rem",
+                        fontWeight: 600,
+                        color: rank === 2 ? "var(--color-text)" : "#fff",
+                        textAlign: "center",
+                        lineHeight: 1.2,
+                        maxWidth: "100%",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {firstName}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
           </div>
-        </div>
+        </GlassPanel>
       </div>
 
       <LeaderboardDialog
@@ -68,42 +283,5 @@ export const Podium = ({ tasks, members }: PodiumProps) => {
         members={members}
       />
     </>
-  );
-};
-
-interface PodiumMemberProps {
-  member: ProjectMemberScore | ProjectMemberScoreWithTasks;
-  position: "first" | "second" | "third";
-}
-
-const PodiumMember = ({ member, position }: PodiumMemberProps) => {
-  const positionLabel = {
-    first: "🥇",
-    second: "🥈",
-    third: "🥉",
-  };
-
-  const rankNumber = position === "first" ? 1 : position === "second" ? 2 : 3;
-
-  return (
-    <div className={`podium-member podium-member--${position}`}>
-      <div className="podium-member__medal">{positionLabel[position]}</div>
-
-      <div className="podium-member__content">
-        <div className="podium-member__avatar">
-          <img
-            src={member.photoURL || `https://i.pravatar.cc/150?img=${member.id}`}
-            alt={member.name}
-            loading="lazy"
-          />
-          <span className="podium-member__rank">#{rankNumber}</span>
-        </div>
-
-        <div className="podium-member__info">
-          <h3 className="podium-member__name">{member.name}</h3>
-          <p className="podium-member__score">{member.totalScore} pts</p>
-        </div>
-      </div>
-    </div>
   );
 };
