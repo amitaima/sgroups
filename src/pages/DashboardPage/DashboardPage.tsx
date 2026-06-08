@@ -85,7 +85,6 @@ type DashboardLinkRow = {
 const TASK_STATUS_ORDER: TaskStatus[] = [
   "todo",
   "inProgress",
-  // "review",
   "completed",
 ];
 
@@ -98,7 +97,6 @@ const TASK_PRIORITY_LABELS: Record<TaskPriority, string> = {
 const TASK_STATUS_LABELS: Record<TaskStatus, string> = {
   todo: "To Do",
   inProgress: "In Progress",
-  // review: "Review",
   completed: "Completed",
 };
 
@@ -723,7 +721,6 @@ export const DashboardPage = () => {
       (task) => task.status === "completed" || task.completed,
     );
     const inProgressTasks = projectTasks.filter((task) => task.status === "inProgress");
-    const reviewTasks = projectTasks.filter((task) => task.status === "review");
     const rawOpenTasks = projectTasks.filter(
       (task) => task.status !== "completed" && !task.completed,
     );
@@ -746,7 +743,6 @@ export const DashboardPage = () => {
         completedTasks: completedTasks.map(buildCompetitionTaskSummary),
         openTasks: rawOpenTasks.map(buildCompetitionTaskSummary),
         inProgressTasks: inProgressTasks.map(buildCompetitionTaskSummary),
-        reviewTasks: reviewTasks.map(buildCompetitionTaskSummary),
       });
 
       setProgressSummary(summary);
@@ -1030,6 +1026,7 @@ export const DashboardPage = () => {
   );
   const closestDeadlineDate = formatDateLabel(closestDeadline?.timestamp);
 
+
   return (
     <PageSection className="dashboard-page">
       <div className="dashboard-page__hero">
@@ -1045,19 +1042,6 @@ export const DashboardPage = () => {
         />
       </div>
 
-      <div className="grid grid-cols-1 gap-4">
-        <div className="grid grid-cols-1 gap-4 xl:grid-cols-4">
-          <div className="dashboard-page__panel dashboard-page__panel--overview min-w-0 max-h-[36vh] min-h-[20rem]">
-            <ProgressOverviewCard
-              progress={progressValue}
-              title="התקדמות הפרויקט"
-              subtitle={
-                selectedProject.description ?? "לוח ניהול לפרויקט הנבחר."
-              }
-              hint={progressHint}
-              badgeLabel={`${openTasks.length} פתוחות`}
-            />
-          </div>
       {showLeaderSpotlight && leader ? (
         <div className="dashboard-page__leader-spotlight" role="status">
           <button
@@ -1085,6 +1069,7 @@ export const DashboardPage = () => {
           </div>
         </div>
       ) : null}
+
       <div className="dashboard-page__summary-grid">
         <div className="dashboard-page__panel dashboard-page__panel--overview">
           <ProgressOverviewCard
@@ -1108,51 +1093,51 @@ export const DashboardPage = () => {
           />
         </div>
 
-          <div className="dashboard-page__panel dashboard-page__panel--deadline min-w-0 max-h-[36vh] min-h-[20rem]">
-            <GlassPanel className="dashboard-page__deadline-card p-4">
-              <div className="dashboard-page__card-header">
-                <div>
-                  <p className="dashboard-page__eyebrow">Deadlines</p>
-                  <h3 className="dashboard-page__card-title">דדליינים</h3>
+        <div className="dashboard-page__panel dashboard-page__panel--deadline">
+          <GlassPanel className="dashboard-page__deadline-card p-4">
+            <div className="dashboard-page__card-header">
+              <div>
+                <p className="dashboard-page__eyebrow">Deadlines</p>
+                <h3 className="dashboard-page__card-title">דדליינים</h3>
+              </div>
+              <span className="dashboard-page__deadline-badge">
+                {closestDeadlineLabel}
+              </span>
+            </div>
+
+            <div className="dashboard-page__deadline-list">
+              <div className="dashboard-page__deadline-item">
+                <div className="dashboard-page__deadline-copy">
+                  <span className="dashboard-page__deadline-label">
+                    היעד הקרוב
+                  </span>
+                  <strong className="dashboard-page__deadline-value">
+                    {closestDeadline ? closestDeadline.label : "טרם הוגדר"}
+                  </strong>
                 </div>
-                <span className="dashboard-page__deadline-badge">
-                  {closestDeadlineLabel}
-                </span>
+                <div className="dashboard-page__deadline-meta">
+                  <span>{closestDeadlineDate}</span>
+                  <span>{closestDeadlineLabel}</span>
+                </div>
               </div>
 
-              <div className="dashboard-page__deadline-list">
-                <div className="dashboard-page__deadline-item">
-                  <div className="dashboard-page__deadline-copy">
-                    <span className="dashboard-page__deadline-label">
-                      היעד הקרוב
-                    </span>
-                    <strong className="dashboard-page__deadline-value">
-                      {closestDeadline ? closestDeadline.label : "טרם הוגדר"}
-                    </strong>
-                  </div>
-                  <div className="dashboard-page__deadline-meta">
-                    <span>{closestDeadlineDate}</span>
-                    <span>{closestDeadlineLabel}</span>
-                  </div>
+              <div className="dashboard-page__deadline-item dashboard-page__deadline-item--accent">
+                <div className="dashboard-page__deadline-copy">
+                  <span className="dashboard-page__deadline-label">
+                    הגשה סופית
+                  </span>
+                  <strong className="dashboard-page__deadline-value">
+                    {finalDeadline ? "הגשה סופית" : "טרם הוגדר"}
+                  </strong>
                 </div>
-
-                <div className="dashboard-page__deadline-item dashboard-page__deadline-item--accent">
-                  <div className="dashboard-page__deadline-copy">
-                    <span className="dashboard-page__deadline-label">
-                      הגשה סופית
-                    </span>
-                    <strong className="dashboard-page__deadline-value">
-                      {finalDeadline ? "הגשה סופית" : "טרם הוגדר"}
-                    </strong>
-                  </div>
-                  <div className="dashboard-page__deadline-meta">
-                    <span>{finalDeadlineDate}</span>
-                    <span>{finalDeadlineLabel}</span>
-                  </div>
+                <div className="dashboard-page__deadline-meta">
+                  <span>{finalDeadlineDate}</span>
+                  <span>{finalDeadlineLabel}</span>
                 </div>
               </div>
-            </GlassPanel>
-          </div>
+            </div>
+          </GlassPanel>
+        </div>
 
         <div className="dashboard-page__panel dashboard-page__panel--tasks">
           <OpenTasksCard
@@ -1188,93 +1173,29 @@ export const DashboardPage = () => {
               <Sparkles size={18} />
               איך לנצח עם AI?
             </Button>
-          <div className="dashboard-page__panel dashboard-page__panel--tasks min-w-0 max-h-[36vh] min-h-[20rem]">
-            <OpenTasksCard
-              tasks={openTasks}
-              onTaskClick={handleOpenTaskClick}
-              onToggleTask={handleTaskToggle}
-              updatingTaskId={updatingTaskId}
-              emptyState="אין עדיין אבני דרך פתוחות בפרויקט."
-              actions={
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  type="button"
-                  onClick={() =>
-                    navigate(
-                      getProjectWorkspacePath(selectedProject.id, "tasks"),
-                    )
-                  }
-                >
-                  <ListCheck size={14} />
-                </Button>
-              }
-            />
-          </div>
-
-          <div className="dashboard-page__panel dashboard-page__panel--links min-w-0 max-h-[36vh] min-h-[20rem]">
-            <TeamLinksCard
-              links={links}
-              actions={
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  type="button"
-                  onClick={openLinksDialog}
-                >
-                  <LinkIcon size={14} />
-                  <Plus size={12} />
-                </Button>
-              }
-            />
-          </div>
             <Podium tasks={projectTasks} members={projectMembers} />
           </div>
         </div>
-
-        <div className="dashboard-page__panel dashboard-page__panel--links">
-          <TeamLinksCard
-            links={links}
-            actions={
-              <Button
-                variant="secondary"
-                size="sm"
-                type="button"
-                onClick={openLinksDialog}
-              >
-                <LinkIcon size={14} />
-                <Plus size={12} />
-              </Button>
-            }
-          />
-        </div>
-
-        <div className="grid grid-cols-1 gap-6 xl:grid-cols-4">
-          <div className="col-span-1 xl:col-span-2 overflow-hidden max-h-[36vh] min-h-[20rem] min-w-0 h-full">
-            <TaskDistributionCard data={distributionData} />
-          </div>
-
-        <div className="dashboard-page__panel dashboard-page__panel--team">
-          <TeamMembersCard
-           members={memberRows.map((member) => ({
-  name: member.name,
-  role: ROLE_LABELS[member.role],
-  // Add ?.photoURL at the end to get just the string!
-  photoURL: projectMembers.find((p) => p.uid === member.id)?.photoURL 
-}))}
-            actions={
-              <Button
-                variant="secondary"
-                size="sm"
-                type="button"
-                onClick={openMembersDialog}
-              >
-                <UserPlus size={14} />
-              </Button>
-            }
-          />
-        </div>
       </div>
+
+      <div className="dashboard-page__panel dashboard-page__panel--links">
+        <TeamLinksCard
+          links={links}
+          actions={
+            <Button
+              variant="secondary"
+              size="sm"
+              type="button"
+              onClick={openLinksDialog}
+            >
+              <LinkIcon size={14} />
+              <Plus size={12} />
+            </Button>
+          }
+        />
+      </div>
+
+      <TaskDistributionCard data={distributionData} />
 
       {isProgressSummaryOpen ? (
         <div

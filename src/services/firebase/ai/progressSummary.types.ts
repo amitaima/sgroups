@@ -9,7 +9,6 @@ export interface ProjectProgressSummaryInput {
   completedTasks: CompetitionTaskSummary[];
   openTasks: CompetitionTaskSummary[];
   inProgressTasks: CompetitionTaskSummary[];
-  reviewTasks: CompetitionTaskSummary[];
 }
 
 export interface ProjectProgressSummaryResult {

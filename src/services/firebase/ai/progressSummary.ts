@@ -79,7 +79,6 @@ const simplifyTask = (task: ProjectProgressSummaryInput["completedTasks"][number
 const buildPrompt = (input: ProjectProgressSummaryInput): string => {
   const completedTasks = input.completedTasks.slice(0, 14).map(simplifyTask);
   const inProgressTasks = input.inProgressTasks.slice(0, 8).map(simplifyTask);
-  const reviewTasks = input.reviewTasks.slice(0, 8).map(simplifyTask);
   const openTasks = input.openTasks.slice(0, 10).map(simplifyTask);
 
   return `אתה עוזר AI באפליקציית ניהול פרויקטים לסטודנטים.
@@ -96,9 +95,6 @@ ${JSON.stringify(completedTasks)}
 
 משימות בתהליך:
 ${JSON.stringify(inProgressTasks)}
-
-משימות בבדיקה:
-${JSON.stringify(reviewTasks)}
 
 משימות פתוחות:
 ${JSON.stringify(openTasks)}
