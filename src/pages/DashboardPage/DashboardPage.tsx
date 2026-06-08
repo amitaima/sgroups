@@ -36,6 +36,7 @@ import type {
 import {
   getProjectTasks,
   getUsersByIds,
+  reassignRemovedMemberTasks,
   resolveMemberIdsByEmails,
   subscribeProjectTasks,
   updateProject,
@@ -50,7 +51,7 @@ import type {
 } from "../../types/common";
 import "./DashboardPage.scss";
 import { Podium } from "@components/dashboard/Podium/Podium";
-import { getProjectMemberScores } from "@utils/scoreCalculation";
+import { getProjectMemberScores, getTopProjectMembers } from "@utils/scoreCalculation";
 import {
   generateCompetitionCoachPlan,
   generateProjectProgressSummary,
@@ -81,12 +82,7 @@ type DashboardLinkRow = {
   url: string;
 };
 
-const TASK_STATUS_ORDER: TaskStatus[] = [
-  "todo",
-  "inProgress",
-  "review",
-  "completed",
-];
+const TASK_STATUS_ORDER: TaskStatus[] = ["todo", "inProgress", "completed"];
 
 const TASK_PRIORITY_LABELS: Record<TaskPriority, string> = {
   high: "High",
@@ -97,7 +93,6 @@ const TASK_PRIORITY_LABELS: Record<TaskPriority, string> = {
 const TASK_STATUS_LABELS: Record<TaskStatus, string> = {
   todo: "To Do",
   inProgress: "In Progress",
-  review: "Review",
   completed: "Completed",
 };
 
@@ -393,13 +388,21 @@ export const DashboardPage = () => {
   );
   const [isSavingTask, setIsSavingTask] = useState(false);
   const [showLeaderSpotlight, setShowLeaderSpotlight] = useState(false);
-  const [competitionPlan, setCompetitionPlan] = useState<CompetitionCoachResult | null>(null);
-  const [competitionPlanError, setCompetitionPlanError] = useState<string | null>(null);
-  const [isGeneratingCompetitionPlan, setIsGeneratingCompetitionPlan] = useState(false);
+  const [competitionPlan, setCompetitionPlan] =
+    useState<CompetitionCoachResult | null>(null);
+  const [competitionPlanError, setCompetitionPlanError] = useState<
+    string | null
+  >(null);
+  const [isGeneratingCompetitionPlan, setIsGeneratingCompetitionPlan] =
+    useState(false);
   const [isCompetitionCoachOpen, setIsCompetitionCoachOpen] = useState(false);
-  const [progressSummary, setProgressSummary] = useState<ProjectProgressSummaryResult | null>(null);
-  const [progressSummaryError, setProgressSummaryError] = useState<string | null>(null);
-  const [isGeneratingProgressSummary, setIsGeneratingProgressSummary] = useState(false);
+  const [progressSummary, setProgressSummary] =
+    useState<ProjectProgressSummaryResult | null>(null);
+  const [progressSummaryError, setProgressSummaryError] = useState<
+    string | null
+  >(null);
+  const [isGeneratingProgressSummary, setIsGeneratingProgressSummary] =
+    useState(false);
   const [isProgressSummaryOpen, setIsProgressSummaryOpen] = useState(false);
   const membersDialogRef = useRef<HTMLDialogElement>(null);
   const linksDialogRef = useRef<HTMLDialogElement>(null);
@@ -591,14 +594,25 @@ export const DashboardPage = () => {
     () => getProjectMemberScores(projectTasks, projectMembers),
     [projectMembers, projectTasks],
   );
+  const topUsers = useMemo(
+    () =>
+      getTopProjectMembers(projectTasks, projectMembers, 3).map((m) => ({
+        id: m.id,
+        name: m.name,
+        photoURL: m.photoURL,
+        score: m.totalScore,
+      })),
+    [projectTasks, projectMembers],
+  );
   const leader = rankedMembers[0] ?? null;
   const currentUserScore = useMemo(
     () => rankedMembers.find((member) => member.id === user?.uid) ?? null,
     [rankedMembers, user?.uid],
   );
-  const scoreGap = leader && currentUserScore
-    ? Math.max(0, leader.totalScore - currentUserScore.totalScore)
-    : 0;
+  const scoreGap =
+    leader && currentUserScore
+      ? Math.max(0, leader.totalScore - currentUserScore.totalScore)
+      : 0;
 
   useEffect(() => {
     if (!activeProject || !leader) {
@@ -620,7 +634,10 @@ export const DashboardPage = () => {
     }
 
     const timeoutId = window.setTimeout(() => {
-      sessionStorage.setItem(`sgroups:leader-spotlight:${activeProject.id}`, "shown");
+      sessionStorage.setItem(
+        `sgroups:leader-spotlight:${activeProject.id}`,
+        "shown",
+      );
       setShowLeaderSpotlight(false);
     }, 3200);
 
@@ -629,7 +646,10 @@ export const DashboardPage = () => {
 
   const closeLeaderSpotlight = () => {
     if (activeProject) {
-      sessionStorage.setItem(`sgroups:leader-spotlight:${activeProject.id}`, "shown");
+      sessionStorage.setItem(
+        `sgroups:leader-spotlight:${activeProject.id}`,
+        "shown",
+      );
     }
     setShowLeaderSpotlight(false);
   };
@@ -691,7 +711,9 @@ export const DashboardPage = () => {
       setCompetitionPlan(plan);
     } catch (error) {
       console.error("Failed to generate competition plan", error);
-      setCompetitionPlanError("לא הצלחנו ליצור תוכנית AI כרגע. נסי שוב עוד רגע.");
+      setCompetitionPlanError(
+        "לא הצלחנו ליצור תוכנית AI כרגע. נסי שוב עוד רגע.",
+      );
     } finally {
       setIsGeneratingCompetitionPlan(false);
     }
@@ -717,8 +739,9 @@ export const DashboardPage = () => {
     const completedTasks = projectTasks.filter(
       (task) => task.status === "completed" || task.completed,
     );
-    const inProgressTasks = projectTasks.filter((task) => task.status === "inProgress");
-    const reviewTasks = projectTasks.filter((task) => task.status === "review");
+    const inProgressTasks = projectTasks.filter(
+      (task) => task.status === "inProgress",
+    );
     const rawOpenTasks = projectTasks.filter(
       (task) => task.status !== "completed" && !task.completed,
     );
@@ -741,13 +764,14 @@ export const DashboardPage = () => {
         completedTasks: completedTasks.map(buildCompetitionTaskSummary),
         openTasks: rawOpenTasks.map(buildCompetitionTaskSummary),
         inProgressTasks: inProgressTasks.map(buildCompetitionTaskSummary),
-        reviewTasks: reviewTasks.map(buildCompetitionTaskSummary),
       });
 
       setProgressSummary(summary);
     } catch (error) {
       console.error("Failed to generate project progress summary", error);
-      setProgressSummaryError("לא הצלחנו ליצור סיכום התקדמות כרגע. נסי שוב עוד רגע.");
+      setProgressSummaryError(
+        "לא הצלחנו ליצור סיכום התקדמות כרגע. נסי שוב עוד רגע.",
+      );
     } finally {
       setIsGeneratingProgressSummary(false);
     }
@@ -918,10 +942,22 @@ export const DashboardPage = () => {
     const nextMemberIds = Array.from(nextMemberIdsSet);
 
     try {
+      const removedIds = activeProject.memberIds.filter(
+        (id) => !nextMemberIdsSet.has(id),
+      );
+
       await updateProject(activeProject.id, {
         memberIds: nextMemberIds,
         memberRoles: nextMemberRoles,
       });
+
+      if (removedIds.length > 0) {
+        await reassignRemovedMemberTasks(
+          activeProject.id,
+          removedIds,
+          nextMemberIds,
+        );
+      }
 
       const refreshedMembers = await getUsersByIds(nextMemberIds);
       setProjectMembers(refreshedMembers);
@@ -1150,23 +1186,6 @@ export const DashboardPage = () => {
           />
         </div>
 
-        <div className="dashboard-page__panel dashboard-page__panel--podium">
-          <div className="dashboard-page__podium-stack">
-            <Button
-              className="dashboard-page__coach-trigger"
-              variant="secondary"
-              size="md"
-              type="button"
-              onClick={openCompetitionCoach}
-            >
-              <Sparkles size={18} />
-              איך לנצח עם AI?
-            </Button>
-
-            <Podium tasks={projectTasks} members={projectMembers} />
-          </div>
-        </div>
-
         <div className="dashboard-page__panel dashboard-page__panel--links">
           <TeamLinksCard
             links={links}
@@ -1188,22 +1207,22 @@ export const DashboardPage = () => {
           <TaskDistributionCard data={distributionData} />
         </div>
 
-        <div className="dashboard-page__panel dashboard-page__panel--team">
-          <TeamMembersCard
-           members={memberRows.map((member) => ({
-  name: member.name,
-  role: ROLE_LABELS[member.role],
-  // Add ?.photoURL at the end to get just the string!
-  photoURL: projectMembers.find((p) => p.uid === member.id)?.photoURL 
-}))}
-            actions={
+        <div className="dashboard-page__panel dashboard-page__panel--podium col-span-2">
+          <Podium
+            topUsers={topUsers}
+            tasks={projectTasks}
+            members={projectMembers}
+            trophyName={activeProject.trophyName ?? null}
+            coachButton={
               <Button
+                className="dashboard-page__coach-trigger"
                 variant="secondary"
-                size="sm"
+                size="md"
                 type="button"
-                onClick={openMembersDialog}
+                onClick={(e) => { e.stopPropagation(); openCompetitionCoach(); }}
               >
-                <UserPlus size={14} />
+                <Sparkles size={18} />
+                איך לנצח עם AI?
               </Button>
             }
           />
@@ -1226,7 +1245,10 @@ export const DashboardPage = () => {
             <div className="dashboard-page__coach-dialog-header">
               <div>
                 <p className="dashboard-page__eyebrow">AI Summary</p>
-                <h3 id="progress-summary-title" className="dashboard-page__card-title">
+                <h3
+                  id="progress-summary-title"
+                  className="dashboard-page__card-title"
+                >
                   מה נעשה עד כה?
                 </h3>
               </div>
@@ -1242,11 +1264,15 @@ export const DashboardPage = () => {
             </div>
 
             {progressSummaryError ? (
-              <p className="dashboard-page__coach-error">{progressSummaryError}</p>
+              <p className="dashboard-page__coach-error">
+                {progressSummaryError}
+              </p>
             ) : null}
 
             {isGeneratingProgressSummary ? (
-              <p className="dashboard-page__coach-summary">מסכם את התקדמות הפרויקט...</p>
+              <p className="dashboard-page__coach-summary">
+                מסכם את התקדמות הפרויקט...
+              </p>
             ) : null}
 
             {progressSummary ? (
@@ -1301,7 +1327,10 @@ export const DashboardPage = () => {
             <div className="dashboard-page__coach-dialog-header">
               <div>
                 <p className="dashboard-page__eyebrow">AI Coach</p>
-                <h3 id="competition-coach-title" className="dashboard-page__card-title">
+                <h3
+                  id="competition-coach-title"
+                  className="dashboard-page__card-title"
+                >
                   איך לעקוף את המוביל?
                 </h3>
               </div>
@@ -1325,11 +1354,15 @@ export const DashboardPage = () => {
             </p>
 
             {competitionPlanError ? (
-              <p className="dashboard-page__coach-error">{competitionPlanError}</p>
+              <p className="dashboard-page__coach-error">
+                {competitionPlanError}
+              </p>
             ) : null}
 
             {isGeneratingCompetitionPlan ? (
-              <p className="dashboard-page__coach-summary">מחשב תוכנית ניצחון...</p>
+              <p className="dashboard-page__coach-summary">
+                מחשב תוכנית ניצחון...
+              </p>
             ) : null}
 
             {competitionPlan ? (
@@ -1342,7 +1375,10 @@ export const DashboardPage = () => {
                 </ul>
                 <div className="dashboard-page__coach-task-list">
                   {competitionPlan.recommendedTasks.map((task) => (
-                    <div key={task.taskId ?? task.title} className="dashboard-page__coach-task">
+                    <div
+                      key={task.taskId ?? task.title}
+                      className="dashboard-page__coach-task"
+                    >
                       <span>{task.title}</span>
                       <small>{task.reason}</small>
                     </div>

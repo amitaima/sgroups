@@ -53,6 +53,8 @@
 .dashboard-page__panel {
   min-width: 0;
   display: flex;
+  height: 36vh;
+  min-height: 280px;
 }
 
 .dashboard-page__panel > * {
@@ -421,8 +423,19 @@
   aspect-ratio: 1;
   border-radius: var(--radius-full);
   background:
-    radial-gradient(circle, color-mix(in srgb, var(--color-primary) 28%, transparent) 0 18%, transparent 42%),
-    conic-gradient(from 20deg, transparent 0 12%, color-mix(in srgb, var(--color-primary) 22%, transparent) 16%, transparent 24% 44%, color-mix(in srgb, var(--color-secondary) 20%, transparent) 52%, transparent 60% 100%);
+    radial-gradient(
+      circle,
+      color-mix(in srgb, var(--color-primary) 28%, transparent) 0 18%,
+      transparent 42%
+    ),
+    conic-gradient(
+      from 20deg,
+      transparent 0 12%,
+      color-mix(in srgb, var(--color-primary) 22%, transparent) 16%,
+      transparent 24% 44%,
+      color-mix(in srgb, var(--color-secondary) 20%, transparent) 52%,
+      transparent 60% 100%
+    );
   filter: blur(2px);
   animation: leader-beams 3.2s ease both;
 }
@@ -472,7 +485,8 @@
     color-mix(in srgb, var(--color-secondary-container) 70%, white)
   );
   color: var(--color-primary);
-  box-shadow: 0 18px 60px color-mix(in srgb, var(--color-primary) 24%, transparent);
+  box-shadow: 0 18px 60px
+    color-mix(in srgb, var(--color-primary) 24%, transparent);
   animation: leader-pop 650ms ease both;
 }
 
@@ -490,7 +504,11 @@
   gap: var(--space-1);
   padding: var(--space-5);
   border-radius: var(--radius-xl);
-  background: color-mix(in srgb, var(--color-surface-glass-strong) 92%, var(--color-surface-raised));
+  background: color-mix(
+    in srgb,
+    var(--color-surface-glass-strong) 92%,
+    var(--color-surface-raised)
+  );
   box-shadow: var(--shadow-glass-strong);
   text-align: center;
 }
@@ -506,10 +524,6 @@
   font-size: clamp(1.6rem, 4vw, 2.6rem);
 }
 
-
-
-
-
 .dashboard-page__progress-ai-button {
   border-radius: var(--radius-full);
   white-space: nowrap;
@@ -524,7 +538,11 @@
 .dashboard-page__progress-highlights span {
   padding: var(--space-1) var(--space-3);
   border-radius: var(--radius-full);
-  background: color-mix(in srgb, var(--color-secondary-container) 50%, var(--color-surface-raised));
+  background: color-mix(
+    in srgb,
+    var(--color-secondary-container) 50%,
+    var(--color-surface-raised)
+  );
   color: var(--color-secondary);
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-semibold);
@@ -621,7 +639,11 @@
   width: 2.25rem;
   height: 2.25rem;
   border-radius: var(--radius-full);
-  background: color-mix(in srgb, var(--color-primary-container) 64%, var(--color-surface-raised));
+  background: color-mix(
+    in srgb,
+    var(--color-primary-container) 64%,
+    var(--color-surface-raised)
+  );
   color: var(--color-primary);
 }
 
@@ -665,7 +687,11 @@
   gap: 0.15rem;
   padding: var(--space-2) var(--space-3);
   border-radius: var(--radius-lg);
-  background: color-mix(in srgb, var(--color-primary-container) 32%, var(--color-surface-raised));
+  background: color-mix(
+    in srgb,
+    var(--color-primary-container) 32%,
+    var(--color-surface-raised)
+  );
 }
 
 .dashboard-page__coach-task span {

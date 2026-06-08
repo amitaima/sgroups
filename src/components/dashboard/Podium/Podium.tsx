@@ -19,6 +19,7 @@ interface PodiumProps {
   tasks?: ProjectTaskRecord[];
   members?: MemberDirectoryUser[];
   trophyName?: string | null;
+  coachButton?: React.ReactNode;
 }
 
 const getInitials = (name?: string) => {
@@ -88,6 +89,7 @@ export const Podium = ({
   tasks,
   members,
   trophyName,
+  coachButton,
 }: PodiumProps) => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const podiumUsers = topUsers?.slice(0, 3) ?? [];
@@ -146,6 +148,19 @@ export const Podium = ({
             paddingTop: "3.5rem",
           }}
         >
+          {coachButton && (
+            <div
+              style={{
+                position: "absolute",
+                top: "0.75rem",
+                left: "0.75rem",
+                zIndex: 10,
+              }}
+            >
+              {coachButton}
+            </div>
+          )}
+
           {trophyName && (
             <div className="podium-trophy">
               <span className="podium-trophy__icon">🏆</span>
@@ -176,10 +191,11 @@ export const Podium = ({
                     display: "flex",
                     flexDirection: "column",
                     alignItems: "center",
+                    justifyContent: "flex-end",
                     gap: "0.5rem",
                     flex: "1 1 0",
                     minWidth: 0,
-                    height: `${heightPct}%`,
+                    height: `100%`,
                     position: "relative",
                   }}
                 >
@@ -194,7 +210,7 @@ export const Podium = ({
                   <div
                     className="podium-slot__bar"
                     style={{
-                      height: "100%",
+                      height: `${heightPct}%`,
                       width: "100%",
                       borderRadius: "1rem 1rem 0 0",
                       display: "flex",
@@ -211,19 +227,17 @@ export const Podium = ({
                   >
                     <span
                       style={{
-                        fontSize: rank === 1 ? "1.75rem" : "1.4rem",
-                        lineHeight: 1,
+                        fontSize: rank === 1 ? "2.25rem" : "1.75rem",
                       }}
                     >
                       {medal}
                     </span>
                     <span
                       style={{
-                        fontSize: "0.7rem",
+                        fontSize: "1.2rem",
                         fontWeight: 600,
                         color: rank === 2 ? "var(--color-text)" : "#fff",
                         textAlign: "center",
-                        lineHeight: 1.2,
                         maxWidth: "100%",
                         overflow: "hidden",
                         textOverflow: "ellipsis",
