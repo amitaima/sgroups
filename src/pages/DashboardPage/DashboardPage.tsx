@@ -18,6 +18,7 @@ import { GlassPanel } from "@components/ui/GlassPanel/GlassPanel";
 import { PageSection } from "@components/layout/PageSection/PageSection";
 import { SectionTitle } from "@components/ui/SectionTitle/SectionTitle";
 import { ProgressOverviewCard } from "@components/ui/ProgressOverviewCard/ProgressOverviewCard";
+import { TeamMembersCard } from "@components/ui/TeamMembersCard/TeamMembersCard";
 import { TaskDistributionCard } from "@components/ui/TaskDistributionCard/TaskDistributionCard";
 import { OpenTasksCard } from "@components/ui/OpenTasksCard/OpenTasksCard";
 import { TeamLinksCard } from "@components/ui/TeamLinksCard/TeamLinksCard";
@@ -35,7 +36,6 @@ import type {
 import {
   getProjectTasks,
   getUsersByIds,
-  reassignRemovedMemberTasks,
   resolveMemberIdsByEmails,
   subscribeProjectTasks,
   updateProject,
@@ -48,7 +48,6 @@ import type {
   TaskPriority,
   TaskStatus,
 } from "../../types/common";
-import { getTopProjectMembers } from "@utils/scoreCalculation";
 import "./DashboardPage.scss";
 import { Podium } from "@components/dashboard/Podium/Podium";
 import { getProjectMemberScores } from "@utils/scoreCalculation";
@@ -85,6 +84,7 @@ type DashboardLinkRow = {
 const TASK_STATUS_ORDER: TaskStatus[] = [
   "todo",
   "inProgress",
+  "review",
   "completed",
 ];
 
@@ -97,6 +97,7 @@ const TASK_PRIORITY_LABELS: Record<TaskPriority, string> = {
 const TASK_STATUS_LABELS: Record<TaskStatus, string> = {
   todo: "To Do",
   inProgress: "In Progress",
+  review: "Review",
   completed: "Completed",
 };
 
@@ -542,10 +543,6 @@ export const DashboardPage = () => {
     () => taskItems.filter((task) => !task.completed),
     [taskItems],
   );
-  const topUsers = useMemo(
-    () => getTopProjectMembers(projectTasks, projectMembers, 3),
-    [projectTasks, projectMembers],
-  );
   const progressValue = taskItems.length
     ? Math.round((completedTaskCount / taskItems.length) * 100)
     : 0;
@@ -721,6 +718,7 @@ export const DashboardPage = () => {
       (task) => task.status === "completed" || task.completed,
     );
     const inProgressTasks = projectTasks.filter((task) => task.status === "inProgress");
+    const reviewTasks = projectTasks.filter((task) => task.status === "review");
     const rawOpenTasks = projectTasks.filter(
       (task) => task.status !== "completed" && !task.completed,
     );
@@ -743,6 +741,7 @@ export const DashboardPage = () => {
         completedTasks: completedTasks.map(buildCompetitionTaskSummary),
         openTasks: rawOpenTasks.map(buildCompetitionTaskSummary),
         inProgressTasks: inProgressTasks.map(buildCompetitionTaskSummary),
+        reviewTasks: reviewTasks.map(buildCompetitionTaskSummary),
       });
 
       setProgressSummary(summary);
@@ -919,18 +918,10 @@ export const DashboardPage = () => {
     const nextMemberIds = Array.from(nextMemberIdsSet);
 
     try {
-      const removedIds = activeProject.memberIds.filter(
-        (id) => !nextMemberIdsSet.has(id),
-      );
-
       await updateProject(activeProject.id, {
         memberIds: nextMemberIds,
         memberRoles: nextMemberRoles,
       });
-
-      if (removedIds.length > 0) {
-        await reassignRemovedMemberTasks(activeProject.id, removedIds, nextMemberIds);
-      }
 
       const refreshedMembers = await getUsersByIds(nextMemberIds);
       setProjectMembers(refreshedMembers);
@@ -1026,7 +1017,6 @@ export const DashboardPage = () => {
   );
   const closestDeadlineDate = formatDateLabel(closestDeadline?.timestamp);
 
-
   return (
     <PageSection className="dashboard-page">
       <div className="dashboard-page__hero">
@@ -1069,7 +1059,6 @@ export const DashboardPage = () => {
           </div>
         </div>
       ) : null}
-
       <div className="dashboard-page__summary-grid">
         <div className="dashboard-page__panel dashboard-page__panel--overview">
           <ProgressOverviewCard
@@ -1094,7 +1083,7 @@ export const DashboardPage = () => {
         </div>
 
         <div className="dashboard-page__panel dashboard-page__panel--deadline">
-          <GlassPanel className="dashboard-page__deadline-card p-4">
+          <GlassPanel className="dashboard-page__deadline-card">
             <div className="dashboard-page__card-header">
               <div>
                 <p className="dashboard-page__eyebrow">Deadlines</p>
@@ -1173,29 +1162,53 @@ export const DashboardPage = () => {
               <Sparkles size={18} />
               איך לנצח עם AI?
             </Button>
+
             <Podium tasks={projectTasks} members={projectMembers} />
           </div>
         </div>
-      </div>
 
-      <div className="dashboard-page__panel dashboard-page__panel--links">
-        <TeamLinksCard
-          links={links}
-          actions={
-            <Button
-              variant="secondary"
-              size="sm"
-              type="button"
-              onClick={openLinksDialog}
-            >
-              <LinkIcon size={14} />
-              <Plus size={12} />
-            </Button>
-          }
-        />
-      </div>
+        <div className="dashboard-page__panel dashboard-page__panel--links">
+          <TeamLinksCard
+            links={links}
+            actions={
+              <Button
+                variant="secondary"
+                size="sm"
+                type="button"
+                onClick={openLinksDialog}
+              >
+                <LinkIcon size={14} />
+                <Plus size={12} />
+              </Button>
+            }
+          />
+        </div>
 
-      <TaskDistributionCard data={distributionData} />
+        <div className="dashboard-page__panel dashboard-page__panel--distribution col-span-2">
+          <TaskDistributionCard data={distributionData} />
+        </div>
+
+        <div className="dashboard-page__panel dashboard-page__panel--team">
+          <TeamMembersCard
+           members={memberRows.map((member) => ({
+  name: member.name,
+  role: ROLE_LABELS[member.role],
+  // Add ?.photoURL at the end to get just the string!
+  photoURL: projectMembers.find((p) => p.uid === member.id)?.photoURL 
+}))}
+            actions={
+              <Button
+                variant="secondary"
+                size="sm"
+                type="button"
+                onClick={openMembersDialog}
+              >
+                <UserPlus size={14} />
+              </Button>
+            }
+          />
+        </div>
+      </div>
 
       {isProgressSummaryOpen ? (
         <div
