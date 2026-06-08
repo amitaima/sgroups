@@ -15,7 +15,6 @@ import { GlassPanel } from "@components/ui/GlassPanel/GlassPanel";
 import { PageSection } from "@components/layout/PageSection/PageSection";
 import { SectionTitle } from "@components/ui/SectionTitle/SectionTitle";
 import { ProgressOverviewCard } from "@components/ui/ProgressOverviewCard/ProgressOverviewCard";
-import { TeamMembersCard } from "@components/ui/TeamMembersCard/TeamMembersCard";
 import { TaskDistributionCard } from "@components/ui/TaskDistributionCard/TaskDistributionCard";
 import { OpenTasksCard } from "@components/ui/OpenTasksCard/OpenTasksCard";
 import { TeamLinksCard } from "@components/ui/TeamLinksCard/TeamLinksCard";
@@ -45,6 +44,7 @@ import type {
   TaskPriority,
   TaskStatus,
 } from "../../types/common";
+import { getTopProjectMembers } from "@utils/scoreCalculation";
 import "./DashboardPage.scss";
 import { Podium } from "@components/dashboard/Podium/Podium";
 
@@ -73,7 +73,7 @@ type DashboardLinkRow = {
 const TASK_STATUS_ORDER: TaskStatus[] = [
   "todo",
   "inProgress",
-  "review",
+  // "review",
   "completed",
 ];
 
@@ -86,7 +86,7 @@ const TASK_PRIORITY_LABELS: Record<TaskPriority, string> = {
 const TASK_STATUS_LABELS: Record<TaskStatus, string> = {
   todo: "To Do",
   inProgress: "In Progress",
-  review: "Review",
+  // review: "Review",
   completed: "Completed",
 };
 
@@ -522,6 +522,10 @@ export const DashboardPage = () => {
     () => taskItems.filter((task) => !task.completed),
     [taskItems],
   );
+  const topUsers = useMemo(
+    () => getTopProjectMembers(projectTasks, projectMembers, 3),
+    [projectTasks, projectMembers],
+  );
   const progressValue = taskItems.length
     ? Math.round((completedTaskCount / taskItems.length) * 100)
     : 0;
@@ -566,16 +570,6 @@ export const DashboardPage = () => {
     href: link.url,
   }));
   const activeMembersCount = activeProject?.memberIds.length ?? 0;
-
-  const openMembersDialog = () => {
-    if (!activeProject) {
-      return;
-    }
-
-    setMembersError(null);
-    setMemberDrafts(buildMemberDrafts(memberRows));
-    setMembersDialogOpen(true);
-  };
 
   const openLinksDialog = () => {
     if (!activeProject) {
@@ -834,127 +828,112 @@ export const DashboardPage = () => {
         />
       </div>
 
-      <div className="dashboard-page__summary-grid">
-        <div className="dashboard-page__panel dashboard-page__panel--overview">
-          <ProgressOverviewCard
-            progress={progressValue}
-            title="התקדמות הפרויקט"
-            subtitle={selectedProject.description ?? "לוח ניהול לפרויקט הנבחר."}
-            hint={progressHint}
-            badgeLabel={`${openTasks.length} פתוחות`}
-          />
-        </div>
+      <div className="grid grid-cols-1 gap-4">
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-4">
+          <div className="dashboard-page__panel dashboard-page__panel--overview min-w-0">
+            <ProgressOverviewCard
+              progress={progressValue}
+              title="התקדמות הפרויקט"
+              subtitle={selectedProject.description ?? "לוח ניהול לפרויקט הנבחר."}
+              hint={progressHint}
+              badgeLabel={`${openTasks.length} פתוחות`}
+            />
+          </div>
 
-        <div className="dashboard-page__panel dashboard-page__panel--deadline">
-          <GlassPanel className="dashboard-page__deadline-card">
-            <div className="dashboard-page__card-header">
-              <div>
-                <p className="dashboard-page__eyebrow">Deadlines</p>
-                <h3 className="dashboard-page__card-title">דדליינים</h3>
-              </div>
-              <span className="dashboard-page__deadline-badge">
-                {closestDeadlineLabel}
-              </span>
-            </div>
-
-            <div className="dashboard-page__deadline-list">
-              <div className="dashboard-page__deadline-item">
-                <div className="dashboard-page__deadline-copy">
-                  <span className="dashboard-page__deadline-label">
-                    היעד הקרוב
-                  </span>
-                  <strong className="dashboard-page__deadline-value">
-                    {closestDeadline ? closestDeadline.label : "טרם הוגדר"}
-                  </strong>
+          <div className="dashboard-page__panel dashboard-page__panel--deadline min-w-0">
+            <GlassPanel className="dashboard-page__deadline-card p-4">
+              <div className="dashboard-page__card-header">
+                <div>
+                  <p className="dashboard-page__eyebrow">Deadlines</p>
+                  <h3 className="dashboard-page__card-title">דדליינים</h3>
                 </div>
-                <div className="dashboard-page__deadline-meta">
-                  <span>{closestDeadlineDate}</span>
-                  <span>{closestDeadlineLabel}</span>
-                </div>
+                <span className="dashboard-page__deadline-badge">
+                  {closestDeadlineLabel}
+                </span>
               </div>
 
-              <div className="dashboard-page__deadline-item dashboard-page__deadline-item--accent">
-                <div className="dashboard-page__deadline-copy">
-                  <span className="dashboard-page__deadline-label">
-                    הגשה סופית
-                  </span>
-                  <strong className="dashboard-page__deadline-value">
-                    {finalDeadline ? "הגשה סופית" : "טרם הוגדר"}
-                  </strong>
+              <div className="dashboard-page__deadline-list">
+                <div className="dashboard-page__deadline-item">
+                  <div className="dashboard-page__deadline-copy">
+                    <span className="dashboard-page__deadline-label">
+                      היעד הקרוב
+                    </span>
+                    <strong className="dashboard-page__deadline-value">
+                      {closestDeadline ? closestDeadline.label : "טרם הוגדר"}
+                    </strong>
+                  </div>
+                  <div className="dashboard-page__deadline-meta">
+                    <span>{closestDeadlineDate}</span>
+                    <span>{closestDeadlineLabel}</span>
+                  </div>
                 </div>
-                <div className="dashboard-page__deadline-meta">
-                  <span>{finalDeadlineDate}</span>
-                  <span>{finalDeadlineLabel}</span>
+
+                <div className="dashboard-page__deadline-item dashboard-page__deadline-item--accent">
+                  <div className="dashboard-page__deadline-copy">
+                    <span className="dashboard-page__deadline-label">
+                      הגשה סופית
+                    </span>
+                    <strong className="dashboard-page__deadline-value">
+                      {finalDeadline ? "הגשה סופית" : "טרם הוגדר"}
+                    </strong>
+                  </div>
+                  <div className="dashboard-page__deadline-meta">
+                    <span>{finalDeadlineDate}</span>
+                    <span>{finalDeadlineLabel}</span>
+                  </div>
                 </div>
               </div>
-            </div>
-          </GlassPanel>
+            </GlassPanel>
+          </div>
+
+          <div className="dashboard-page__panel dashboard-page__panel--tasks min-w-0">
+            <OpenTasksCard
+              tasks={openTasks}
+              onTaskClick={handleOpenTaskClick}
+              onToggleTask={handleTaskToggle}
+              updatingTaskId={updatingTaskId}
+              emptyState="אין עדיין אבני דרך פתוחות בפרויקט."
+              actions={
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  type="button"
+                  onClick={() =>
+                    navigate(getProjectWorkspacePath(selectedProject.id, "tasks"))
+                  }
+                >
+                  <ListCheck size={14} />
+                </Button>
+              }
+            />
+          </div>
+
+          <div className="dashboard-page__panel dashboard-page__panel--links min-w-0">
+            <TeamLinksCard
+              links={links}
+              actions={
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  type="button"
+                  onClick={openLinksDialog}
+                >
+                  <LinkIcon size={14} />
+                  <Plus size={12} />
+                </Button>
+              }
+            />
+          </div>
         </div>
 
-        <div className="dashboard-page__panel dashboard-page__panel--tasks">
-          <OpenTasksCard
-            tasks={openTasks}
-            onTaskClick={handleOpenTaskClick}
-            onToggleTask={handleTaskToggle}
-            updatingTaskId={updatingTaskId}
-            emptyState="אין עדיין אבני דרך פתוחות בפרויקט."
-            actions={
-              <Button
-                variant="secondary"
-                size="sm"
-                type="button"
-                onClick={() =>
-                  navigate(getProjectWorkspacePath(selectedProject.id, "tasks"))
-                }
-              >
-                <ListCheck size={14} />
-              </Button>
-            }
-          />
-        </div>
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-4">
+          <div className="col-span-1 xl:col-span-2 overflow-hidden max-h-[40vh] min-w-0 h-full">
+            <TaskDistributionCard data={distributionData} />
+          </div>
 
-        <Podium tasks={projectTasks} members={projectMembers} />
-
-        <div className="dashboard-page__panel dashboard-page__panel--links">
-          <TeamLinksCard
-            links={links}
-            actions={
-              <Button
-                variant="secondary"
-                size="sm"
-                type="button"
-                onClick={openLinksDialog}
-              >
-                <LinkIcon size={14} />
-                <Plus size={12} />
-              </Button>
-            }
-          />
-        </div>
-
-        <div className="dashboard-page__panel dashboard-page__panel--distribution col-span-2">
-          <TaskDistributionCard data={distributionData} />
-        </div>
-
-        <div className="dashboard-page__panel dashboard-page__panel--team">
-          <TeamMembersCard
-           members={memberRows.map((member) => ({
-  name: member.name,
-  role: ROLE_LABELS[member.role],
-  // Add ?.photoURL at the end to get just the string!
-  photoURL: projectMembers.find((p) => p.uid === member.id)?.photoURL 
-}))}
-            actions={
-              <Button
-                variant="secondary"
-                size="sm"
-                type="button"
-                onClick={openMembersDialog}
-              >
-                <UserPlus size={14} />
-              </Button>
-            }
-          />
+          <div className="col-span-1 xl:col-span-2 overflow-hidden max-h-[40vh] min-w-0 h-full">
+            <Podium topUsers={topUsers} tasks={projectTasks} members={projectMembers} />
+          </div>
         </div>
       </div>
 

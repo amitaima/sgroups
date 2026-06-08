@@ -33,14 +33,14 @@ const TASK_COLUMN_CONFIG: Record<
 > = {
   todo: { title: "To Do", tone: "neutral" },
   inProgress: { title: "In Progress", tone: "teal" },
-  review: { title: "Review", tone: "olive" },
+  // review: { title: "Review", tone: "olive" },
   completed: { title: "Completed", tone: "primary" },
 };
 
 const TASK_STATUS_ORDER: TaskStatus[] = [
   "todo",
   "inProgress",
-  "review",
+  // "review",
   "completed",
 ];
 
@@ -53,7 +53,7 @@ const TASK_PRIORITY_LABELS: Record<TaskPriority, string> = {
 const TASK_STATUS_LABELS: Record<TaskStatus, string> = {
   todo: "To Do",
   inProgress: "In Progress",
-  review: "Review",
+  // review: "Review",
   completed: "Completed",
 };
 

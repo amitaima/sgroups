@@ -854,8 +854,8 @@ const sortProjectTasks = (tasks: ProjectTaskRecord[]) =>
     const statusOrder: Record<TaskStatus, number> = {
       todo: 0,
       inProgress: 1,
-      review: 2,
-      completed: 3,
+      // review: 2,
+      completed: 2,
     };
 
     if (statusOrder[left.status] !== statusOrder[right.status]) {

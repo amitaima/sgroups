@@ -5,6 +5,7 @@ import {
   getProjectMembersWithScores,
   type ProjectMemberScoreWithTasks,
 } from "@utils/scoreCalculation";
+import type { ProjectMemberScore } from "@utils/mockScoreData";
 import type { MemberDirectoryUser, ProjectTaskRecord } from "@services/firebase/firebase";
 import "./LeaderboardDialog.scss";
 
@@ -93,16 +94,16 @@ export const LeaderboardDialog = ({
               <thead className="leaderboard-table__head">
                 <tr className="leaderboard-table__header-row">
                   <th className="leaderboard-table__cell leaderboard-table__cell--rank">
-                    Rank / דירוג
+                    דירוג
                   </th>
                   <th className="leaderboard-table__cell leaderboard-table__cell--profile">
-                    Profile / פרופיל
+                     פרופיל
                   </th>
                   <th className="leaderboard-table__cell leaderboard-table__cell--name">
-                    Name / שם
+                    שם
                   </th>
                   <th className="leaderboard-table__cell leaderboard-table__cell--score">
-                    Score / ניקוד
+                    ניקוד
                   </th>
                 </tr>
               </thead>
@@ -126,13 +127,13 @@ export const LeaderboardDialog = ({
             <span className="leaderboard-dialog__stat-value">{rankedMembers.length}</span>
           </div>
           <div className="leaderboard-dialog__stat">
-            <span className="leaderboard-dialog__stat-label">Top Score / ניקוד גבוה</span>
+            <span className="leaderboard-dialog__stat-label"> ניקוד גבוה</span>
             <span className="leaderboard-dialog__stat-value">
               {rankedMembers[0]?.totalScore || 0}
             </span>
           </div>
           <div className="leaderboard-dialog__stat">
-            <span className="leaderboard-dialog__stat-label">Average / ממוצע</span>
+            <span className="leaderboard-dialog__stat-label"> ממוצע</span>
             <span className="leaderboard-dialog__stat-value">
               {Math.round(
                 rankedMembers.reduce((sum, m) => sum + m.totalScore, 0) /
@@ -147,7 +148,7 @@ export const LeaderboardDialog = ({
 };
 
 interface LeaderboardRowProps {
-  member: ProjectMemberScoreWithTasks;
+  member: ProjectMemberScoreWithTasks | ProjectMemberScore;
   index: number;
 }
 

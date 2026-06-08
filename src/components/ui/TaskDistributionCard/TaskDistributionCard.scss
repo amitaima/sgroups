@@ -2,20 +2,22 @@
   display: flex;
   flex-direction: column;
   height: 100%;
-  padding: var(--space-5);
-  // border: 1px solid color-mix(in srgb, var(--color-primary) 10%, white);
-  // background: linear-gradient(
-  //   180deg,
-  //   color-mix(in srgb, white 88%, var(--color-primary) 2%),
-  //   color-mix(in srgb, white 94%, var(--color-primary) 1%)
-  // );
+  padding: var(--space-4);
+  min-height: 0;
 }
 
 .distribution-card__header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  margin-bottom: var(--space-5);
+  margin-bottom: var(--space-4);
+}
+
+.distribution-card__content {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 0;
 }
 
 .distribution-card__eyebrow {
@@ -31,30 +33,35 @@
 }
 
 .distribution-card__body {
-  display: grid;
-  grid-template-columns: 15rem minmax(0, 1fr);
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: var(--space-6);
-  // min-height: 15rem;
-  max-height: 12rem;
+  justify-content: center;
+  gap: var(--space-4);
+  min-height: 0;
 }
 
 .distribution-card__chartColumn {
   display: flex;
   align-items: center;
   justify-content: center;
+  min-width: 0;
+  width: min(200px, 100%);
 }
 
 .distribution-card__donut {
-  --size: 12rem;
-  --ring-width: 3.25rem;
+  --size: 10rem;
+  --ring-width: 2.5rem;
 
   position: relative;
-  width: var(--size);
-  height: var(--size);
+  width: min(200px, 100%);
+  height: min(200px, 100%);
+  max-width: 200px;
+  max-height: 200px;
+  aspect-ratio: 1 / 1;
   border-radius: 50%;
   background: var(--distribution-gradient);
-  border: 5px solid
+  border: 4px solid
     color-mix(in srgb, var(--color-bg) 86%, var(--color-surface-raised) 14%);
   box-shadow: 0 4px 10px
     color-mix(in srgb, var(--color-primary) 20%, transparent);
@@ -113,12 +120,10 @@
   flex-direction: column;
   gap: var(--space-3);
   min-width: 0;
-  max-height: stretch;
-  overflow: scroll;
-  margin: -20px;
-  padding: 20px;
-  margin-top: -10px;
-  padding-top: 10px;
+  width: 100%;
+  overflow: visible;
+  margin: 0;
+  padding: 0;
 }
 
 .distribution-card__row {
