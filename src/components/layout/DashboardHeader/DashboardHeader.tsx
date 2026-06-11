@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import type { DashboardHeaderProps } from "./DashboardHeader.types";
 import { ProjectSwitcher } from "@components/layout/ProjectSwitcher/ProjectSwitcher";
@@ -137,12 +138,15 @@ export const DashboardHeader = ({
         </div>
       </div>
       
-      <LeaderboardDialog 
-        isOpen={isLeaderboardOpen} 
-        onClose={() => setIsLeaderboardOpen(false)} 
-        tasks={tasks.length > 0 ? tasks : undefined}
-        members={members.length > 0 ? members : undefined}
-      />
+      {createPortal(
+        <LeaderboardDialog 
+          isOpen={isLeaderboardOpen} 
+          onClose={() => setIsLeaderboardOpen(false)} 
+          tasks={tasks.length > 0 ? tasks : undefined}
+          members={members.length > 0 ? members : undefined}
+        />,
+        document.body,
+      )}
     </header>
   );
 };

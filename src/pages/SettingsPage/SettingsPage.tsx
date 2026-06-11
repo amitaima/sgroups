@@ -1148,6 +1148,160 @@ export const SettingsPage = () => {
               </Button>
             </GlassPanel>
 
+            {canManageTeam && (
+              <GlassPanel className="settings-page__card">
+                <div className="settings-page__card-header">
+                  <div>
+                    <p className="settings-page__eyebrow">ניהול צוות</p>
+                    <h3 className="settings-page__card-title">חברי הפרויקט</h3>
+                  </div>
+                  <Users size={18} strokeWidth={2.1} />
+                </div>
+
+                <div className="settings-page__stack">
+                  {memberRows.map((member) => (
+                    <div
+                      key={member.id}
+                      className="settings-page__stack-item settings-page__member-row"
+                    >
+                      <div className="settings-page__member-info">
+                        {member.photoURL ? (
+                          <img
+                            src={member.photoURL}
+                            alt=""
+                            className="settings-page__member-avatar"
+                          />
+                        ) : (
+                          <span className="settings-page__member-avatar settings-page__member-avatar--placeholder">
+                            {(member.displayName || "?").charAt(0)}
+                          </span>
+                        )}
+                        <div>
+                          <strong>{member.displayName}</strong>
+                          {member.email && (
+                            <span className="settings-page__member-email">
+                              {member.email}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="settings-page__member-actions">
+                        <select
+                          value={draft?.memberRoles[member.id] ?? member.role}
+                          disabled={member.isCreator}
+                          onChange={(e) => {
+                            if (!draft) return;
+                            const nextRoles = {
+                              ...draft.memberRoles,
+                              [member.id]: e.target.value as ProjectMemberRole,
+                            };
+                            updateDraft("memberRoles", nextRoles);
+                          }}
+                        >
+                          {PROJECT_ROLE_OPTIONS.map((opt) => (
+                            <option key={opt.value} value={opt.value}>
+                              {opt.label}
+                            </option>
+                          ))}
+                        </select>
+                        {!member.isCreator && (
+                          <button
+                            className="settings-page__stack-remove"
+                            type="button"
+                            onClick={() => {
+                              if (!draft) return;
+                              const nextIds = draft.memberIds.filter(
+                                (id) => id !== member.id,
+                              );
+                              const nextRoles = { ...draft.memberRoles };
+                              delete nextRoles[member.id];
+                              setDraft({
+                                ...draft,
+                                memberIds: nextIds,
+                                memberRoles: nextRoles,
+                              });
+                            }}
+                            aria-label={`הסרת ${member.displayName}`}
+                          >
+                            <X size={16} />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="settings-page__invite-row">
+                  <input
+                    type="email"
+                    placeholder="הוספת חבר/ה לפי אימייל"
+                    value={inviteEmails}
+                    onChange={(e) => setInviteEmails(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        const email = inviteEmails.trim();
+                        if (!email || !draft || !project) return;
+                        void (async () => {
+                          const { memberIds: resolved, missingEmails } =
+                            await resolveMemberIdsByEmails([email]);
+                          if (missingEmails.length > 0) {
+                            setSaveError(
+                              `לא נמצא משתמש עם המייל: ${missingEmails.join(", ")}`,
+                            );
+                            return;
+                          }
+                          const newId = resolved[0];
+                          if (draft.memberIds.includes(newId)) return;
+                          setDraft({
+                            ...draft,
+                            memberIds: [...draft.memberIds, newId],
+                            memberRoles: {
+                              ...draft.memberRoles,
+                              [newId]: "member",
+                            },
+                          });
+                          setInviteEmails("");
+                        })();
+                      }
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => {
+                      const email = inviteEmails.trim();
+                      if (!email || !draft || !project) return;
+                      void (async () => {
+                        const { memberIds: resolved, missingEmails } =
+                          await resolveMemberIdsByEmails([email]);
+                        if (missingEmails.length > 0) {
+                          setSaveError(
+                            `לא נמצא משתמש עם המייל: ${missingEmails.join(", ")}`,
+                          );
+                          return;
+                        }
+                        const newId = resolved[0];
+                        if (draft.memberIds.includes(newId)) return;
+                        setDraft({
+                          ...draft,
+                          memberIds: [...draft.memberIds, newId],
+                          memberRoles: {
+                            ...draft.memberRoles,
+                            [newId]: "member",
+                          },
+                        });
+                        setInviteEmails("");
+                      })();
+                    }}
+                  >
+                    <Plus size={16} />
+                    הוספה
+                  </Button>
+                </div>
+              </GlassPanel>
+            )}
+
             {/* DONT TOUCH the comment */}
             {/* <GlassPanel className="settings-page__card">
               <div className="settings-page__card-header">

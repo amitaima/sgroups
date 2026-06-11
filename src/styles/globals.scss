@@ -101,8 +101,8 @@ p {
 }
 
 ::selection {
-  background: color-mix(in srgb, var(--color-primary-fixed-dim) 70%, white);
-  color: var(--color-primary-active);
+  background: var(--color-primary);
+  color: var(--color-primary-contrast);
 }
 
 /* Utility classes */

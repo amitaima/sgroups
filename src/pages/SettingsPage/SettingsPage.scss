@@ -333,7 +333,7 @@
 }
 
 .settings-page__member-actions select {
-  min-width: 8.5rem;
+  min-width: 6.5rem;
   min-height: 2.4rem;
   border-radius: var(--radius-pill);
   border: 1px solid
@@ -405,6 +405,90 @@
     var(--color-surface-raised)
   );
   transform: translateY(-1px);
+}
+
+.settings-page__member-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.settings-page__member-info {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.settings-page__member-info div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.settings-page__member-info strong {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+}
+
+.settings-page__member-email {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.settings-page__member-avatar {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: var(--radius-full);
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.settings-page__member-avatar--placeholder {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-primary-container);
+  color: var(--color-primary);
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-sm);
+}
+
+.settings-page__member-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.settings-page__member-actions select {
+  border: 1px solid var(--color-border);
+  border-inline-end: 0.5rem solid transparent;
+  border-radius: var(--radius-md);
+  background: var(--color-surface-alt);
+  color: var(--color-text);
+  font-size: var(--font-size-xs);
+}
+
+.settings-page__invite-row {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.settings-page__invite-row input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.6rem 0.8rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-alt);
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
 }
 
 .settings-page__toggles {
