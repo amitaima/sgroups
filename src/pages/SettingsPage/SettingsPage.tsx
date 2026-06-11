@@ -339,6 +339,7 @@ export const SettingsPage = () => {
   const [deleteConfirmValue, setDeleteConfirmValue] = useState("");
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [removeMemberTarget, setRemoveMemberTarget] = useState<MemberRow | null>(null);
 
   // --- autosave / dirty tracking refs & state ---
   const initialGeneralRef = useRef<string | null>(null);
@@ -1208,19 +1209,7 @@ export const SettingsPage = () => {
                           <button
                             className="settings-page__stack-remove"
                             type="button"
-                            onClick={() => {
-                              if (!draft) return;
-                              const nextIds = draft.memberIds.filter(
-                                (id) => id !== member.id,
-                              );
-                              const nextRoles = { ...draft.memberRoles };
-                              delete nextRoles[member.id];
-                              setDraft({
-                                ...draft,
-                                memberIds: nextIds,
-                                memberRoles: nextRoles,
-                              });
-                            }}
+                            onClick={() => setRemoveMemberTarget(member)}
                             aria-label={`הסרת ${member.displayName}`}
                           >
                             <X size={16} />
@@ -1542,6 +1531,74 @@ export const SettingsPage = () => {
           </GlassPanel>
         </div>
       ) : null}
+
+      {removeMemberTarget && (
+        <div
+          className="settings-page__dialog-backdrop"
+          role="presentation"
+          onClick={() => setRemoveMemberTarget(null)}
+        >
+          <GlassPanel
+            className="settings-page__dialog"
+            intensity="strong"
+            role="dialog"
+            aria-modal="true"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="settings-page__dialog-header">
+              <div>
+                <p className="settings-page__eyebrow">הסרת חבר/ת צוות</p>
+                <h3 className="settings-page__card-title">
+                  להסיר את {removeMemberTarget.displayName}?
+                </h3>
+              </div>
+              <button
+                className="settings-page__icon-button"
+                type="button"
+                onClick={() => setRemoveMemberTarget(null)}
+                aria-label="ביטול"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <p className="settings-page__dialog-copy">
+              המשתמש/ת יוסר/תוסר מהפרויקט ולא יוכל/תוכל לגשת אליו יותר.
+              המשימות שלהם ישויכו מחדש לשאר חברי הצוות.
+            </p>
+
+            <div className="settings-page__dialog-actions">
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => setRemoveMemberTarget(null)}
+              >
+                ביטול
+              </Button>
+              <button
+                className="settings-page__delete-button settings-page__delete-button--confirm"
+                type="button"
+                onClick={() => {
+                  if (!draft) return;
+                  const nextIds = draft.memberIds.filter(
+                    (id) => id !== removeMemberTarget.id,
+                  );
+                  const nextRoles = { ...draft.memberRoles };
+                  delete nextRoles[removeMemberTarget.id];
+                  setDraft({
+                    ...draft,
+                    memberIds: nextIds,
+                    memberRoles: nextRoles,
+                  });
+                  setRemoveMemberTarget(null);
+                }}
+              >
+                הסרה מהפרויקט
+              </button>
+            </div>
+          </GlassPanel>
+        </div>
+      )}
     </PageSection>
   );
 };
