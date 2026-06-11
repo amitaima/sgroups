@@ -733,6 +733,8 @@ const mapProjectSnapshot = (
     status: isProjectStatus(data.status) ? data.status : "active",
     logoLink: normalizeText(data.logoLink),
     trophyName: normalizeText(data.trophyName),
+    projectInstructions: normalizeText(data.projectInstructions),
+    aiProgressPercent: typeof data.aiProgressPercent === "number" ? data.aiProgressPercent : undefined,
   };
 };
 

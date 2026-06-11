@@ -408,7 +408,6 @@ export const DashboardPage = () => {
   >(null);
   const [isGeneratingProgressSummary, setIsGeneratingProgressSummary] =
     useState(false);
-  const [progressRefreshKey, setProgressRefreshKey] = useState(0);
   const [isProgressSummaryOpen, setIsProgressSummaryOpen] = useState(false);
   const membersDialogRef = useRef<HTMLDialogElement>(null);
   const linksDialogRef = useRef<HTMLDialogElement>(null);
@@ -650,47 +649,9 @@ export const DashboardPage = () => {
     return () => window.clearTimeout(timeoutId);
   }, [activeProject, leader, showLeaderSpotlight]);
 
-  // AI progress: only re-generate on completed count change or manual reload
-  const prevCompletedCountRef = useRef<number | null>(null);
-  const hasInitializedProgressRef = useRef(false);
-
-  // Step 1: On first project+tasks load, set baseline and trigger if no cached value
-  useEffect(() => {
-    if (!activeProject || !projectReady || hasInitializedProgressRef.current)
-      return;
-    if (projectTasks.length === 0 && activeProject.aiProgressPercent == null)
-      return;
-    hasInitializedProgressRef.current = true;
-
-    const initialCompleted = projectTasks.filter(
-      (t) => t.status === "completed" || t.completed,
-    ).length;
-    prevCompletedCountRef.current = initialCompleted;
-
-    // Trigger generation only if no cached value in DB
-    if (activeProject.aiProgressPercent == null && projectTasks.length > 0) {
-      setProgressRefreshKey((k) => k + 1);
-    }
-  }, [activeProject, projectReady, projectTasks]);
-
-  // Step 2: Re-generate only when completed count changes or manual reload
-  useEffect(() => {
-    if (!activeProject || !projectReady || !hasInitializedProgressRef.current)
-      return;
-    if (projectTasks.length === 0) return;
-    if (isGeneratingProgressSummary) return;
-
-    const currentCompleted = projectTasks.filter(
-      (t) => t.status === "completed" || t.completed,
-    ).length;
-
-    // Only trigger if completed count actually changed (not on page nav)
-    const countChanged =
-      prevCompletedCountRef.current !== null &&
-      prevCompletedCountRef.current !== currentCompleted;
-    if (!countChanged && progressRefreshKey === 0) return;
-
-    prevCompletedCountRef.current = currentCompleted;
+  // AI progress: show cached value from DB, only regenerate on manual button press
+  const handleReloadProgress = async () => {
+    if (!activeProject || isGeneratingProgressSummary || projectTasks.length === 0) return;
     setIsGeneratingProgressSummary(true);
 
     const completedTasks = projectTasks.filter(
@@ -703,41 +664,27 @@ export const DashboardPage = () => {
       (t) => t.status !== "completed" && !t.completed,
     );
 
-    void generateProjectProgressSummary({
-      project: {
-        name: activeProject.name,
-        description: activeProject.description,
-        progress: progressValue,
-      },
-      completedTasks: completedTasks.map(buildCompetitionTaskSummary),
-      openTasks: rawOpenTasks.map(buildCompetitionTaskSummary),
-      inProgressTasks: inProgressTasks.map(buildCompetitionTaskSummary),
-      projectDescription: activeProject.description || undefined,
-      projectInstructions: activeProject.projectInstructions || undefined,
-    })
-      .then((summary) => {
-        setProgressSummary(summary);
-        void updateProject(activeProject.id, {
-          aiProgressPercent: summary.progressPercent,
-        });
-      })
-      .catch((err) => console.error("Auto progress summary failed", err))
-      .finally(() => setIsGeneratingProgressSummary(false));
-  }, [progressRefreshKey]);
-
-  // Step 3: Watch for completed count changes (task completed/uncompleted)
-  useEffect(() => {
-    if (!hasInitializedProgressRef.current) return;
-    if (prevCompletedCountRef.current === null) return;
-    if (projectTasks.length === 0) return;
-    const currentCompleted = projectTasks.filter(
-      (t) => t.status === "completed" || t.completed,
-    ).length;
-    if (prevCompletedCountRef.current !== currentCompleted) {
-      prevCompletedCountRef.current = currentCompleted;
-      setProgressRefreshKey((k) => k + 1);
+    try {
+      const summary = await generateProjectProgressSummary({
+        project: {
+          name: activeProject.name,
+          description: activeProject.description,
+          progress: progressValue,
+        },
+        completedTasks: completedTasks.map(buildCompetitionTaskSummary),
+        openTasks: rawOpenTasks.map(buildCompetitionTaskSummary),
+        inProgressTasks: inProgressTasks.map(buildCompetitionTaskSummary),
+        projectDescription: activeProject.description || undefined,
+        projectInstructions: activeProject.projectInstructions || undefined,
+      });
+      setProgressSummary(summary);
+      void updateProject(activeProject.id, { aiProgressPercent: summary.progressPercent });
+    } catch (err) {
+      console.error("Progress summary failed", err);
+    } finally {
+      setIsGeneratingProgressSummary(false);
     }
-  }, [projectTasks]);
+  };
 
   const closeLeaderSpotlight = () => {
     if (activeProject) {
@@ -1216,10 +1163,7 @@ export const DashboardPage = () => {
                   variant="secondary"
                   size="sm"
                   type="button"
-                  onClick={() => {
-                    prevCompletedCountRef.current = -1;
-                    setProgressRefreshKey((k) => k + 1);
-                  }}
+                  onClick={() => void handleReloadProgress()}
                   disabled={isGeneratingProgressSummary}
                 >
                   <RefreshCw
