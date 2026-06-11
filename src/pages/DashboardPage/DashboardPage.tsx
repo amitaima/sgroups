@@ -51,7 +51,10 @@ import type {
 } from "../../types/common";
 import "./DashboardPage.scss";
 import { Podium } from "@components/dashboard/Podium/Podium";
-import { getProjectMemberScores, getTopProjectMembers } from "@utils/scoreCalculation";
+import {
+  getProjectMemberScores,
+  getTopProjectMembers,
+} from "@utils/scoreCalculation";
 import {
   generateCompetitionCoachPlan,
   generateProjectProgressSummary,
@@ -1112,7 +1115,7 @@ export const DashboardPage = () => {
                 onClick={openProgressSummary}
               >
                 <Sparkles size={14} />
-                מה נעשה?
+                מה עשינו?
               </Button>
             }
           />
@@ -1219,7 +1222,10 @@ export const DashboardPage = () => {
                 variant="secondary"
                 size="md"
                 type="button"
-                onClick={(e) => { e.stopPropagation(); openCompetitionCoach(); }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  openCompetitionCoach();
+                }}
               >
                 <Sparkles size={18} />
                 איך לנצח עם AI?

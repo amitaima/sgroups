@@ -28,8 +28,7 @@
     color-mix(in srgb, var(--color-surface-glass) 88%, var(--color-surface-alt))
       100%
   );
-  -webkit-backdrop-filter: blur(6px);
-  backdrop-filter: blur(6px);
+  /* backdrop-filter removed for performance */
   color: var(--color-text);
   box-shadow: var(--shadow-sm);
   cursor: pointer;
@@ -112,8 +111,7 @@
       100%
   );
   box-shadow: var(--shadow-lg);
-  -webkit-backdrop-filter: blur(6px);
-  backdrop-filter: blur(6px);
+  /* backdrop-filter removed for performance */
   display: flex;
   flex-direction: column;
   gap: var(--space-2);

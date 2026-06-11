@@ -190,7 +190,7 @@
 }
 
 .dashboard-page__dialog::backdrop {
-  background: color-mix(in srgb, var(--color-text) 45%, transparent);
+  background-color: rgba(0, 0, 0, 0.5);
   backdrop-filter: blur(6px);
 }
 
@@ -396,7 +396,7 @@
   display: grid;
   place-items: center;
   padding: var(--space-4);
-  background: color-mix(in srgb, var(--color-text) 30%, transparent);
+  background-color: rgba(0, 0, 0, 0.5);
   backdrop-filter: blur(10px);
   overflow: hidden;
 }
@@ -447,7 +447,7 @@
   border-radius: var(--radius-full);
   background: var(--color-primary);
   box-shadow: 0 0 24px color-mix(in srgb, var(--color-primary) 72%, transparent);
-  animation: leader-sparkle 1.4s ease-in-out infinite alternate;
+  animation: leader-sparkle 1.4s ease-in-out 3 alternate;
 }
 
 .dashboard-page__leader-sparkles span:nth-child(1) {
@@ -587,8 +587,8 @@
   display: grid;
   place-items: center;
   padding: var(--space-4);
-  background: color-mix(in srgb, var(--color-text) 28%, transparent);
-  backdrop-filter: blur(0.35rem);
+  background-color: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(6px);
 }
 
 .dashboard-page__coach-dialog {

@@ -1,6 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Navigate, useParams, useSearchParams } from "react-router-dom";
-import { Copy, Filter, Plus, Sparkles, SlidersHorizontal, TriangleAlert, X } from "lucide-react";
+import {
+  Copy,
+  Filter,
+  Plus,
+  Sparkles,
+  SlidersHorizontal,
+  TriangleAlert,
+  X,
+} from "lucide-react";
 import { useAuth } from "@app/providers/AuthProvider";
 import { Button } from "@components/ui/Button/Button";
 import { GlassPanel } from "@components/ui/GlassPanel/GlassPanel";
@@ -66,7 +74,6 @@ const TASK_STATUS_LABELS: Record<TaskStatus, string> = {
   completed: "Completed",
 };
 
-
 type TaskStatusMenuState = {
   taskId: string;
   x: number;
@@ -94,7 +101,6 @@ const createNoRecentActivitySummary = (): UserActivitySummaryResult => ({
   nextFocus: "ללא פעילות אחרונה",
 });
 
-
 const getShortTaskDescription = (description?: string | null) => {
   const normalizedDescription = description?.trim();
 
@@ -103,13 +109,21 @@ const getShortTaskDescription = (description?: string | null) => {
   }
 
   const [firstLine] = normalizedDescription.split(/\r?\n/);
-  return firstLine.length > 90 ? `${firstLine.slice(0, 90).trim()}...` : firstLine;
+  return firstLine.length > 90
+    ? `${firstLine.slice(0, 90).trim()}...`
+    : firstLine;
 };
 const createFallbackActivitySummary = (
-  tasks: Array<{ title: string; description?: string | null; status: string; updatedAt: string }>,
+  tasks: Array<{
+    title: string;
+    description?: string | null;
+    status: string;
+    updatedAt: string;
+  }>,
 ): UserActivitySummaryResult => {
   const lines = tasks.slice(0, 3).map((task) => {
-    const description = getShortTaskDescription(task.description) ?? "ללא פירוט נוסף";
+    const description =
+      getShortTaskDescription(task.description) ?? "ללא פירוט נוסף";
     return `${task.title} - פירוט קצר: ${description}.`;
   });
 
@@ -117,7 +131,8 @@ const createFallbackActivitySummary = (
     headline: "סיכום פעילות אחרונה",
     summaryLines: lines,
     highlights: tasks.slice(0, 3).map((task) => task.title),
-    nextFocus: "אפשר לשלוח את העדכון הזה לצוות ולהמשיך לקדם את המשימות הפתוחות.",
+    nextFocus:
+      "אפשר לשלוח את העדכון הזה לצוות ולהמשיך לקדם את המשימות הפתוחות.",
   };
 };
 
@@ -306,31 +321,40 @@ export const TasksPage = () => {
   const [isSavingTask, setIsSavingTask] = useState(false);
   const [deletingTaskId, setDeletingTaskId] = useState<string | null>(null);
   const [movingTaskId, setMovingTaskId] = useState<string | null>(null);
-  const [statusMenu, setStatusMenu] = useState<TaskStatusMenuState | null>(null);
-  const [taskPendingDelete, setTaskPendingDelete] = useState<ProjectTaskRecord | null>(null);
-  const [isGeneratingTaskSuggestion, setIsGeneratingTaskSuggestion] = useState(false);
+  const [statusMenu, setStatusMenu] = useState<TaskStatusMenuState | null>(
+    null,
+  );
+  const [taskPendingDelete, setTaskPendingDelete] =
+    useState<ProjectTaskRecord | null>(null);
+  const [isGeneratingTaskSuggestion, setIsGeneratingTaskSuggestion] =
+    useState(false);
   const [isTaskSuggestionUsed, setIsTaskSuggestionUsed] = useState(false);
   const [taskSuggestionTitleError, setTaskSuggestionTitleError] = useState<
     string | null
   >(null);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
-  const [activitySummary, setActivitySummary] = useState<UserActivitySummaryResult | null>(null);
-  const [activitySummaryError, setActivitySummaryError] = useState<string | null>(null);
+  const [activitySummary, setActivitySummary] =
+    useState<UserActivitySummaryResult | null>(null);
+  const [activitySummaryError, setActivitySummaryError] = useState<
+    string | null
+  >(null);
   const [isActivitySummaryOpen, setIsActivitySummaryOpen] = useState(false);
-  const [isGeneratingActivitySummary, setIsGeneratingActivitySummary] = useState(false);
-  const [activitySummaryCopyMessage, setActivitySummaryCopyMessage] = useState<string | null>(null);
+  const [isGeneratingActivitySummary, setIsGeneratingActivitySummary] =
+    useState(false);
+  const [activitySummaryCopyMessage, setActivitySummaryCopyMessage] = useState<
+    string | null
+  >(null);
   const activitySummaryUserName = user?.displayName || user?.email || "המשתמש";
   const [searchParams, setSearchParams] = useSearchParams();
   const [selectedAssigneeIds, setSelectedAssigneeIds] = useState<string[]>(() =>
     parseFilterQueryParam(searchParams.get("assignees")),
   );
-  const [selectedPriorities, setSelectedPriorities] = useState<
-    TaskPriority[]
-  >(() =>
-    parseFilterQueryParam(searchParams.get("priorities")).filter(
-      (priority): priority is TaskPriority =>
-        TASK_PRIORITIES.includes(priority as TaskPriority),
-    ),
+  const [selectedPriorities, setSelectedPriorities] = useState<TaskPriority[]>(
+    () =>
+      parseFilterQueryParam(searchParams.get("priorities")).filter(
+        (priority): priority is TaskPriority =>
+          TASK_PRIORITIES.includes(priority as TaskPriority),
+      ),
   );
   const [selectedDueBefore, setSelectedDueBefore] = useState(
     () => searchParams.get("dueBefore") ?? "",
@@ -338,7 +362,11 @@ export const TasksPage = () => {
   const suppressTaskClickRef = useRef(false);
   const suppressTaskClickTimerRef = useRef<number | null>(null);
   const boardRef = useRef<HTMLDivElement>(null);
-  const boardDragState = useRef<{ isDown: boolean; startX: number; scrollLeft: number }>({ isDown: false, startX: 0, scrollLeft: 0 });
+  const boardDragState = useRef<{
+    isDown: boolean;
+    startX: number;
+    scrollLeft: number;
+  }>({ isDown: false, startX: 0, scrollLeft: 0 });
   const boardAutoScrollRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -631,14 +659,18 @@ export const TasksPage = () => {
       const profile = await getUserProfile(user.uid);
       const previousLoginAt = toActivityDate(profile?.previousLoginAt);
       const currentLoginAt = toActivityDate(profile?.lastLoginAt) ?? new Date();
-      const fromDate = previousLoginAt ?? new Date(Date.now() - 24 * 60 * 60 * 1000);
+      const fromDate =
+        previousLoginAt ?? new Date(Date.now() - 24 * 60 * 60 * 1000);
 
       const userRelatedTasks = tasks
         .filter(
           (task) =>
             task.createdBy === user.uid || task.assigneeIds.includes(user.uid),
         )
-        .sort((left, right) => right.updatedAt.toMillis() - left.updatedAt.toMillis());
+        .sort(
+          (left, right) =>
+            right.updatedAt.toMillis() - left.updatedAt.toMillis(),
+        );
       const relevantTasks = userRelatedTasks.filter(
         (task) => task.updatedAt.toMillis() > fromDate.getTime(),
       );
@@ -660,13 +692,17 @@ export const TasksPage = () => {
         status: task.status,
         priority: task.priority,
         difficulty: task.difficulty,
-        dueDate: task.dueDate ? toActivityDateLabel(task.dueDate.toDate()) : null,
+        dueDate: task.dueDate
+          ? toActivityDateLabel(task.dueDate.toDate())
+          : null,
         updatedAt: toActivityDateLabel(task.updatedAt.toDate()),
         createdByCurrentUser: task.createdBy === user.uid,
         assignedToCurrentUser: task.assigneeIds.includes(user.uid),
       });
 
-      fallbackActivitySummary = createFallbackActivitySummary(recentWorkTasks.map(mapTask));
+      fallbackActivitySummary = createFallbackActivitySummary(
+        recentWorkTasks.map(mapTask),
+      );
 
       const summary = await generateUserActivitySummary({
         userName: user.displayName || user.email || "המשתמש",
@@ -715,13 +751,14 @@ export const TasksPage = () => {
       setActivitySummary(summary);
     } catch (summaryError) {
       console.error("Failed to generate task activity summary", summaryError);
-      setActivitySummary(fallbackActivitySummary ?? createNoRecentActivitySummary());
+      setActivitySummary(
+        fallbackActivitySummary ?? createNoRecentActivitySummary(),
+      );
       setActivitySummaryError(null);
     } finally {
       setIsGeneratingActivitySummary(false);
     }
   };
-
 
   const handleCopyActivitySummary = async () => {
     if (!activitySummary) {
@@ -848,7 +885,10 @@ export const TasksPage = () => {
     });
   };
 
-  const handleMoveTaskStatus = async (taskId: string, nextStatus: TaskStatus) => {
+  const handleMoveTaskStatus = async (
+    taskId: string,
+    nextStatus: TaskStatus,
+  ) => {
     if (!project || movingTaskId) {
       return;
     }
@@ -1118,14 +1158,19 @@ export const TasksPage = () => {
   const handleBoardPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     const board = boardRef.current;
     if (!board || e.button !== 0) return;
-    boardDragState.current = { isDown: true, startX: e.clientX, scrollLeft: board.scrollLeft };
+    boardDragState.current = {
+      isDown: true,
+      startX: e.clientX,
+      scrollLeft: board.scrollLeft,
+    };
   };
 
   const handleBoardPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
     const state = boardDragState.current;
     if (!state.isDown) return;
     e.preventDefault();
-    boardRef.current!.scrollLeft = state.scrollLeft - (e.clientX - state.startX);
+    boardRef.current!.scrollLeft =
+      state.scrollLeft - (e.clientX - state.startX);
   };
 
   const handleBoardPointerUp = () => {
@@ -1170,6 +1215,10 @@ export const TasksPage = () => {
             role="tablist"
             aria-label="תצוגת לוח"
           >
+            <span
+              className="tasks-page__toggle-indicator"
+              data-position={boardView === "board" ? "0" : "1"}
+            />
             <button
               className={`tasks-page__toggle-item${boardView === "board" ? " is-active" : ""}`}
               type="button"
@@ -1307,14 +1356,16 @@ export const TasksPage = () => {
                     >
                       {selectedAssigneeIds.length === assigneeOptions.length
                         ? "נקה הכל"
-                      : "בחר הכל"}
+                        : "בחר הכל"}
                     </button>
                   ) : null}
                 </div>
                 <div className="tasks-page__filter-group tasks-page__filter-group--scroll">
                   {assigneeOptions.length > 0 ? (
                     assigneeOptions.map((assignee) => {
-                      const isSelected = selectedAssigneeIds.includes(assignee.id);
+                      const isSelected = selectedAssigneeIds.includes(
+                        assignee.id,
+                      );
                       return (
                         <label
                           key={assignee.id}
@@ -1326,7 +1377,9 @@ export const TasksPage = () => {
                             onChange={() => toggleAssigneeFilter(assignee.id)}
                           />
                           <span>
-                            {assignee.displayName ?? assignee.email ?? assignee.id}
+                            {assignee.displayName ??
+                              assignee.email ??
+                              assignee.id}
                           </span>
                         </label>
                       );
@@ -1340,13 +1393,17 @@ export const TasksPage = () => {
               </section>
 
               <section className="tasks-page__filter-section">
-                <div className="tasks-page__filter-section-title">עד תאריך יעד</div>
+                <div className="tasks-page__filter-section-title">
+                  עד תאריך יעד
+                </div>
                 <label className="tasks-page__filter-date-field">
                   <span>הציגי משימות שמועד היעד שלהן עד:</span>
                   <input
                     type="date"
                     value={selectedDueBefore}
-                    onChange={(event) => setSelectedDueBefore(event.target.value)}
+                    onChange={(event) =>
+                      setSelectedDueBefore(event.target.value)
+                    }
                   />
                 </label>
               </section>
@@ -1355,7 +1412,7 @@ export const TasksPage = () => {
             <div className="tasks-page__filter-actions">
               <Button
                 variant="secondary"
-                size="sm"
+                size="md"
                 type="button"
                 onClick={clearFilters}
               >
@@ -1363,7 +1420,7 @@ export const TasksPage = () => {
               </Button>
               <Button
                 variant="primary"
-                size="sm"
+                size="md"
                 type="button"
                 onClick={() => setIsFilterOpen(false)}
               >
@@ -1390,7 +1447,11 @@ export const TasksPage = () => {
       ) : null}
 
       {showEmptyState ? (
-        <div className="tasks-page__empty-state" role="status" aria-live="polite">
+        <div
+          className="tasks-page__empty-state"
+          role="status"
+          aria-live="polite"
+        >
           <TriangleAlert size={20} />
           <span>לא נמצאו משימות שתואמות לסינון</span>
         </div>
@@ -1400,7 +1461,12 @@ export const TasksPage = () => {
           aria-label="עמודות לוח המשימות"
           ref={boardRef}
           onDragOver={handleBoardDragOver}
-          onDragLeave={() => { if (boardAutoScrollRef.current) { cancelAnimationFrame(boardAutoScrollRef.current); boardAutoScrollRef.current = null; } }}
+          onDragLeave={() => {
+            if (boardAutoScrollRef.current) {
+              cancelAnimationFrame(boardAutoScrollRef.current);
+              boardAutoScrollRef.current = null;
+            }
+          }}
           onPointerDown={handleBoardPointerDown}
           onPointerMove={handleBoardPointerMove}
           onPointerUp={handleBoardPointerUp}
@@ -1508,7 +1574,10 @@ export const TasksPage = () => {
             <div className="tasks-page__dialog-header">
               <div className="tasks-page__dialog-heading">
                 <p className="tasks-page__dialog-eyebrow">AI</p>
-                <h2 id="tasks-activity-summary-title" className="tasks-page__dialog-title">
+                <h2
+                  id="tasks-activity-summary-title"
+                  className="tasks-page__dialog-title"
+                >
                   סיכום
                 </h2>
                 <p className="tasks-page__dialog-subtitle">
@@ -1530,13 +1599,16 @@ export const TasksPage = () => {
             ) : null}
 
             {isGeneratingActivitySummary ? (
-              <div className="tasks-page__activity-loading">מכין סיכום פעילות אחרונה</div>
+              <div className="tasks-page__activity-loading">
+                מכין סיכום פעילות אחרונה
+              </div>
             ) : null}
 
             {activitySummary ? (
               <div className="tasks-page__activity-content">
                 {activitySummary.summaryLines.length === 1 &&
-                activitySummary.summaryLines[0] === activitySummary.headline ? null : (
+                activitySummary.summaryLines[0] ===
+                  activitySummary.headline ? null : (
                   <strong>{activitySummary.headline}</strong>
                 )}
                 <ul>
@@ -1559,7 +1631,9 @@ export const TasksPage = () => {
                 <Copy size={18} />
               </button>
               {activitySummaryCopyMessage ? (
-                <span className="tasks-page__copy-message">{activitySummaryCopyMessage}</span>
+                <span className="tasks-page__copy-message">
+                  {activitySummaryCopyMessage}
+                </span>
               ) : null}
               <Button
                 type="button"
@@ -1613,7 +1687,9 @@ export const TasksPage = () => {
                   role="menuitem"
                   className={`tasks-page__status-menu-item${isCurrent ? " is-current" : ""}`}
                   disabled={isCurrent || movingTaskId === statusMenu.taskId}
-                  onClick={() => void handleMoveTaskStatus(statusMenu.taskId, status)}
+                  onClick={() =>
+                    void handleMoveTaskStatus(statusMenu.taskId, status)
+                  }
                 >
                   <span>{TASK_STATUS_LABELS[status]}</span>
                   {isCurrent ? <span>נוכחי</span> : null}
@@ -1718,5 +1794,3 @@ export const TasksPage = () => {
     </PageSection>
   );
 };
-
-

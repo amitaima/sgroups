@@ -15,19 +15,18 @@
   position: absolute;
   top: 0.75rem;
   right: 0.75rem;
-  z-index: 10;
   display: inline-flex;
   align-items: center;
   gap: 0.6rem;
   padding: 0.6rem 1rem;
-  border-radius: 0.6rem;
+  border-radius: 1rem;
   background: linear-gradient(135deg, #fff9e6 0%, #ffeebb 50%, #ffd54f 100%);
-  border: 1.5px solid rgba(255, 193, 7, 0.5);
+  // border: 1.5px solid rgba(255, 193, 7, 0.5);
   box-shadow:
     0 2px 12px rgba(255, 193, 7, 0.2),
     inset 0 1px 0 rgba(255, 255, 255, 0.8);
   max-width: 80%;
-  animation: trophy-shimmer 3s ease-in-out infinite;
+  animation: trophy-shimmer 3s ease-in-out 1;
 }
 
 @keyframes trophy-shimmer {
@@ -44,6 +43,12 @@
   }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .podium-trophy {
+    animation: none;
+  }
+}
+
 .podium-trophy__icon {
   font-size: 1.3rem;
   line-height: 1;
@@ -51,7 +56,7 @@
 }
 
 .podium-trophy__text {
-  font-size: 0.8rem;
+  font-size: var(--font-size-base);
   font-weight: 800;
   color: #5d4200;
   white-space: nowrap;

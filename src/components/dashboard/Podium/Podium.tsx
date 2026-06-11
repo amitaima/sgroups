@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { LeaderboardDialog } from "@components/dashboard/LeaderboardDialog";
 import type {
   MemberDirectoryUser,
@@ -98,7 +99,7 @@ export const Podium = ({
     {
       position: "second" as const,
       medal: "🥈",
-      heightPct: 70,
+      heightPct: 65,
       user: podiumUsers[1],
       rank: 2,
     },
@@ -141,6 +142,7 @@ export const Podium = ({
             width: "100%",
             height: "100%",
             position: "relative",
+            isolation: "isolate",
             display: "flex",
             flexDirection: "column",
             justifyContent: "flex-end",
@@ -154,7 +156,6 @@ export const Podium = ({
                 position: "absolute",
                 top: "0.75rem",
                 left: "0.75rem",
-                zIndex: 10,
               }}
             >
               {coachButton}
@@ -216,7 +217,7 @@ export const Podium = ({
                       display: "flex",
                       flexDirection: "column",
                       alignItems: "center",
-                      justifyContent: "center",
+                      justifyContent: "space-between",
                       gap: "0.3rem",
                       padding: "0.5rem 0.25rem",
                       background: barColors[rank],
@@ -227,7 +228,12 @@ export const Podium = ({
                   >
                     <span
                       style={{
-                        fontSize: rank === 1 ? "2.25rem" : "1.75rem",
+                        fontSize:
+                          rank === 1
+                            ? "4rem"
+                            : rank === 2
+                              ? "3.25rem"
+                              : "2.5rem",
                       }}
                     >
                       {medal}
@@ -254,12 +260,15 @@ export const Podium = ({
         </GlassPanel>
       </div>
 
-      <LeaderboardDialog
-        isOpen={isDialogOpen}
-        onClose={() => setIsDialogOpen(false)}
-        tasks={tasks}
-        members={members}
-      />
+      {createPortal(
+        <LeaderboardDialog
+          isOpen={isDialogOpen}
+          onClose={() => setIsDialogOpen(false)}
+          tasks={tasks}
+          members={members}
+        />,
+        document.body,
+      )}
     </>
   );
 };

@@ -94,14 +94,5 @@
   border-color: var(--color-glass-sgroups-border);
 }
 
-@supports (backdrop-filter: blur(4px)) {
-  .glass-panel {
-    -webkit-backdrop-filter: blur(4px) saturate(138%);
-    backdrop-filter: blur(4px) saturate(138%);
-  }
-
-  .glass-panel--strong {
-    -webkit-backdrop-filter: blur(6px) saturate(148%);
-    backdrop-filter: blur(6px) saturate(148%);
-  }
-}
+/* backdrop-filter removed for performance — 95 GlassPanels on screen
+   each with blur() causes massive compositing overhead and jank. */

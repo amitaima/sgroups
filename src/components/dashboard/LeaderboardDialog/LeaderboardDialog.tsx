@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { X, Trophy, Zap } from "lucide-react";
 import {
   getProjectMemberScores,
@@ -6,7 +6,10 @@ import {
   type ProjectMemberScoreWithTasks,
 } from "@utils/scoreCalculation";
 import type { ProjectMemberScore } from "@utils/mockScoreData";
-import type { MemberDirectoryUser, ProjectTaskRecord } from "@services/firebase/firebase";
+import type {
+  MemberDirectoryUser,
+  ProjectTaskRecord,
+} from "@services/firebase/firebase";
 import "./LeaderboardDialog.scss";
 
 interface LeaderboardDialogProps {
@@ -26,10 +29,13 @@ export const LeaderboardDialog = ({
   tasks,
   members,
 }: LeaderboardDialogProps) => {
-  const rankedMembers =
-    tasks && members
-      ? getProjectMemberScores(tasks, members)
-      : getProjectMembersWithScores();
+  const rankedMembers = useMemo(
+    () =>
+      tasks && members
+        ? getProjectMemberScores(tasks, members)
+        : getProjectMembersWithScores(),
+    [tasks, members],
+  );
 
   // Prevent body scroll when dialog is open
   useEffect(() => {
@@ -75,7 +81,7 @@ export const LeaderboardDialog = ({
         <div className="leaderboard-dialog__header">
           <div className="leaderboard-dialog__title-section">
             <Trophy size={24} strokeWidth={2} />
-            <h2 className="leaderboard-dialog__title">Leaderboard / לוח מובילים</h2>
+            <h2 className="leaderboard-dialog__title">לוח מובילים</h2>
           </div>
           <button
             className="leaderboard-dialog__close"
@@ -97,7 +103,7 @@ export const LeaderboardDialog = ({
                     דירוג
                   </th>
                   <th className="leaderboard-table__cell leaderboard-table__cell--profile">
-                     פרופיל
+                    פרופיל
                   </th>
                   <th className="leaderboard-table__cell leaderboard-table__cell--name">
                     שם
@@ -123,8 +129,10 @@ export const LeaderboardDialog = ({
         {/* Footer Stats */}
         <div className="leaderboard-dialog__footer">
           <div className="leaderboard-dialog__stat">
-            <span className="leaderboard-dialog__stat-label">Participants / משתתפים</span>
-            <span className="leaderboard-dialog__stat-value">{rankedMembers.length}</span>
+            <span className="leaderboard-dialog__stat-label">משתתפים</span>
+            <span className="leaderboard-dialog__stat-value">
+              {rankedMembers.length}
+            </span>
           </div>
           <div className="leaderboard-dialog__stat">
             <span className="leaderboard-dialog__stat-label"> ניקוד גבוה</span>
@@ -137,7 +145,7 @@ export const LeaderboardDialog = ({
             <span className="leaderboard-dialog__stat-value">
               {Math.round(
                 rankedMembers.reduce((sum, m) => sum + m.totalScore, 0) /
-                  rankedMembers.length
+                  rankedMembers.length,
               )}
             </span>
           </div>
@@ -163,22 +171,30 @@ const LeaderboardRow = ({ member, index }: LeaderboardRowProps) => {
   const medal = getMedalEmoji(member.rank || index + 1);
 
   return (
-    <tr className={`leaderboard-table__row ${medal ? "leaderboard-table__row--podium" : ""}`}>
+    <tr
+      className={`leaderboard-table__row ${medal ? "leaderboard-table__row--podium" : ""}`}
+    >
       <td className="leaderboard-table__cell leaderboard-table__cell--rank">
         <span className="leaderboard-table__rank-badge">
           {medal && <span className="leaderboard-table__medal">{medal}</span>}
-          <span className="leaderboard-table__rank-number">#{member.rank || index + 1}</span>
+          <span className="leaderboard-table__rank-number">
+            #{member.rank || index + 1}
+          </span>
         </span>
       </td>
       <td className="leaderboard-table__cell leaderboard-table__cell--profile">
-        <img
-          src={
-            member.photoURL || `https://i.pravatar.cc/150?img=${member.id}`
-          }
-          alt={member.name}
-          className="leaderboard-table__avatar"
-          loading="lazy"
-        />
+        {member.photoURL ? (
+          <img
+            src={member.photoURL}
+            alt={member.name}
+            className="leaderboard-table__avatar"
+            loading="lazy"
+          />
+        ) : (
+          <span className="leaderboard-table__avatar leaderboard-table__avatar--placeholder">
+            {(member.name || "?").charAt(0)}
+          </span>
+        )}
       </td>
       <td className="leaderboard-table__cell leaderboard-table__cell--name">
         <span className="leaderboard-table__name">{member.name}</span>

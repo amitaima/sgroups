@@ -28,7 +28,7 @@ body {
       color-mix(in srgb, var(--color-tertiary) 8%, transparent) 0,
       transparent 36%
     );
-  background-attachment: fixed;
+  /* background-attachment: fixed removed — causes full repaint on scroll */
   text-align: start;
   font-synthesis: none;
   text-rendering: optimizeLegibility;

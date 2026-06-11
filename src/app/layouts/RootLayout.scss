@@ -63,9 +63,8 @@
   gap: var(--space-5);
   border: 1px solid var(--color-surface-glass-border);
   border-radius: var(--radius-pill);
-  -webkit-backdrop-filter: blur(4px) saturate(140%);
-  backdrop-filter: blur(4px) saturate(140%);
-  background: var(--color-surface-glass);
+  /* backdrop-filter removed for performance */
+  background: var(--color-surface-glass-strong);
   box-shadow: var(--shadow-glass-strong);
 }
 
@@ -117,9 +116,8 @@
     inset: 0;
     display: block;
     border: 0;
-    background: color-mix(in srgb, var(--color-text) 24%, transparent);
-    -webkit-backdrop-filter: blur(4px);
-    backdrop-filter: blur(4px);
+    background-color: rgba(0, 0, 0, 0.5);
+    /* backdrop-filter removed for performance */
     opacity: 0;
     pointer-events: none;
     transition: opacity var(--motion-base) var(--motion-ease);
