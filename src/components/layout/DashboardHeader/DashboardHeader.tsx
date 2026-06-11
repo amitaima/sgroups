@@ -38,14 +38,12 @@ export const DashboardHeader = ({
 
     let active = true;
 
-    // Fetch members once
     void getUsersByIds(project.memberIds).then((fetchedMembers) => {
       if (active) {
         setMembers(fetchedMembers);
       }
     });
 
-    // Subscribe to tasks for live updates
     const unsubscribe = subscribeProjectTasks(project.id, (updatedTasks) => {
       if (active) {
         setTasks(updatedTasks);

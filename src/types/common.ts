@@ -71,6 +71,9 @@ export type Project = {
   logoLink?: string;
   status?: "active" | "completed" | "archived";
   trophyName?: string;
+  projectInstructions?: string;
+  aiProgressPercent?: number;
+  aiProgressUpdatedAt?: Timestamp;
 };
 
 export type ProjectStatus = "active" | "completed" | "archived";

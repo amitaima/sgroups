@@ -119,12 +119,17 @@ const buildPrompt = (input: CompetitionCoachInput): string => {
     assignees: task.assigneeNames,
   }));
 
+  const contextLines = [
+    input.projectDescription ? `הקשר הפרויקט: ${input.projectDescription}` : null,
+    input.projectInstructions ? `הנחיות הפרויקט: ${input.projectInstructions}` : null,
+  ].filter(Boolean).join("\n");
+
   return `אתה מאמן תחרותי חכם באפליקציית ניהול משימות לסטודנטים.
 השב אך ורק JSON תקני ללא markdown וללא טקסט נוסף.
 
 המטרה: לתת למשתמש תוכנית קצרה ומעשית כדי לצמצם פער ולעקוף את מוביל הקבוצה.
 אל תמציא משימות שלא קיימות. בחר משימות רק מתוך openTasks.
-
+${contextLines ? `\n${contextLines}\n` : ""}
 המשתמש הנוכחי:
 ${JSON.stringify(input.currentUser)}
 

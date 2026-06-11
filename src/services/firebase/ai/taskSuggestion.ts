@@ -184,8 +184,14 @@ const buildPrompt = (
   completedTasks: TaskSuggestionTaskSummary[],
   openTasks: TaskSuggestionTaskSummary[],
   inProgressTasks: TaskSuggestionTaskSummary[],
-  // reviewTasks: TaskSuggestionTaskSummary[],
+  projectDescription?: string | null,
+  projectInstructions?: string | null,
 ): string => {
+  const contextLines = [
+    projectDescription ? `הקשר הפרויקט: ${projectDescription}` : null,
+    projectInstructions ? `הנחיות הפרויקט: ${projectInstructions}` : null,
+  ].filter(Boolean).join("\n");
+
   return `אתה עוזר תכנון משימות אקדמי.
 השב אך ורק ב-JSON תקני בלבד, ללא markdown, ללא bullets, ללא הסברים נוספים וללא טקסט מעבר ל-JSON.
 
@@ -207,6 +213,7 @@ const buildPrompt = (
 הגישה המומלצת צריכה לכלול 1 או 2 שורות קצרות ופרקטיות.
 
 ${buildProjectSummary(project)}
+${contextLines ? `\n${contextLines}` : ""}
 
 ${buildTaskListBlock("משימות הושלמו", completedTasks)}
 
@@ -226,7 +233,8 @@ export const generateTaskSuggestion = async (
   completedTasks: TaskSuggestionTaskSummary[],
   openTasks: TaskSuggestionTaskSummary[],
   inProgressTasks: TaskSuggestionTaskSummary[],
-  // reviewTasks: TaskSuggestionTaskSummary[],
+  projectDescription?: string | null,
+  projectInstructions?: string | null,
 ): Promise<TaskSuggestionResult> => {
   const prompt = buildPrompt(
     project,
@@ -234,7 +242,8 @@ export const generateTaskSuggestion = async (
     completedTasks,
     openTasks,
     inProgressTasks,
-    // reviewTasks,
+    projectDescription,
+    projectInstructions,
   );
 
   const result = await taskSuggestionModel.generateContent(prompt);

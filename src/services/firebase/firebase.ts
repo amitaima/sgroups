@@ -64,6 +64,7 @@ export const storage = getStorage(app);
 const ai = getAI(app, { backend: new GoogleAIBackend() });
 export const taskSuggestionModel = getGenerativeModel(ai, {
   model: "gemini-2.5-flash",
+  generationConfig: { temperature: 0 },
 });
 
 export interface UserProfile {
@@ -200,6 +201,7 @@ export interface CreateProjectInput {
   memberRoles?: Record<string, ProjectMemberRole>;
   status?: "active" | "completed" | "archived";
   trophyName?: string;
+  projectInstructions?: string;
 }
 
 export interface UpdateProjectInput {
@@ -229,6 +231,8 @@ export interface UpdateProjectInput {
   teacherIds?: string[];
   status?: ProjectStatus;
   trophyName?: string | null;
+  projectInstructions?: string | null;
+  aiProgressPercent?: number | null;
 }
 
 export type CalendarEventAudience = "selected" | "everyone";
@@ -1154,6 +1158,7 @@ export const createProject = async (
     ),
     status: input.status ?? "active",
     trophyName: input.trophyName?.trim() || "",
+    projectInstructions: input.projectInstructions?.trim() || "",
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   };
@@ -1249,6 +1254,14 @@ export const updateProject = async (
 
   if (input.trophyName !== undefined) {
     payload.trophyName = normalizeText(input.trophyName) ?? null;
+  }
+
+  if (input.projectInstructions !== undefined) {
+    payload.projectInstructions = normalizeText(input.projectInstructions) ?? null;
+  }
+
+  if (input.aiProgressPercent !== undefined) {
+    payload.aiProgressPercent = input.aiProgressPercent;
   }
 
   if (input.importantLinks !== undefined) {

@@ -1,9 +1,37 @@
-import { X } from "lucide-react";
+import { X, Sparkles } from "lucide-react";
 import { GlassPanel } from "@components/ui/GlassPanel/GlassPanel";
 import { Button } from "@components/ui/Button/Button";
 import { MemberAvatarGroup } from "@components/users/MemberAvatarGroup";
-import type { TaskDialogProps } from "./TaskDialog.types";
+import type { TaskDialogProps, TaskAssigneeOption } from "./TaskDialog.types";
 import "./TaskDialog.scss";
+
+function getSmartAssignee(
+  allTasks: { assigneeIds: string[]; status: string }[],
+  assigneeOptions: TaskAssigneeOption[],
+): TaskAssigneeOption | null {
+  if (!allTasks.length || !assigneeOptions.length) return null;
+
+  let best: TaskAssigneeOption | null = null;
+  let bestScore = Infinity;
+
+  for (const member of assigneeOptions) {
+    let incomplete = 0;
+    let total = 0;
+    for (const task of allTasks) {
+      if (task.assigneeIds.includes(member.id)) {
+        total++;
+        if (task.status !== "completed") incomplete++;
+      }
+    }
+    const score = incomplete * 2 + total;
+    if (score < bestScore) {
+      bestScore = score;
+      best = member;
+    }
+  }
+
+  return best;
+}
 
 export const TaskDialog = ({
   isOpen,
@@ -25,6 +53,7 @@ export const TaskDialog = ({
   onClearAiTitleError,
   error,
   isSaving,
+  allTasks,
 }: TaskDialogProps) => {
   if (!isOpen) {
     return null;
@@ -32,6 +61,13 @@ export const TaskDialog = ({
 
   const canUseAiSuggestion = mode === "create" && Boolean(onGenerateSuggestion);
   const isAiSuggestionDisabled = Boolean(isAiGenerating || isAiSuggestionUsed);
+
+  const smartAssignee = allTasks?.length
+    ? getSmartAssignee(allTasks, assigneeOptions)
+    : null;
+
+  const showSmartRec =
+    smartAssignee && !draft.assigneeIds.includes(smartAssignee.id);
 
   return (
     <div className="task-dialog__backdrop" role="presentation">
@@ -250,6 +286,18 @@ export const TaskDialog = ({
               ) : (
                 <p className="task-dialog__empty">לא נמצאו חברי צוות לשיוך.</p>
               )}
+              {showSmartRec ? (
+                <button
+                  type="button"
+                  className="task-dialog__smart-rec"
+                  onClick={() => onToggleAssignee(smartAssignee.id)}
+                >
+                  <Sparkles size={13} />
+                  <span>
+                    מומלץ: {smartAssignee.displayName || smartAssignee.email || smartAssignee.id} (פחות עמוס/ה)
+                  </span>
+                </button>
+              ) : null}
             </div>
 
             {mode === "edit" ? (

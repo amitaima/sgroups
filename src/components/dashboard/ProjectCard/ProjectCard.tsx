@@ -72,7 +72,11 @@ export const ProjectCard = ({
           </div>
 
           {project.description ? (
-            <p className="project-card__description">{project.description}</p>
+            <p className="project-card__description">
+              {project.description.length > 80
+                ? `${project.description.slice(0, 80)}...`
+                : project.description}
+            </p>
           ) : (
             <p className="project-card__description project-card__description--muted">
               עדיין לא נוסף תיאור לפרויקט.

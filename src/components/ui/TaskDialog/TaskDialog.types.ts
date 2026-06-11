@@ -40,4 +40,5 @@ export interface TaskDialogProps {
   onClearAiTitleError?: () => void;
   error?: string | null;
   isSaving?: boolean;
+  allTasks?: { assigneeIds: string[]; status: string }[];
 }

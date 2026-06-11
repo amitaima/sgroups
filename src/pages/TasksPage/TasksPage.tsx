@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Navigate, useParams, useSearchParams } from "react-router-dom";
 import {
   Copy,
@@ -16,6 +17,7 @@ import { PageSection } from "@components/layout/PageSection/PageSection";
 import { SectionTitle } from "@components/ui/SectionTitle/SectionTitle";
 import { TaskCard } from "@components/dashboard/TaskCard";
 import { TaskDialog } from "@components/ui/TaskDialog";
+import { AiLoader } from "@components/ui/AiLoader";
 import { useWorkspaceProject } from "@hooks/useWorkspaceProject";
 import type {
   MemberDirectoryUser,
@@ -33,9 +35,12 @@ import {
 import {
   generateTaskSuggestion,
   generateUserActivitySummary,
+  generateSmartTaskSuggestions,
   type UserActivitySummaryResult,
+  type SmartTaskSuggestion,
 } from "@services/firebase/ai";
 import type { TaskCardData } from "@components/dashboard/TaskCard";
+import { getProjectMemberScores } from "@utils/scoreCalculation";
 import type { TaskPriority, TaskStatus } from "../../types/common";
 import type {
   TaskAssigneeOption,
@@ -344,6 +349,10 @@ export const TasksPage = () => {
   const [activitySummaryCopyMessage, setActivitySummaryCopyMessage] = useState<
     string | null
   >(null);
+  const [isSmartSuggestionsOpen, setIsSmartSuggestionsOpen] = useState(false);
+  const [smartSuggestions, setSmartSuggestions] = useState<SmartTaskSuggestion[] | null>(null);
+  const [isSmartLoading, setIsSmartLoading] = useState(false);
+  const [smartCreating, setSmartCreating] = useState<number | null>(null);
   const activitySummaryUserName = user?.displayName || user?.email || "המשתמש";
   const [searchParams, setSearchParams] = useSearchParams();
   const [selectedAssigneeIds, setSelectedAssigneeIds] = useState<string[]>(() =>
@@ -777,6 +786,52 @@ export const TasksPage = () => {
       setActivitySummaryCopyMessage("לא הצלחנו להעתיק כרגע");
     }
   };
+
+  const handleOpenSmartSuggestions = async () => {
+    if (!project || isSmartLoading) return;
+    setIsSmartSuggestionsOpen(true);
+    setIsSmartLoading(true);
+    setSmartSuggestions(null);
+    try {
+      const rankedMembers = getProjectMemberScores(tasks, projectMembers);
+      const deadlines: { label: string; date: string }[] = [];
+      if (project.finalSubmissionAt) deadlines.push({ label: "הגשה סופית", date: project.finalSubmissionAt.toDate().toISOString().split("T")[0] });
+      if (project.nextMilestoneAt) deadlines.push({ label: "מיילסטון הבא", date: project.nextMilestoneAt.toDate().toISOString().split("T")[0] });
+
+      const result = await generateSmartTaskSuggestions({
+        projectName: project.name,
+        projectDescription: project.description,
+        projectInstructions: project.projectInstructions,
+        existingTasks: tasks.map(t => ({ title: t.title, status: t.status })),
+        deadlines,
+        memberScores: rankedMembers.map(m => ({ id: m.id, name: m.name, score: m.totalScore })),
+      });
+      setSmartSuggestions(result);
+    } catch {
+      setSmartSuggestions(null);
+    } finally {
+      setIsSmartLoading(false);
+    }
+  };
+
+  const handleCreateSmartTask = async (suggestion: SmartTaskSuggestion, index: number) => {
+    if (!project || !user || smartCreating !== null) return;
+    setSmartCreating(index);
+    try {
+      await createProjectTask(project.id, {
+        title: suggestion.title,
+        description: suggestion.description,
+        priority: suggestion.priority,
+        difficulty: suggestion.difficulty,
+        assigneeIds: [suggestion.suggestedAssigneeId],
+        createdBy: user.uid,
+      });
+      setSmartSuggestions(prev => prev ? prev.filter((_, i) => i !== index) : null);
+    } finally {
+      setSmartCreating(null);
+    }
+  };
+
   const handleTaskCardClick = (taskId: string) => {
     if (suppressTaskClickRef.current) {
       return;
@@ -1109,6 +1164,8 @@ export const TasksPage = () => {
         openTasks,
         inProgressTasks,
         // reviewTasks,
+        project.description || undefined,
+        project.projectInstructions || undefined,
       );
 
       const combinedDescription = [
@@ -1264,6 +1321,17 @@ export const TasksPage = () => {
           >
             <Sparkles size={16} />
             סיכום
+          </Button>
+
+          <Button
+            variant="secondary"
+            size="md"
+            type="button"
+            onClick={() => void handleOpenSmartSuggestions()}
+            disabled={isSmartLoading}
+          >
+            <Sparkles size={16} />
+            הצעות AI
           </Button>
 
           <Button
@@ -1599,9 +1667,7 @@ export const TasksPage = () => {
             ) : null}
 
             {isGeneratingActivitySummary ? (
-              <div className="tasks-page__activity-loading">
-                מכין סיכום פעילות אחרונה
-              </div>
+              <AiLoader text="מכין סיכום פעילות אחרונה..." />
             ) : null}
 
             {activitySummary ? (
@@ -1790,7 +1856,67 @@ export const TasksPage = () => {
         onSubmit={handleTaskSubmit}
         error={taskDialogError}
         isSaving={isSavingTask}
+        allTasks={tasks}
       />
+
+      {isSmartSuggestionsOpen && createPortal(
+        <div
+          className="tasks-page__dialog-backdrop"
+          onClick={(e) => { if (e.target === e.currentTarget) setIsSmartSuggestionsOpen(false); }}
+          role="presentation"
+        >
+          <GlassPanel
+            className="tasks-page__dialog"
+            intensity="strong"
+            style={{ maxWidth: "480px", padding: "var(--space-5)" }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "var(--space-4)" }}>
+              <h3 style={{ margin: 0, fontSize: "var(--font-size-lg)" }}>הצעות משימות חכמות</h3>
+              <button
+                type="button"
+                onClick={() => setIsSmartSuggestionsOpen(false)}
+                style={{ background: "none", border: "none", cursor: "pointer", color: "var(--color-text)" }}
+                aria-label="סגור"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {isSmartLoading && (
+              <AiLoader text="מייצר הצעות חכמות..." />
+            )}
+
+            {!isSmartLoading && smartSuggestions && smartSuggestions.length === 0 && (
+              <p style={{ textAlign: "center", color: "var(--color-text-muted)" }}>כל ההצעות נוצרו!</p>
+            )}
+
+            {!isSmartLoading && smartSuggestions && smartSuggestions.map((s, i) => (
+              <GlassPanel key={i} style={{ padding: "var(--space-3)", marginBottom: "var(--space-3)" }}>
+                <h4 style={{ margin: "0 0 4px", fontSize: "var(--font-size-sm)" }}>{s.title}</h4>
+                <p style={{ margin: "0 0 8px", fontSize: "var(--font-size-xs)", color: "var(--color-text-muted)", lineHeight: 1.5 }}>{s.description}</p>
+                <div style={{ display: "flex", gap: "var(--space-2)", fontSize: "var(--font-size-xs)", marginBottom: "var(--space-2)", flexWrap: "wrap", color: "var(--color-text-soft)" }}>
+                  <span>{s.priority} • {s.difficulty}</span>
+                  <span>← {projectMembers.find((m: MemberDirectoryUser) => m.uid === s.suggestedAssigneeId)?.displayName ?? "חבר צוות"}</span>
+                </div>
+                <p style={{ margin: "0 0 8px", fontSize: "var(--font-size-xs)", color: "var(--color-text-soft)" }}>{s.reason}</p>
+                <Button
+                  size="md"
+                  type="button"
+                  onClick={() => void handleCreateSmartTask(s, i)}
+                  disabled={smartCreating === i}
+                >
+                  {smartCreating === i ? "יוצר..." : "צור משימה"}
+                </Button>
+              </GlassPanel>
+            ))}
+
+            {!isSmartLoading && !smartSuggestions && (
+              <p style={{ textAlign: "center", color: "var(--color-danger)" }}>שגיאה ביצירת הצעות. נסו שוב.</p>
+            )}
+          </GlassPanel>
+        </div>,
+        document.body,
+      )}
     </PageSection>
   );
 };

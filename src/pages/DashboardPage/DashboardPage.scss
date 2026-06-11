@@ -571,15 +571,15 @@
   min-width: 100%;
 }
 
-.dashboard-page__coach-trigger {
-  justify-self: center;
-  min-height: 2.9rem;
-  padding-inline: var(--space-5);
-  border-radius: var(--radius-full);
-  font-size: var(--font-size-base);
-  font-weight: var(--font-weight-semibold);
-  box-shadow: var(--shadow-sm);
-}
+// .dashboard-page__coach-trigger {
+//   justify-self: center;
+//   min-height: 2.9rem;
+//   padding-inline: var(--space-5);
+//   border-radius: var(--radius-full);
+//   font-size: var(--font-size-base);
+//   font-weight: var(--font-weight-semibold);
+//   box-shadow: var(--shadow-sm);
+// }
 .dashboard-page__coach-backdrop {
   position: fixed;
   inset: 0;
@@ -784,5 +784,14 @@
 
   .dashboard-page__dialog-actions > * {
     width: 100%;
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
   }
 }

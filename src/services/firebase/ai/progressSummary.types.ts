@@ -9,6 +9,8 @@ export interface ProjectProgressSummaryInput {
   completedTasks: CompetitionTaskSummary[];
   openTasks: CompetitionTaskSummary[];
   inProgressTasks: CompetitionTaskSummary[];
+  projectDescription?: string | null;
+  projectInstructions?: string | null;
 }
 
 export interface ProjectProgressSummaryResult {
@@ -17,4 +19,5 @@ export interface ProjectProgressSummaryResult {
   completedHighlights: string[];
   nextFocus: string;
   motivation: string;
+  progressPercent: number;
 }

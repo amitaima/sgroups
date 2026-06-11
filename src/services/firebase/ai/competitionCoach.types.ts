@@ -21,6 +21,8 @@ export interface CompetitionCoachInput {
   scoreGap: number;
   openTasks: CompetitionTaskSummary[];
   completedTasks: CompetitionTaskSummary[];
+  projectDescription?: string | null;
+  projectInstructions?: string | null;
 }
 
 export interface CompetitionRecommendedTask {

@@ -5,6 +5,7 @@ import {
   Link as LinkIcon,
   ListCheck,
   Plus,
+  RefreshCw,
   Sparkles,
   Trophy,
   Save,
@@ -23,6 +24,7 @@ import { TaskDistributionCard } from "@components/ui/TaskDistributionCard/TaskDi
 import { OpenTasksCard } from "@components/ui/OpenTasksCard/OpenTasksCard";
 import { TeamLinksCard } from "@components/ui/TeamLinksCard/TeamLinksCard";
 import { TaskDialog } from "@components/ui/TaskDialog";
+import { AiLoader } from "@components/ui/AiLoader";
 import type {
   TaskAssigneeOption,
   TaskDialogDraft,
@@ -406,6 +408,7 @@ export const DashboardPage = () => {
   >(null);
   const [isGeneratingProgressSummary, setIsGeneratingProgressSummary] =
     useState(false);
+  const [progressRefreshKey, setProgressRefreshKey] = useState(0);
   const [isProgressSummaryOpen, setIsProgressSummaryOpen] = useState(false);
   const membersDialogRef = useRef<HTMLDialogElement>(null);
   const linksDialogRef = useRef<HTMLDialogElement>(null);
@@ -647,6 +650,95 @@ export const DashboardPage = () => {
     return () => window.clearTimeout(timeoutId);
   }, [activeProject, leader, showLeaderSpotlight]);
 
+  // AI progress: only re-generate on completed count change or manual reload
+  const prevCompletedCountRef = useRef<number | null>(null);
+  const hasInitializedProgressRef = useRef(false);
+
+  // Step 1: On first project+tasks load, set baseline and trigger if no cached value
+  useEffect(() => {
+    if (!activeProject || !projectReady || hasInitializedProgressRef.current)
+      return;
+    if (projectTasks.length === 0 && activeProject.aiProgressPercent == null)
+      return;
+    hasInitializedProgressRef.current = true;
+
+    const initialCompleted = projectTasks.filter(
+      (t) => t.status === "completed" || t.completed,
+    ).length;
+    prevCompletedCountRef.current = initialCompleted;
+
+    // Trigger generation only if no cached value in DB
+    if (activeProject.aiProgressPercent == null && projectTasks.length > 0) {
+      setProgressRefreshKey((k) => k + 1);
+    }
+  }, [activeProject, projectReady, projectTasks]);
+
+  // Step 2: Re-generate only when completed count changes or manual reload
+  useEffect(() => {
+    if (!activeProject || !projectReady || !hasInitializedProgressRef.current)
+      return;
+    if (projectTasks.length === 0) return;
+    if (isGeneratingProgressSummary) return;
+
+    const currentCompleted = projectTasks.filter(
+      (t) => t.status === "completed" || t.completed,
+    ).length;
+
+    // Only trigger if completed count actually changed (not on page nav)
+    const countChanged =
+      prevCompletedCountRef.current !== null &&
+      prevCompletedCountRef.current !== currentCompleted;
+    if (!countChanged && progressRefreshKey === 0) return;
+
+    prevCompletedCountRef.current = currentCompleted;
+    setIsGeneratingProgressSummary(true);
+
+    const completedTasks = projectTasks.filter(
+      (t) => t.status === "completed" || t.completed,
+    );
+    const inProgressTasks = projectTasks.filter(
+      (t) => t.status === "inProgress",
+    );
+    const rawOpenTasks = projectTasks.filter(
+      (t) => t.status !== "completed" && !t.completed,
+    );
+
+    void generateProjectProgressSummary({
+      project: {
+        name: activeProject.name,
+        description: activeProject.description,
+        progress: progressValue,
+      },
+      completedTasks: completedTasks.map(buildCompetitionTaskSummary),
+      openTasks: rawOpenTasks.map(buildCompetitionTaskSummary),
+      inProgressTasks: inProgressTasks.map(buildCompetitionTaskSummary),
+      projectDescription: activeProject.description || undefined,
+      projectInstructions: activeProject.projectInstructions || undefined,
+    })
+      .then((summary) => {
+        setProgressSummary(summary);
+        void updateProject(activeProject.id, {
+          aiProgressPercent: summary.progressPercent,
+        });
+      })
+      .catch((err) => console.error("Auto progress summary failed", err))
+      .finally(() => setIsGeneratingProgressSummary(false));
+  }, [progressRefreshKey]);
+
+  // Step 3: Watch for completed count changes (task completed/uncompleted)
+  useEffect(() => {
+    if (!hasInitializedProgressRef.current) return;
+    if (prevCompletedCountRef.current === null) return;
+    if (projectTasks.length === 0) return;
+    const currentCompleted = projectTasks.filter(
+      (t) => t.status === "completed" || t.completed,
+    ).length;
+    if (prevCompletedCountRef.current !== currentCompleted) {
+      prevCompletedCountRef.current = currentCompleted;
+      setProgressRefreshKey((k) => k + 1);
+    }
+  }, [projectTasks]);
+
   const closeLeaderSpotlight = () => {
     if (activeProject) {
       sessionStorage.setItem(
@@ -709,6 +801,8 @@ export const DashboardPage = () => {
         completedTasks: projectTasks
           .filter((task) => task.status === "completed" || task.completed)
           .map(buildCompetitionTaskSummary),
+        projectDescription: activeProject?.description || undefined,
+        projectInstructions: activeProject?.projectInstructions || undefined,
       });
 
       setCompetitionPlan(plan);
@@ -767,6 +861,8 @@ export const DashboardPage = () => {
         completedTasks: completedTasks.map(buildCompetitionTaskSummary),
         openTasks: rawOpenTasks.map(buildCompetitionTaskSummary),
         inProgressTasks: inProgressTasks.map(buildCompetitionTaskSummary),
+        projectDescription: activeProject?.description || undefined,
+        projectInstructions: activeProject?.projectInstructions || undefined,
       });
 
       setProgressSummary(summary);
@@ -1043,10 +1139,13 @@ export const DashboardPage = () => {
     return <Navigate to="/projects" replace />;
   }
 
-  const progressHint =
-    taskItems.length > 0
-      ? `${completedTaskCount} משימות הושלמו מתוך ${taskItems.length}`
-      : "אין עדיין משימות שהוגדרו לפרויקט.";
+  const progressHint = isGeneratingProgressSummary
+    ? "✨ מעדכן התקדמות חכמה..."
+    : progressSummary
+      ? `${completedTaskCount} הושלמו מתוך ${taskItems.length} • הערכת AI`
+      : taskItems.length > 0
+        ? `${completedTaskCount} משימות הושלמו מתוך ${taskItems.length}`
+        : "אין עדיין משימות שהוגדרו לפרויקט.";
   const finalDeadline =
     activeProject.finalSubmissionAt ?? activeProject.dueDate;
   const finalDeadlineLabel = formatCountdown(finalDeadline);
@@ -1061,7 +1160,7 @@ export const DashboardPage = () => {
       <div className="dashboard-page__hero">
         <SectionTitle
           title={selectedProject.name}
-          subtitle={selectedProject.description ?? "לוח ניהול לפרויקט הנבחר."}
+          subtitle="לוח ניהול לפרויקט הנבחר."
           actions={
             <span className="dashboard-page__status-pill">
               <span className="dashboard-page__status-dot" />
@@ -1101,22 +1200,48 @@ export const DashboardPage = () => {
       <div className="dashboard-page__summary-grid">
         <div className="dashboard-page__panel dashboard-page__panel--overview">
           <ProgressOverviewCard
-            progress={progressValue}
+            progress={
+              progressSummary?.progressPercent ??
+              activeProject?.aiProgressPercent ??
+              progressValue
+            }
             title="התקדמות הפרויקט"
-            subtitle={selectedProject.description ?? "לוח ניהול לפרויקט הנבחר."}
+            subtitle="לוח ניהול לפרויקט הנבחר."
             hint={progressHint}
             badgeLabel={`${openTasks.length} פתוחות`}
             actions={
-              <Button
-                className="dashboard-page__progress-ai-button"
-                variant="secondary"
-                size="sm"
-                type="button"
-                onClick={openProgressSummary}
-              >
-                <Sparkles size={14} />
-                מה עשינו?
-              </Button>
+              <>
+                <Button
+                  className="dashboard-page__progress-ai-button"
+                  variant="secondary"
+                  size="sm"
+                  type="button"
+                  onClick={() => {
+                    prevCompletedCountRef.current = -1;
+                    setProgressRefreshKey((k) => k + 1);
+                  }}
+                  disabled={isGeneratingProgressSummary}
+                >
+                  <RefreshCw
+                    size={14}
+                    style={
+                      isGeneratingProgressSummary
+                        ? { animation: "spin 1s linear infinite" }
+                        : undefined
+                    }
+                  />
+                </Button>
+                <Button
+                  className="dashboard-page__progress-ai-button"
+                  variant="secondary"
+                  size="sm"
+                  type="button"
+                  onClick={openProgressSummary}
+                >
+                  <Sparkles size={14} />
+                  מה עשינו?
+                </Button>
+              </>
             }
           />
         </div>
@@ -1220,7 +1345,7 @@ export const DashboardPage = () => {
               <Button
                 className="dashboard-page__coach-trigger"
                 variant="secondary"
-                size="md"
+                size="sm"
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation();
@@ -1276,9 +1401,7 @@ export const DashboardPage = () => {
             ) : null}
 
             {isGeneratingProgressSummary ? (
-              <p className="dashboard-page__coach-summary">
-                מסכם את התקדמות הפרויקט...
-              </p>
+              <AiLoader text="מסכם את התקדמות הפרויקט..." />
             ) : null}
 
             {progressSummary ? (
@@ -1366,9 +1489,7 @@ export const DashboardPage = () => {
             ) : null}
 
             {isGeneratingCompetitionPlan ? (
-              <p className="dashboard-page__coach-summary">
-                מחשב תוכנית ניצחון...
-              </p>
+              <AiLoader text="מחשב תוכנית ניצחון..." />
             ) : null}
 
             {competitionPlan ? (
@@ -1425,6 +1546,7 @@ export const DashboardPage = () => {
         onSubmit={handleTaskDialogSubmit}
         error={taskDialogError}
         isSaving={isSavingTask}
+        allTasks={projectTasks}
       />
 
       <dialog

@@ -25,3 +25,10 @@ export type {
   UserActivityTaskSummary,
 } from "./userActivitySummary.types";
 export { generateUserActivitySummary } from "./userActivitySummary";
+export type {
+  SmartTaskSuggestionsInput,
+  SmartTaskSuggestion,
+  SmartTaskSuggestionsResult,
+} from "./smartTaskSuggestions.types";
+export { generateSmartTaskSuggestions } from "./smartTaskSuggestions";
+export { summarizeInstructions } from "./instructionsSummarizer";

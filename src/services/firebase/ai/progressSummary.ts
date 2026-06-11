@@ -58,12 +58,17 @@ const validateProjectProgressSummary = (
     throw new Error("AI response is missing required progress fields.");
   }
 
+  const progressPercent = typeof data.progressPercent === "number"
+    ? Math.max(0, Math.min(100, Math.round(data.progressPercent)))
+    : 0;
+
   return {
     headline,
     summaryLines: [summaryLines[0], summaryLines[1], summaryLines[2]],
     completedHighlights,
     nextFocus,
     motivation,
+    progressPercent,
   };
 };
 
@@ -81,14 +86,22 @@ const buildPrompt = (input: ProjectProgressSummaryInput): string => {
   const inProgressTasks = input.inProgressTasks.slice(0, 8).map(simplifyTask);
   const openTasks = input.openTasks.slice(0, 10).map(simplifyTask);
 
+  const contextLines = [
+    input.projectDescription ? `תיאור הפרויקט: ${input.projectDescription}` : null,
+    input.projectInstructions ? `הנחיות הפרויקט: ${input.projectInstructions}` : null,
+  ].filter(Boolean).join("\n");
+
   return `אתה עוזר AI באפליקציית ניהול פרויקטים לסטודנטים.
 השב אך ורק JSON תקני ללא markdown וללא טקסט נוסף.
 
-המטרה: להסביר למשתמש בעברית מה נעשה בפרויקט עד כה, על סמך נתוני הפרויקט והמשימות בלבד.
-אל תמציא עובדות או משימות שלא קיימות. אם אין מספיק משימות שהושלמו, אמור זאת בעדינות והתבסס על ההתקדמות הקיימת.
+המטרה: להעריך את התקדמות הפרויקט ביחס למטרות הפרויקט, ולא רק לפי מספר משימות שהושלמו.
+בדוק כמה מהיעדים, הדרישות וההנחיות של הפרויקט מכוסים על ידי המשימות שהושלמו.
+אם יש תיאור או הנחיות לפרויקט, העריך אחוז כיסוי של היעדים. אם אין, התבסס על המשימות בלבד.
+אל תמציא עובדות או משימות שלא קיימות.
 
 פרויקט:
 ${JSON.stringify(input.project)}
+${contextLines ? `\n${contextLines}` : ""}
 
 משימות שהושלמו:
 ${JSON.stringify(completedTasks)}
@@ -103,16 +116,20 @@ ${JSON.stringify(openTasks)}
 {
   "headline": "כותרת קצרה בעברית",
   "summaryLines": [
-    "שורה 1 שמסבירה מה נעשה עד כה",
-    "שורה 2 שמסבירה את ההתקדמות",
-    "שורה 3 שמחברת בין העבודה שבוצעה לכיוון הפרויקט"
+    "שורה 1 שמסבירה כמה מיעדי הפרויקט הושגו עד כה",
+    "שורה 2 שמסבירה אילו חלקים מרכזיים של הפרויקט טרם כוסו",
+    "שורה 3 שמחברת בין העבודה שבוצעה לכיוון הסופי של הפרויקט"
   ],
   "completedHighlights": [
-    "הישג או משימה שהושלמה לפי הנתונים"
+    "הישג או יעד שהושג לפי הנתונים"
   ],
   "nextFocus": "מה כדאי לבדוק או להמשיך ממנו עכשיו במשפט אחד",
-  "motivation": "משפט קצר שמעודד את הקבוצה להמשיך"
-}`;
+  "motivation": "משפט קצר שמעודד את הקבוצה להמשיך",
+  "progressPercent": 42
+}
+
+progressPercent הוא מספר בין 0 ל-100 שמייצג כמה אחוזים מהיעדים הכוללים של הפרויקט כבר הושגו.
+חשוב מאוד: היה שמרני ומחמיר. פרויקט אקדמי כולל מחקר, כתיבה, עריכה, הגשה ועוד שלבים רבים. 3-5 משימות קטנות שהושלמו צריכות לתת 5-15% לכל היותר. רק פרויקט שכמעט כל הדרישות מכוסות צריך לקבל מעל 70%.`;
 };
 
 export const generateProjectProgressSummary = async (

@@ -76,6 +76,7 @@ interface LinkDraft {
 interface SettingsDraft {
   name: string;
   description: string;
+  projectInstructions: string;
   dueDate: string;
   finalSubmissionAt: string;
   nextMilestoneAt: string;
@@ -100,6 +101,7 @@ interface SettingsDraft {
 interface SavePayload {
   name: string;
   description: string;
+  projectInstructions: string;
   dueDate: string;
   finalSubmissionAt: string;
   nextMilestoneAt: string;
@@ -240,6 +242,7 @@ const buildDraftFromProject = (project: Project): SettingsDraft => {
   return {
     name: project.name,
     description: project.description ?? "",
+    projectInstructions: project.projectInstructions ?? "",
     dueDate: toDateInputValue(project.dueDate),
     finalSubmissionAt: toDateInputValue(project.finalSubmissionAt),
     nextMilestoneAt: toDateInputValue(project.nextMilestoneAt),
@@ -294,6 +297,7 @@ const buildSavePayload = (
   return {
     name: draft.name.trim(),
     description: draft.description,
+    projectInstructions: draft.projectInstructions,
     dueDate: draft.dueDate,
     finalSubmissionAt: draft.finalSubmissionAt,
     nextMilestoneAt: draft.nextMilestoneAt,
@@ -690,6 +694,7 @@ export const SettingsPage = () => {
       await updateProject(project.id, {
         name: projectName,
         description: normalizeOptionalText(payload.description),
+        projectInstructions: normalizeOptionalText(payload.projectInstructions),
         dueDate,
         finalSubmissionAt,
         nextMilestoneAt,
@@ -902,6 +907,18 @@ export const SettingsPage = () => {
                     onChange={(event) =>
                       updateDraft("description", event.target.value)
                     }
+                  />
+                </label>
+
+                <label className="settings-page__field settings-page__field--wide">
+                  <span>הנחיות הפרויקט (קישור למסמך או טקסט)</span>
+                  <textarea
+                    rows={3}
+                    value={draft?.projectInstructions ?? ""}
+                    onChange={(event) =>
+                      updateDraft("projectInstructions", event.target.value)
+                    }
+                    placeholder="הדביקו קישור למסמך ההנחיות או כתבו את ההנחיות כאן"
                   />
                 </label>
 

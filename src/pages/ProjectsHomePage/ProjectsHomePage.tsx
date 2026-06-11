@@ -18,15 +18,17 @@ import {
   getUserProjects,
   getUsersByIds,
   resolveMemberIdsByEmails,
+  updateProject,
 } from "@services/firebase/firebase";
 import { calculateUserScore } from "@utils/scoreCalculation";
-import { generateUserActivitySummary, type UserActivitySummaryResult } from "@services/firebase/ai";
+import { generateUserActivitySummary, summarizeInstructions, type UserActivitySummaryResult } from "@services/firebase/ai";
 import "./ProjectsHomePage.scss";
 import { Logo } from "@components/ui/Logo/Logo";
 
 interface CreateProjectFormState {
   name: string;
   description: string;
+  projectInstructions: string;
   finalSubmissionAt: string;
   people: string;
   trophyName: string;
@@ -50,6 +52,7 @@ const toActivityDateLabel = (date: Date) =>
 const INITIAL_FORM: CreateProjectFormState = {
   name: "",
   description: "",
+  projectInstructions: "",
   finalSubmissionAt: "",
   people: "",
   trophyName: "",
@@ -221,6 +224,11 @@ export const ProjectsHomePage = () => {
           .map(mapTask);
         const updatedTasks = allRelevantTasks.map(mapTask);
 
+        if (updatedProjects.length === 0 && createdTasks.length === 0 && updatedTasks.length === 0) {
+          sessionStorage.setItem(sessionKey, "shown");
+          return;
+        }
+
         const summary = await generateUserActivitySummary({
           userName: user.displayName || user.email || "המשתמש",
           previousLoginAt: toActivityDateLabel(previousLoginAt),
@@ -347,9 +355,10 @@ export const ProjectsHomePage = () => {
         );
       }
 
-      await createProject({
+      const newProjectId = await createProject({
         name: projectName,
         description: formState.description,
+        projectInstructions: formState.projectInstructions,
         finalSubmissionAt: formState.finalSubmissionAt
           ? new Date(formState.finalSubmissionAt)
           : undefined,
@@ -357,6 +366,13 @@ export const ProjectsHomePage = () => {
         memberIds,
         trophyName: formState.trophyName,
       });
+
+      // Summarize instructions in background (don't block user)
+      if (formState.projectInstructions.trim().length > 20) {
+        void summarizeInstructions(formState.projectInstructions).then((summary) => {
+          void updateProject(newProjectId, { projectInstructions: summary });
+        });
+      }
 
       setIsCreateModalOpen(false);
       setFormState(INITIAL_FORM);
@@ -564,6 +580,21 @@ export const ProjectsHomePage = () => {
                   }
                   rows={3}
                   placeholder="מה המטרה של הפרויקט?"
+                />
+              </label>
+
+              <label className="projects-home__field">
+                <span>הנחיות הפרויקט (קישור למסמך או טקסט)</span>
+                <textarea
+                  value={formState.projectInstructions}
+                  onChange={(event) =>
+                    setFormState((prev) => ({
+                      ...prev,
+                      projectInstructions: event.target.value,
+                    }))
+                  }
+                  rows={3}
+                  placeholder="הדביקו קישור למסמך ההנחיות או כתבו את ההנחיות כאן"
                 />
               </label>
 
