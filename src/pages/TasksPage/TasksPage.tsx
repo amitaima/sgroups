@@ -339,6 +339,7 @@ export const TasksPage = () => {
   const suppressTaskClickTimerRef = useRef<number | null>(null);
   const boardRef = useRef<HTMLDivElement>(null);
   const boardDragState = useRef<{ isDown: boolean; startX: number; scrollLeft: number }>({ isDown: false, startX: 0, scrollLeft: 0 });
+  const boardAutoScrollRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (!project) {
@@ -879,6 +880,40 @@ export const TasksPage = () => {
     setDraggedTaskId(null);
     setDragOverColumnId(null);
     suppressNextTaskClick();
+    if (boardAutoScrollRef.current) {
+      cancelAnimationFrame(boardAutoScrollRef.current);
+      boardAutoScrollRef.current = null;
+    }
+  };
+
+  const handleBoardDragOver = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    const board = boardRef.current;
+    if (!board) return;
+
+    const rect = board.getBoundingClientRect();
+    const edgeZone = 60;
+    const x = event.clientX - rect.left;
+    const speed = 12;
+
+    if (boardAutoScrollRef.current) {
+      cancelAnimationFrame(boardAutoScrollRef.current);
+      boardAutoScrollRef.current = null;
+    }
+
+    if (x < edgeZone) {
+      const tick = () => {
+        board.scrollLeft -= speed;
+        boardAutoScrollRef.current = requestAnimationFrame(tick);
+      };
+      boardAutoScrollRef.current = requestAnimationFrame(tick);
+    } else if (x > rect.width - edgeZone) {
+      const tick = () => {
+        board.scrollLeft += speed;
+        boardAutoScrollRef.current = requestAnimationFrame(tick);
+      };
+      boardAutoScrollRef.current = requestAnimationFrame(tick);
+    }
   };
 
   const toggleTaskAssignee = (memberId: string) => {
@@ -1364,6 +1399,8 @@ export const TasksPage = () => {
           className="tasks-page__board"
           aria-label="עמודות לוח המשימות"
           ref={boardRef}
+          onDragOver={handleBoardDragOver}
+          onDragLeave={() => { if (boardAutoScrollRef.current) { cancelAnimationFrame(boardAutoScrollRef.current); boardAutoScrollRef.current = null; } }}
           onPointerDown={handleBoardPointerDown}
           onPointerMove={handleBoardPointerMove}
           onPointerUp={handleBoardPointerUp}
