@@ -148,6 +148,7 @@ export const Podium = ({
             justifyContent: "flex-end",
             padding: "1.25rem",
             paddingTop: "3.5rem",
+            paddingBottom: "0rem",
           }}
         >
           {coachButton && (
@@ -223,6 +224,7 @@ export const Podium = ({
                       background: barColors[rank],
                       border:
                         "1px solid color-mix(in srgb, var(--color-primary) 8%, var(--color-surface-glass-border))",
+                      borderBottom: "none",
                       boxShadow: "inset 0 1px 0 rgba(255,255,255,0.4)",
                     }}
                   >

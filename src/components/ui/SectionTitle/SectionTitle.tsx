@@ -10,9 +10,6 @@ export const SectionTitle = ({
     <div className="section-title">
       <div>
         <h2 className="section-title__heading">{title}</h2>
-        {subtitle ? (
-          <p className="section-title__subtitle">{subtitle}</p>
-        ) : null}
       </div>
       {actions ? <div className="section-title__actions">{actions}</div> : null}
     </div>
