@@ -350,7 +350,9 @@ export const TasksPage = () => {
     string | null
   >(null);
   const [isSmartSuggestionsOpen, setIsSmartSuggestionsOpen] = useState(false);
-  const [smartSuggestions, setSmartSuggestions] = useState<SmartTaskSuggestion[] | null>(null);
+  const [smartSuggestions, setSmartSuggestions] = useState<
+    SmartTaskSuggestion[] | null
+  >(null);
   const [isSmartLoading, setIsSmartLoading] = useState(false);
   const [smartCreating, setSmartCreating] = useState<number | null>(null);
   const activitySummaryUserName = user?.displayName || user?.email || "המשתמש";
@@ -795,16 +797,28 @@ export const TasksPage = () => {
     try {
       const rankedMembers = getProjectMemberScores(tasks, projectMembers);
       const deadlines: { label: string; date: string }[] = [];
-      if (project.finalSubmissionAt) deadlines.push({ label: "הגשה סופית", date: project.finalSubmissionAt.toDate().toISOString().split("T")[0] });
-      if (project.nextMilestoneAt) deadlines.push({ label: "מיילסטון הבא", date: project.nextMilestoneAt.toDate().toISOString().split("T")[0] });
+      if (project.finalSubmissionAt)
+        deadlines.push({
+          label: "הגשה סופית",
+          date: project.finalSubmissionAt.toDate().toISOString().split("T")[0],
+        });
+      if (project.nextMilestoneAt)
+        deadlines.push({
+          label: "מיילסטון הבא",
+          date: project.nextMilestoneAt.toDate().toISOString().split("T")[0],
+        });
 
       const result = await generateSmartTaskSuggestions({
         projectName: project.name,
         projectDescription: project.description,
         projectInstructions: project.projectInstructions,
-        existingTasks: tasks.map(t => ({ title: t.title, status: t.status })),
+        existingTasks: tasks.map((t) => ({ title: t.title, status: t.status })),
         deadlines,
-        memberScores: rankedMembers.map(m => ({ id: m.id, name: m.name, score: m.totalScore })),
+        memberScores: rankedMembers.map((m) => ({
+          id: m.id,
+          name: m.name,
+          score: m.totalScore,
+        })),
       });
       setSmartSuggestions(result);
     } catch {
@@ -814,7 +828,10 @@ export const TasksPage = () => {
     }
   };
 
-  const handleCreateSmartTask = async (suggestion: SmartTaskSuggestion, index: number) => {
+  const handleCreateSmartTask = async (
+    suggestion: SmartTaskSuggestion,
+    index: number,
+  ) => {
     if (!project || !user || smartCreating !== null) return;
     setSmartCreating(index);
     try {
@@ -826,7 +843,9 @@ export const TasksPage = () => {
         assigneeIds: [suggestion.suggestedAssigneeId],
         createdBy: user.uid,
       });
-      setSmartSuggestions(prev => prev ? prev.filter((_, i) => i !== index) : null);
+      setSmartSuggestions((prev) =>
+        prev ? prev.filter((_, i) => i !== index) : null,
+      );
     } finally {
       setSmartCreating(null);
     }
@@ -1311,7 +1330,7 @@ export const TasksPage = () => {
               </span>
             ) : null}
           </Button>
-          <Button
+          {/* <Button
             variant="secondary"
             size="md"
             type="button"
@@ -1321,7 +1340,7 @@ export const TasksPage = () => {
           >
             <Sparkles size={16} />
             סיכום
-          </Button>
+          </Button> */}
 
           <Button
             variant="secondary"
@@ -1859,64 +1878,142 @@ export const TasksPage = () => {
         allTasks={tasks}
       />
 
-      {isSmartSuggestionsOpen && createPortal(
-        <div
-          className="tasks-page__dialog-backdrop"
-          onClick={(e) => { if (e.target === e.currentTarget) setIsSmartSuggestionsOpen(false); }}
-          role="presentation"
-        >
-          <GlassPanel
-            className="tasks-page__dialog"
-            intensity="strong"
-            style={{ maxWidth: "480px", padding: "var(--space-5)" }}
+      {isSmartSuggestionsOpen &&
+        createPortal(
+          <div
+            className="tasks-page__dialog-backdrop"
+            onClick={(e) => {
+              if (e.target === e.currentTarget)
+                setIsSmartSuggestionsOpen(false);
+            }}
+            role="presentation"
           >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "var(--space-4)" }}>
-              <h3 style={{ margin: 0, fontSize: "var(--font-size-lg)" }}>הצעות משימות חכמות</h3>
-              <button
-                type="button"
-                onClick={() => setIsSmartSuggestionsOpen(false)}
-                style={{ background: "none", border: "none", cursor: "pointer", color: "var(--color-text)" }}
-                aria-label="סגור"
+            <GlassPanel
+              className="tasks-page__dialog"
+              intensity="strong"
+              style={{ maxWidth: "480px", padding: "var(--space-5)" }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginBottom: "var(--space-4)",
+                }}
               >
-                <X size={20} />
-              </button>
-            </div>
-
-            {isSmartLoading && (
-              <AiLoader text="מייצר הצעות חכמות..." />
-            )}
-
-            {!isSmartLoading && smartSuggestions && smartSuggestions.length === 0 && (
-              <p style={{ textAlign: "center", color: "var(--color-text-muted)" }}>כל ההצעות נוצרו!</p>
-            )}
-
-            {!isSmartLoading && smartSuggestions && smartSuggestions.map((s, i) => (
-              <GlassPanel key={i} style={{ padding: "var(--space-3)", marginBottom: "var(--space-3)" }}>
-                <h4 style={{ margin: "0 0 4px", fontSize: "var(--font-size-sm)" }}>{s.title}</h4>
-                <p style={{ margin: "0 0 8px", fontSize: "var(--font-size-xs)", color: "var(--color-text-muted)", lineHeight: 1.5 }}>{s.description}</p>
-                <div style={{ display: "flex", gap: "var(--space-2)", fontSize: "var(--font-size-xs)", marginBottom: "var(--space-2)", flexWrap: "wrap", color: "var(--color-text-soft)" }}>
-                  <span>{s.priority} • {s.difficulty}</span>
-                  <span>← {projectMembers.find((m: MemberDirectoryUser) => m.uid === s.suggestedAssigneeId)?.displayName ?? "חבר צוות"}</span>
-                </div>
-                <p style={{ margin: "0 0 8px", fontSize: "var(--font-size-xs)", color: "var(--color-text-soft)" }}>{s.reason}</p>
-                <Button
-                  size="md"
+                <h3 style={{ margin: 0, fontSize: "var(--font-size-lg)" }}>
+                  הצעות משימות חכמות
+                </h3>
+                <button
                   type="button"
-                  onClick={() => void handleCreateSmartTask(s, i)}
-                  disabled={smartCreating === i}
+                  onClick={() => setIsSmartSuggestionsOpen(false)}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    color: "var(--color-text)",
+                  }}
+                  aria-label="סגור"
                 >
-                  {smartCreating === i ? "יוצר..." : "צור משימה"}
-                </Button>
-              </GlassPanel>
-            ))}
+                  <X size={20} />
+                </button>
+              </div>
 
-            {!isSmartLoading && !smartSuggestions && (
-              <p style={{ textAlign: "center", color: "var(--color-danger)" }}>שגיאה ביצירת הצעות. נסו שוב.</p>
-            )}
-          </GlassPanel>
-        </div>,
-        document.body,
-      )}
+              {isSmartLoading && <AiLoader text="מייצר הצעות חכמות..." />}
+
+              {!isSmartLoading &&
+                smartSuggestions &&
+                smartSuggestions.length === 0 && (
+                  <p
+                    style={{
+                      textAlign: "center",
+                      color: "var(--color-text-muted)",
+                    }}
+                  >
+                    כל ההצעות נוצרו!
+                  </p>
+                )}
+
+              {!isSmartLoading &&
+                smartSuggestions &&
+                smartSuggestions.map((s, i) => (
+                  <GlassPanel
+                    key={i}
+                    style={{
+                      padding: "var(--space-3)",
+                      marginBottom: "var(--space-3)",
+                    }}
+                  >
+                    <h4
+                      style={{
+                        margin: "0 0 4px",
+                        fontSize: "var(--font-size-sm)",
+                      }}
+                    >
+                      {s.title}
+                    </h4>
+                    <p
+                      style={{
+                        margin: "0 0 8px",
+                        fontSize: "var(--font-size-xs)",
+                        color: "var(--color-text-muted)",
+                        lineHeight: 1.5,
+                      }}
+                    >
+                      {s.description}
+                    </p>
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: "var(--space-2)",
+                        fontSize: "var(--font-size-xs)",
+                        marginBottom: "var(--space-2)",
+                        flexWrap: "wrap",
+                        color: "var(--color-text-soft)",
+                      }}
+                    >
+                      <span>
+                        {s.priority} • {s.difficulty}
+                      </span>
+                      <span>
+                        ←{" "}
+                        {projectMembers.find(
+                          (m: MemberDirectoryUser) =>
+                            m.uid === s.suggestedAssigneeId,
+                        )?.displayName ?? "חבר צוות"}
+                      </span>
+                    </div>
+                    <p
+                      style={{
+                        margin: "0 0 8px",
+                        fontSize: "var(--font-size-xs)",
+                        color: "var(--color-text-soft)",
+                      }}
+                    >
+                      {s.reason}
+                    </p>
+                    <Button
+                      size="md"
+                      type="button"
+                      onClick={() => void handleCreateSmartTask(s, i)}
+                      disabled={smartCreating === i}
+                    >
+                      {smartCreating === i ? "יוצר..." : "צור משימה"}
+                    </Button>
+                  </GlassPanel>
+                ))}
+
+              {!isSmartLoading && !smartSuggestions && (
+                <p
+                  style={{ textAlign: "center", color: "var(--color-danger)" }}
+                >
+                  שגיאה ביצירת הצעות. נסו שוב.
+                </p>
+              )}
+            </GlassPanel>
+          </div>,
+          document.body,
+        )}
     </PageSection>
   );
 };

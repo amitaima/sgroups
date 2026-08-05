@@ -16,6 +16,7 @@ import {
   query,
   serverTimestamp,
   setDoc,
+  writeBatch,
   updateDoc,
   Timestamp,
   where,
@@ -318,7 +319,9 @@ export interface SaveAiSummaryInput {
   nextFocus: string;
   context?: Record<string, unknown>;
 }
-export const getUserProfile = async (uid: string): Promise<UserProfile | null> => {
+export const getUserProfile = async (
+  uid: string,
+): Promise<UserProfile | null> => {
   const snapshot = await getDoc(getUserDocRef(uid));
   if (!snapshot.exists()) {
     return null;
@@ -734,7 +737,10 @@ const mapProjectSnapshot = (
     logoLink: normalizeText(data.logoLink),
     trophyName: normalizeText(data.trophyName),
     projectInstructions: normalizeText(data.projectInstructions),
-    aiProgressPercent: typeof data.aiProgressPercent === "number" ? data.aiProgressPercent : undefined,
+    aiProgressPercent:
+      typeof data.aiProgressPercent === "number"
+        ? data.aiProgressPercent
+        : undefined,
   };
 };
 
@@ -888,6 +894,24 @@ const normalizeEventAssignees = (
 const normalizeTaskAssignees = (assigneeIds: string[]) =>
   Array.from(new Set(assigneeIds.map((item) => item.trim()).filter(Boolean)));
 
+const buildProjectTaskPayload = (
+  projectId: string,
+  input: CreateProjectTaskInput,
+) => ({
+  projectId,
+  title: input.title.trim(),
+  description: input.description?.trim() || null,
+  priority: input.priority,
+  difficulty: input.difficulty ?? "medium",
+  status: input.status ?? "todo",
+  dueDate: input.dueDate ? Timestamp.fromDate(input.dueDate) : null,
+  assigneeIds: normalizeTaskAssignees(input.assigneeIds ?? []),
+  completed: input.completed ?? input.status === "completed",
+  createdBy: input.createdBy,
+  createdAt: serverTimestamp(),
+  updatedAt: serverTimestamp(),
+});
+
 const sortProjectTasks = (tasks: ProjectTaskRecord[]) =>
   [...tasks].sort((left, right) => {
     const statusOrder: Record<TaskStatus, number> = {
@@ -1007,25 +1031,34 @@ export const createProjectTask = async (
   projectId: string,
   input: CreateProjectTaskInput,
 ): Promise<string> => {
-  const payload = {
-    projectId,
-    title: input.title.trim(),
-    description: input.description?.trim() || null,
-    priority: input.priority,
-    difficulty: input.difficulty ?? "medium",
-    status: input.status ?? "todo",
-    dueDate: input.dueDate ? Timestamp.fromDate(input.dueDate) : null,
-    assigneeIds: normalizeTaskAssignees(input.assigneeIds ?? []),
-    completed: input.completed ?? input.status === "completed",
-    createdBy: input.createdBy,
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
-  };
-
-  const docRef = await addDoc(getProjectTasksCollection(projectId), payload);
+  const docRef = await addDoc(
+    getProjectTasksCollection(projectId),
+    buildProjectTaskPayload(projectId, input),
+  );
 
   await syncProjectMemberScores(projectId);
   return docRef.id;
+};
+
+export const createProjectTasks = async (
+  projectId: string,
+  inputs: CreateProjectTaskInput[],
+): Promise<string[]> => {
+  if (inputs.length === 0) {
+    return [];
+  }
+
+  const batch = writeBatch(db);
+  const docRefs = inputs.map((input) => {
+    const ref = doc(getProjectTasksCollection(projectId));
+    batch.set(ref, buildProjectTaskPayload(projectId, input));
+    return ref;
+  });
+
+  await batch.commit();
+  await syncProjectMemberScores(projectId);
+
+  return docRefs.map((ref) => ref.id);
 };
 
 export const updateProjectTask = async (
@@ -1088,9 +1121,13 @@ export const reassignRemovedMemberTasks = async (
   const targetMemberId = remainingMemberIds[0];
 
   const updates = tasks
-    .filter((task) => task.assigneeIds.some((id) => removedMemberIds.includes(id)))
+    .filter((task) =>
+      task.assigneeIds.some((id) => removedMemberIds.includes(id)),
+    )
     .map((task) => {
-      const newAssignees = task.assigneeIds.filter((id) => !removedMemberIds.includes(id));
+      const newAssignees = task.assigneeIds.filter(
+        (id) => !removedMemberIds.includes(id),
+      );
       if (newAssignees.length === 0) {
         newAssignees.push(targetMemberId);
       }
@@ -1259,7 +1296,8 @@ export const updateProject = async (
   }
 
   if (input.projectInstructions !== undefined) {
-    payload.projectInstructions = normalizeText(input.projectInstructions) ?? null;
+    payload.projectInstructions =
+      normalizeText(input.projectInstructions) ?? null;
   }
 
   if (input.aiProgressPercent !== undefined) {
@@ -1518,5 +1556,3 @@ export const resolveMemberIdsByEmails = async (
 
   return { memberIds, missingEmails };
 };
-
-

@@ -118,7 +118,7 @@ export const LoginPage = () => {
           </div>
           <div className="login-page__brand">
             <div className="login-page__brand-text">
-              <div className="login-page__brand-title">Groups</div>
+              <div className="login-page__brand-title">SGroups</div>
             </div>
             <div className="login-page__logo" aria-hidden>
               <Logo size={68} color="var(--color-primary)" />

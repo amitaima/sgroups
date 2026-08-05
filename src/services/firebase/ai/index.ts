@@ -32,3 +32,13 @@ export type {
 } from "./smartTaskSuggestions.types";
 export { generateSmartTaskSuggestions } from "./smartTaskSuggestions";
 export { summarizeInstructions } from "./instructionsSummarizer";
+export type {
+  ProjectTaskAutomationInput,
+  ProjectTaskAutomationResult,
+  ProjectTaskAutomationTask,
+  ProjectTaskDifficultyEstimate,
+} from "./projectTaskAutomation.types";
+export {
+  estimateProjectTaskDifficulty,
+  generateProjectTaskAutomation,
+} from "./projectTaskAutomation";

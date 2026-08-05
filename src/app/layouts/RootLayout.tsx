@@ -79,9 +79,9 @@ export const RootLayout = () => {
             <PageContainer>
               <div className="app-shell__homebar-panel">
                 <div className="app-shell__homebar-brand">
-                  <div className="app-shell__homebar-copy">
+                  {/* <div className="app-shell__homebar-copy">
                     <strong>Groups</strong>
-                  </div>
+                  </div> */}
                   <div className="app-shell__homebar-mark">
                     <Logo size={40} color="var(--color-primary)" />
                   </div>

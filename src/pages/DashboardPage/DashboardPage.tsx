@@ -651,7 +651,12 @@ export const DashboardPage = () => {
 
   // AI progress: show cached value from DB, only regenerate on manual button press
   const handleReloadProgress = async () => {
-    if (!activeProject || isGeneratingProgressSummary || projectTasks.length === 0) return;
+    if (
+      !activeProject ||
+      isGeneratingProgressSummary ||
+      projectTasks.length === 0
+    )
+      return;
     setIsGeneratingProgressSummary(true);
 
     const completedTasks = projectTasks.filter(
@@ -678,7 +683,9 @@ export const DashboardPage = () => {
         projectInstructions: activeProject.projectInstructions || undefined,
       });
       setProgressSummary(summary);
-      void updateProject(activeProject.id, { aiProgressPercent: summary.progressPercent });
+      void updateProject(activeProject.id, {
+        aiProgressPercent: summary.progressPercent,
+      });
     } catch (err) {
       console.error("Progress summary failed", err);
     } finally {
@@ -1108,12 +1115,12 @@ export const DashboardPage = () => {
         <SectionTitle
           title={selectedProject.name}
           subtitle="לוח ניהול לפרויקט הנבחר."
-          actions={
-            <span className="dashboard-page__status-pill">
-              <span className="dashboard-page__status-dot" />
-              {activeMembersCount} חברים פעילים
-            </span>
-          }
+          // actions={
+          //   <span className="dashboard-page__status-pill">
+          //     <span className="dashboard-page__status-dot" />
+          //     {activeMembersCount} חברים פעילים
+          //   </span>
+          // }
         />
       </div>
 
@@ -1175,7 +1182,7 @@ export const DashboardPage = () => {
                     }
                   />
                 </Button>
-                <Button
+                {/* <Button
                   className="dashboard-page__progress-ai-button"
                   variant="secondary"
                   size="sm"
@@ -1184,7 +1191,7 @@ export const DashboardPage = () => {
                 >
                   <Sparkles size={14} />
                   מה עשינו?
-                </Button>
+                </Button> */}
               </>
             }
           />

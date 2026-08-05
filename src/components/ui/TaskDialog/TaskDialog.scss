@@ -127,6 +127,7 @@
 .task-dialog__field select {
   width: 100%;
   border-radius: var(--radius-lg);
+  border: var(--border-width-sm) solid var(--color-border-strong);
   background: color-mix(
     in srgb,
     var(--color-surface-glass-strong) 84%,
@@ -243,7 +244,11 @@
   padding: 0.4rem 0.75rem;
   border: 1px solid color-mix(in srgb, var(--color-primary) 30%, transparent);
   border-radius: var(--radius-full);
-  background: color-mix(in srgb, var(--color-primary-container) 25%, transparent);
+  background: color-mix(
+    in srgb,
+    var(--color-primary-container) 25%,
+    transparent
+  );
   color: var(--color-primary);
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-medium);
@@ -254,7 +259,11 @@
 }
 
 .task-dialog__smart-rec:hover {
-  background: color-mix(in srgb, var(--color-primary-container) 45%, transparent);
+  background: color-mix(
+    in srgb,
+    var(--color-primary-container) 45%,
+    transparent
+  );
   border-color: color-mix(in srgb, var(--color-primary) 50%, transparent);
 }
 

@@ -6,8 +6,14 @@ import { ProjectSwitcher } from "@components/layout/ProjectSwitcher/ProjectSwitc
 import { ProfileMenuButton } from "@components/ui/ProfileMenuButton";
 import { ArrowRight, Bell, Menu } from "lucide-react";
 import { useWorkspaceProject } from "@hooks/useWorkspaceProject";
-import { subscribeProjectTasks, getUsersByIds } from "@services/firebase/firebase";
-import type { ProjectTaskRecord, MemberDirectoryUser } from "@services/firebase/firebase";
+import {
+  subscribeProjectTasks,
+  getUsersByIds,
+} from "@services/firebase/firebase";
+import type {
+  ProjectTaskRecord,
+  MemberDirectoryUser,
+} from "@services/firebase/firebase";
 import { getProjectMemberScores } from "@utils/scoreCalculation";
 import { ScoreDisplay } from "@components/ui/ScoreDisplay";
 import { LeaderboardDialog } from "@components/dashboard/LeaderboardDialog";
@@ -27,8 +33,12 @@ export const DashboardHeader = ({
   const { project } = useWorkspaceProject(currentProjectId);
   const [tasks, setTasks] = useState<ProjectTaskRecord[]>([]);
   const [members, setMembers] = useState<MemberDirectoryUser[]>([]);
-  const [computedScore, setComputedScore] = useState<number | undefined>(undefined);
-  const [computedRank, setComputedRank] = useState<number | undefined>(undefined);
+  const [computedScore, setComputedScore] = useState<number | undefined>(
+    undefined,
+  );
+  const [computedRank, setComputedRank] = useState<number | undefined>(
+    undefined,
+  );
   const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false);
 
   useEffect(() => {
@@ -68,11 +78,13 @@ export const DashboardHeader = ({
   }, [tasks, members, userId, project]);
 
   const userScore = computedScore ?? project?.memberScores?.[userId];
-  const displayRank = computedRank ?? (project?.memberScores
-    ? Object.entries(project.memberScores)
-        .sort(([, scoreA], [, scoreB]) => scoreB - scoreA)
-        .findIndex(([memberId]) => memberId === userId) + 1
-    : undefined);
+  const displayRank =
+    computedRank ??
+    (project?.memberScores
+      ? Object.entries(project.memberScores)
+          .sort(([, scoreA], [, scoreB]) => scoreB - scoreA)
+          .findIndex(([memberId]) => memberId === userId) + 1
+      : undefined);
 
   return (
     <header className="dashboard-header">
@@ -101,16 +113,16 @@ export const DashboardHeader = ({
         </div>
 
         <div className="dashboard-header__actions">
-          <button
+          {/* <button
             className="dashboard-header__action dashboard-header__indicator"
             type="button"
             aria-label="התראות"
           >
             <Bell size={18} strokeWidth={2} />
             <span className="dashboard-header__dot" />
-          </button>
-          <div 
-            className="dashboard-header__user-score" 
+          </button> */}
+          <div
+            className="dashboard-header__user-score"
             onClick={() => setIsLeaderboardOpen(true)}
             role="button"
             tabIndex={0}
@@ -135,11 +147,11 @@ export const DashboardHeader = ({
           />
         </div>
       </div>
-      
+
       {createPortal(
-        <LeaderboardDialog 
-          isOpen={isLeaderboardOpen} 
-          onClose={() => setIsLeaderboardOpen(false)} 
+        <LeaderboardDialog
+          isOpen={isLeaderboardOpen}
+          onClose={() => setIsLeaderboardOpen(false)}
           tasks={tasks.length > 0 ? tasks : undefined}
           members={members.length > 0 ? members : undefined}
         />,

@@ -29,9 +29,8 @@ export const DashboardSidebar = ({
       <GlassPanel className="dashboard-sidebar__panel" intensity="strong">
         <div className="dashboard-sidebar__header">
           <div className="dashboard-sidebar__brand">
-            <div className="dashboard-sidebar__logo">
-              <Logo size={28} color="var(--color-surface)" />
-            </div>
+            <Logo size={36} color="var(--color-primary)" />
+            {/* <div className="dashboard-sidebar__logo"></div> */}
             <div className="dashboard-sidebar__brand-copy">
               <strong>SGroups</strong>
             </div>

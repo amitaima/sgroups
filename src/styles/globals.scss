@@ -17,17 +17,17 @@ body {
   line-height: var(--line-height-base);
   color: var(--color-text);
   background-color: var(--color-bg);
-  background-image:
-    radial-gradient(
-      circle at 20% 0,
-      color-mix(in srgb, var(--color-primary) 10%, transparent) 0,
-      transparent 34%
-    ),
-    radial-gradient(
-      circle at 84% 0,
-      color-mix(in srgb, var(--color-tertiary) 8%, transparent) 0,
-      transparent 36%
-    );
+  // background-image:
+  //   radial-gradient(
+  //     circle at 20% 0,
+  //     color-mix(in srgb, var(--color-primary) 10%, transparent) 0,
+  //     transparent 34%
+  //   ),
+  //   radial-gradient(
+  //     circle at 84% 0,
+  //     color-mix(in srgb, var(--color-tertiary) 8%, transparent) 0,
+  //     transparent 36%
+  //   );
   /* background-attachment: fixed removed — causes full repaint on scroll */
   text-align: start;
   font-synthesis: none;
