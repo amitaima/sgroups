@@ -6,6 +6,7 @@ import { ProjectCard } from "@components/dashboard/ProjectCard";
 import { PageContainer } from "@components/layout/PageContainer/PageContainer";
 import { PageSection } from "@components/layout/PageSection/PageSection";
 import { Button } from "@components/ui/Button/Button";
+import { AiTaskCreationLoader } from "@components/ui/AITaskLoader/AiTaskCreationLoader";
 import { GlassPanel } from "@components/ui/GlassPanel/GlassPanel";
 import type { MemberAvatarItem } from "@components/users/MemberAvatarGroup";
 import type { Project } from "../../types/common";
@@ -80,6 +81,7 @@ export const ProjectsHomePage = () => {
   const [formState, setFormState] =
     useState<CreateProjectFormState>(INITIAL_FORM);
   const [createLoading, setCreateLoading] = useState(false);
+  const [showCreateLoader, setShowCreateLoader] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
   const [createWarning, setCreateWarning] = useState<string | null>(null);
   const [isJoinModalOpen, setIsJoinModalOpen] = useState(false);
@@ -370,6 +372,7 @@ export const ProjectsHomePage = () => {
     }
 
     setCreateLoading(true);
+    setShowCreateLoader(formState.autoGenerateTasks);
     setCreateError(null);
     setCreateWarning(null);
 
@@ -454,12 +457,14 @@ export const ProjectsHomePage = () => {
       setCreateWarning(
         warningMessages.length ? warningMessages.join(" ") : null,
       );
+      setShowCreateLoader(false);
       await loadProjects();
     } catch (createProjectError) {
       console.error("Failed to create project", createProjectError);
       setCreateError("לא הצלחנו ליצור את הפרויקט. נסו שוב.");
     } finally {
       setCreateLoading(false);
+      setShowCreateLoader(false);
     }
   };
 
@@ -644,141 +649,157 @@ export const ProjectsHomePage = () => {
               </button>
             </div>
 
-            <form
-              className="projects-home__form"
-              onSubmit={handleCreateProject}
-            >
-              <label className="projects-home__field projects-home__field--full">
-                <span>שם הפרויקט</span>
-                <input
-                  type="text"
-                  value={formState.name}
-                  onChange={(event) =>
-                    setFormState((prev) => ({
-                      ...prev,
-                      name: event.target.value,
-                    }))
-                  }
-                  placeholder="לדוגמה: מערכת מעקב מחקר"
-                  required
-                />
-              </label>
-
-              <label className="projects-home__field projects-home__field--full">
-                <span>תיאור</span>
-                <textarea
-                  value={formState.description}
-                  onChange={(event) =>
-                    setFormState((prev) => ({
-                      ...prev,
-                      description: event.target.value,
-                    }))
-                  }
-                  rows={2}
-                  placeholder="מה המטרה של הפרויקט?"
-                />
-              </label>
-
-              <label className="projects-home__field projects-home__field--full">
-                <span>הנחיות הפרויקט (קישור למסמך או טקסט)</span>
-                <textarea
-                  value={formState.projectInstructions}
-                  onChange={(event) =>
-                    setFormState((prev) => ({
-                      ...prev,
-                      projectInstructions: event.target.value,
-                    }))
-                  }
-                  rows={2}
-                  placeholder="הדביקו קישור למסמך ההנחיות או כתבו את ההנחיות כאן"
-                />
-              </label>
-
-              <label className="projects-home__field projects-home__field--full">
-                <span>תאריך יעד (אופציונלי)</span>
-                <input
-                  type="date"
-                  value={formState.finalSubmissionAt}
-                  onChange={(event) =>
-                    setFormState((prev) => ({
-                      ...prev,
-                      finalSubmissionAt: event.target.value,
-                    }))
-                  }
-                />
-              </label>
-
-              <label className="projects-home__field projects-home__field--full">
-                <span>אנשים (אימיילים, מופרדים בפסיק או שורה חדשה)</span>
-                <textarea
-                  value={formState.people}
-                  onChange={(event) =>
-                    setFormState((prev) => ({
-                      ...prev,
-                      people: event.target.value,
-                    }))
-                  }
-                  rows={2}
-                  placeholder="student1@school.org, student2@school.org"
-                />
-              </label>
-
-              <label className="projects-home__field">
-                <span>פרס אלוף העבודה (אופציונלי)</span>
-                <input
-                  type="text"
-                  value={formState.trophyName}
-                  onChange={(event) =>
-                    setFormState((prev) => ({
-                      ...prev,
-                      trophyName: event.target.value,
-                    }))
-                  }
-                  placeholder="לדוגמה: ארוחת צהריים עלינו"
-                />
-              </label>
-
-              <label className="projects-home__toggle">
-                <input
-                  type="checkbox"
-                  checked={formState.autoGenerateTasks}
-                  onChange={(event) =>
-                    setFormState((prev) => ({
-                      ...prev,
-                      autoGenerateTasks: event.target.checked,
-                    }))
-                  }
-                />
-                <span className="projects-home__toggle-copy">
-                  <strong>יצירת משימות אוטומטית</strong>
-                  <small>
-                    לאחר יצירת הפרויקט, המערכת תעריך את המורכבות ותיצור משימות
-                    התחלה לפי ההנחיות.
-                  </small>
-                </span>
-              </label>
-
-              {createWarning ? (
-                <p className="projects-home__warning">{createWarning}</p>
-              ) : null}
-              {createError ? (
-                <p className="projects-home__error">{createError}</p>
-              ) : null}
-
-              <div className="projects-home__form-actions">
-                <Button type="submit" disabled={createLoading}>
-                  {createLoading ? "שומר..." : "צור פרויקט"}
-                </Button>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  onClick={closeCreateModal}
-                  disabled={createLoading}
-                >
-                  ביטול
-                </Button>
+            {showCreateLoader ? (
+              <div className="projects-home__modal-loading">
+                <AiTaskCreationLoader message="יוצרים משימות אוטומטית" />
               </div>
-            </form>
+            ) : (
+              <form
+                className="projects-home__form"
+                onSubmit={handleCreateProject}
+              >
+                <label className="projects-home__field projects-home__field--full">
+                  <span>שם הפרויקט</span>
+                  <input
+                    type="text"
+                    value={formState.name}
+                    onChange={(event) =>
+                      setFormState((prev) => ({
+                        ...prev,
+                        name: event.target.value,
+                      }))
+                    }
+                    placeholder="לדוגמה: מערכת מעקב מחקר"
+                    required
+                  />
+                </label>
+
+                <label className="projects-home__field projects-home__field--full">
+                  <span>תיאור</span>
+                  <textarea
+                    value={formState.description}
+                    onChange={(event) =>
+                      setFormState((prev) => ({
+                        ...prev,
+                        description: event.target.value,
+                      }))
+                    }
+                    rows={2}
+                    placeholder="מה המטרה של הפרויקט?"
+                  />
+                </label>
+
+                <label className="projects-home__field projects-home__field--full">
+                  <span>הנחיות הפרויקט (קישור למסמך או טקסט)</span>
+                  <textarea
+                    value={formState.projectInstructions}
+                    onChange={(event) =>
+                      setFormState((prev) => ({
+                        ...prev,
+                        projectInstructions: event.target.value,
+                      }))
+                    }
+                    rows={2}
+                    placeholder="הדביקו קישור למסמך ההנחיות או כתבו את ההנחיות כאן"
+                  />
+                </label>
+
+                <label className="projects-home__field projects-home__field--full">
+                  <span>תאריך יעד (אופציונלי)</span>
+                  <input
+                    type="date"
+                    value={formState.finalSubmissionAt}
+                    onChange={(event) =>
+                      setFormState((prev) => ({
+                        ...prev,
+                        finalSubmissionAt: event.target.value,
+                      }))
+                    }
+                  />
+                </label>
+
+                <label className="projects-home__field projects-home__field--full">
+                  <span>אנשים (אימיילים, מופרדים בפסיק או שורה חדשה)</span>
+                  <textarea
+                    value={formState.people}
+                    onChange={(event) =>
+                      setFormState((prev) => ({
+                        ...prev,
+                        people: event.target.value,
+                      }))
+                    }
+                    rows={2}
+                    placeholder="student1@school.org, student2@school.org"
+                  />
+                </label>
+
+                <label className="projects-home__field">
+                  <span>פרס אלוף העבודה (אופציונלי)</span>
+                  <input
+                    type="text"
+                    value={formState.trophyName}
+                    onChange={(event) =>
+                      setFormState((prev) => ({
+                        ...prev,
+                        trophyName: event.target.value,
+                      }))
+                    }
+                    placeholder="לדוגמה: ארוחת צהריים עלינו"
+                  />
+                </label>
+
+                <label className="projects-home__toggle">
+                  <span className="projects-home__toggle-copy">
+                    <strong>יצירת משימות אוטומטית</strong>
+                    <small>
+                      לאחר יצירת הפרויקט, המערכת תעריך את המורכבות ותיצור משימות
+                      התחלה לפי ההנחיות.
+                    </small>
+                  </span>
+
+                  <span className="projects-home__switch">
+                    <input
+                      className="projects-home__switch-input"
+                      type="checkbox"
+                      checked={formState.autoGenerateTasks}
+                      onChange={(event) =>
+                        setFormState((prev) => ({
+                          ...prev,
+                          autoGenerateTasks: event.target.checked,
+                        }))
+                      }
+                    />
+                    <span
+                      className="projects-home__switch-track"
+                      aria-hidden="true"
+                    >
+                      <span className="projects-home__switch-thumb" />
+                    </span>
+                  </span>
+                </label>
+
+                {createWarning ? (
+                  <p className="projects-home__warning">{createWarning}</p>
+                ) : null}
+                {createError ? (
+                  <p className="projects-home__error">{createError}</p>
+                ) : null}
+
+                <div className="projects-home__form-actions">
+                  <Button type="submit" disabled={createLoading}>
+                    {createLoading ? "שומר..." : "צור פרויקט"}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={closeCreateModal}
+                    disabled={createLoading}
+                  >
+                    ביטול
+                  </Button>
+                </div>
+              </form>
+            )}
           </GlassPanel>
         </div>
       ) : null}

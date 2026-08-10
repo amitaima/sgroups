@@ -343,7 +343,8 @@ export const SettingsPage = () => {
   const [deleteConfirmValue, setDeleteConfirmValue] = useState("");
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [removeMemberTarget, setRemoveMemberTarget] = useState<MemberRow | null>(null);
+  const [removeMemberTarget, setRemoveMemberTarget] =
+    useState<MemberRow | null>(null);
 
   // --- autosave / dirty tracking refs & state ---
   const initialGeneralRef = useRef<string | null>(null);
@@ -551,7 +552,9 @@ export const SettingsPage = () => {
 
         await updateProject(project.id, { memberIds, memberRoles });
 
-        const removedIds = project.memberIds.filter((id) => !memberIds.includes(id));
+        const removedIds = project.memberIds.filter(
+          (id) => !memberIds.includes(id),
+        );
         if (removedIds.length > 0) {
           await reassignRemovedMemberTasks(project.id, removedIds, memberIds);
         }
@@ -934,7 +937,7 @@ export const SettingsPage = () => {
                   />
                 </label>
 
-                <label className="settings-page__field">
+                {/* <label className="settings-page__field">
                   <span>סוג הפרויקט</span>
                   <select
                     value={draft?.projectType ?? ""}
@@ -952,7 +955,7 @@ export const SettingsPage = () => {
                       </option>
                     ))}
                   </select>
-                </label>
+                </label> */}
 
                 <label className="settings-page__field">
                   <span>סטטוס הפרויקט</span>
@@ -989,78 +992,6 @@ export const SettingsPage = () => {
                     onChange={(event) =>
                       updateDraft("dueDate", event.target.value)
                     }
-                  />
-                </label>
-
-                <label className="settings-page__field">
-                  <span>קורס</span>
-                  <input
-                    type="text"
-                    value={draft?.courseName ?? ""}
-                    onChange={(event) =>
-                      updateDraft("courseName", event.target.value)
-                    }
-                    placeholder="שם הקורס"
-                  />
-                </label>
-
-                <label className="settings-page__field">
-                  <span>מוסד / אוניברסיטה</span>
-                  <input
-                    type="text"
-                    value={draft?.institutionName ?? ""}
-                    onChange={(event) =>
-                      updateDraft("institutionName", event.target.value)
-                    }
-                    placeholder="שם המוסד"
-                  />
-                </label>
-
-                {/* <label className="settings-page__field">
-                  <span>מרצה / מתרגל</span>
-                  <input
-                    type="text"
-                    value={draft?.lecturerName ?? ""}
-                    onChange={(event) =>
-                      updateDraft("lecturerName", event.target.value)
-                    }
-                    placeholder="שם איש הסגל"
-                  />
-                </label> */}
-
-                <label className="settings-page__field">
-                  <span>מספר קורס</span>
-                  <input
-                    type="text"
-                    value={draft?.courseCode ?? ""}
-                    onChange={(event) =>
-                      updateDraft("courseCode", event.target.value)
-                    }
-                    placeholder="לדוגמה: CS101"
-                  />
-                </label>
-
-                <label className="settings-page__field">
-                  <span>סמסטר / שנת לימודים</span>
-                  <input
-                    type="text"
-                    value={draft?.semesterLabel ?? ""}
-                    onChange={(event) =>
-                      updateDraft("semesterLabel", event.target.value)
-                    }
-                    placeholder="סמסטר א׳ תשפ״ו"
-                  />
-                </label>
-
-                <label className="settings-page__field">
-                  <span>קבוצת לימוד / מספר קבוצה</span>
-                  <input
-                    type="text"
-                    value={draft?.groupNumber ?? ""}
-                    onChange={(event) =>
-                      updateDraft("groupNumber", event.target.value)
-                    }
-                    placeholder="לדוגמה: קבוצה 4"
                   />
                 </label>
               </div>
@@ -1125,18 +1056,6 @@ export const SettingsPage = () => {
                             })
                           }
                         />
-                      </label>
-                      <label className="settings-page__checkbox">
-                        <input
-                          type="checkbox"
-                          checked={milestone.completed}
-                          onChange={(event) =>
-                            updateMilestone(milestone.id, {
-                              completed: event.target.checked,
-                            })
-                          }
-                        />
-                        <span>סומן כהושלם</span>
                       </label>
                       <button
                         className="settings-page__stack-remove"
@@ -1580,8 +1499,8 @@ export const SettingsPage = () => {
             </div>
 
             <p className="settings-page__dialog-copy">
-              המשתמש/ת יוסר/תוסר מהפרויקט ולא יוכל/תוכל לגשת אליו יותר.
-              המשימות שלהם ישויכו מחדש לשאר חברי הצוות.
+              המשתמש/ת יוסר/תוסר מהפרויקט ולא יוכל/תוכל לגשת אליו יותר. המשימות
+              שלהם ישויכו מחדש לשאר חברי הצוות.
             </p>
 
             <div className="settings-page__dialog-actions">

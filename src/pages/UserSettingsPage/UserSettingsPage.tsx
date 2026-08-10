@@ -162,9 +162,7 @@ const normalizeDocumentSettings = (
       skills: normalizeText(collaborationProfileData?.skills),
       learningGoals: normalizeText(collaborationProfileData?.learningGoals),
       availability: normalizeText(collaborationProfileData?.availability),
-      taskPreferences: normalizeText(
-        collaborationProfileData?.taskPreferences,
-      ),
+      taskPreferences: normalizeText(collaborationProfileData?.taskPreferences),
     },
     notifications: {
       deadlineReminders: normalizeBoolean(
@@ -269,7 +267,6 @@ export const UserSettingsPage = () => {
   const [savingProfile, setSavingProfile] = useState(false);
   const [savingAcademic, setSavingAcademic] = useState(false);
   const [savingCollaboration, setSavingCollaboration] = useState(false);
-  const [savingLinks, setSavingLinks] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -328,7 +325,8 @@ export const UserSettingsPage = () => {
     draft.academicProfile.studyYear !== savedDraft.academicProfile.studyYear;
 
   const collaborationDirty =
-    draft.collaborationProfile.skills !== savedDraft.collaborationProfile.skills ||
+    draft.collaborationProfile.skills !==
+      savedDraft.collaborationProfile.skills ||
     draft.collaborationProfile.learningGoals !==
       savedDraft.collaborationProfile.learningGoals ||
     draft.collaborationProfile.availability !==
@@ -376,19 +374,6 @@ export const UserSettingsPage = () => {
       ...current,
       academicProfile: {
         ...current.academicProfile,
-        [field]: value,
-      },
-    }));
-  };
-
-  const handleLinkChange = (
-    field: keyof UserSettingsDraft["links"],
-    value: string,
-  ) => {
-    setDraft((current) => ({
-      ...current,
-      links: {
-        ...current.links,
         [field]: value,
       },
     }));
@@ -547,10 +532,7 @@ export const UserSettingsPage = () => {
         taskPreferences: draft.collaborationProfile.taskPreferences.trim(),
       };
 
-      await updateUserCollaborationProfile(
-        user.uid,
-        nextCollaborationProfile,
-      );
+      await updateUserCollaborationProfile(user.uid, nextCollaborationProfile);
 
       setSavedDraft((current) => ({
         ...current,
@@ -564,38 +546,6 @@ export const UserSettingsPage = () => {
       console.error("Failed to persist collaboration profile", error);
     } finally {
       setSavingCollaboration(false);
-    }
-  };
-
-  const handleLinksSave = async () => {
-    if (!user) {
-      return;
-    }
-
-    setSavingLinks(true);
-
-    try {
-      const nextLinks: UserLinks = {
-        googleDrive: draft.links.googleDrive.trim(),
-        github: draft.links.github.trim(),
-        linkedin: draft.links.linkedin.trim(),
-        portfolio: draft.links.portfolio.trim(),
-      };
-
-      await updateUserLinks(user.uid, nextLinks);
-
-      setSavedDraft((current) => ({
-        ...current,
-        links: nextLinks,
-      }));
-      setDraft((current) => ({
-        ...current,
-        links: nextLinks,
-      }));
-    } catch (error) {
-      console.error("Failed to persist links", error);
-    } finally {
-      setSavingLinks(false);
     }
   };
 
@@ -629,17 +579,6 @@ export const UserSettingsPage = () => {
     >
       <Save size={15} strokeWidth={2} />
       {savingCollaboration ? "שומר..." : "שמירת התאמה"}
-    </Button>
-  ) : null;
-
-  const linksActions = linksDirty ? (
-    <Button
-      type="button"
-      onClick={() => void handleLinksSave()}
-      disabled={savingLinks}
-    >
-      <Save size={15} strokeWidth={2} />
-      {savingLinks ? "שומר..." : "שמירת קישורים"}
     </Button>
   ) : null;
 
@@ -678,7 +617,7 @@ export const UserSettingsPage = () => {
                         <img
                           className="user-settings-page__avatar-image"
                           src={profileAvatarSource}
-                          alt={draft.profile.fullName ||"תמונת פרופיל"}
+                          alt={draft.profile.fullName || "תמונת פרופיל"}
                         />
                       ) : (
                         <span className="user-settings-page__avatar-initials">
@@ -705,14 +644,6 @@ export const UserSettingsPage = () => {
                       onChange={handleAvatarFileChange}
                     />
                   </div>
-
-                  <div className="user-settings-page__avatar-copy">
-                    <strong>{draft.profile.fullName || "שם המשתמש"}</strong>
-                    <span>
-                      {/* Shiuold show here email */}
-                      {/* {draft.profile.email || "כתובת אימייל"} */}
-                    </span>
-                  </div>
                 </div>
 
                 <div className="user-settings-page__profile-fields">
@@ -735,19 +666,6 @@ export const UserSettingsPage = () => {
                       placeholder="לדוגמה: נועה כהן"
                     />
                   </Field>
-
-                  {/* <Field
-                    label="תמונה נבחרת"
-                    icon={<ImageUp size={16} strokeWidth={2} />}
-                    helperText="לחצי על כפתור ההחלפה מעל התמונה כדי לבחור קובץ חדש."
-                  >
-                    <input
-                      type="text"
-                      value={avatarFile?.name ?? draft.profile.avatarUrl}
-                      readOnly
-                      placeholder="לא נבחר קובץ"
-                    />
-                  </Field> */}
                 </div>
               </div>
             </SectionCard>
@@ -838,23 +756,6 @@ export const UserSettingsPage = () => {
                       )
                     }
                     placeholder="אילו תחומים תרצה/י לחזק בפרויקט?"
-                    rows={3}
-                  />
-                </Field>
-
-                <Field
-                  label="זמינות"
-                  helperText="לדוגמה: פנוי/ה בעיקר בסופשים, מעט זמן השבוע, זמינות גבוהה."
-                >
-                  <textarea
-                    value={draft.collaborationProfile.availability}
-                    onChange={(event) =>
-                      handleCollaborationChange(
-                        "availability",
-                        event.target.value,
-                      )
-                    }
-                    placeholder="כמה זמן יש לך ומה הזמינות שלך?"
                     rows={3}
                   />
                 </Field>
@@ -953,70 +854,6 @@ export const UserSettingsPage = () => {
                     <span>עדכונים כשיש שינוי במשימות או בפעילות קבוצתית.</span>
                   </span>
                 </label>
-              </div>
-            </SectionCard>
-
-            <SectionCard title="קישורים" actions={linksActions} wide>
-              <div className="user-settings-page__links-grid">
-                <Field
-                  label="Google Drive"
-                  icon={<Link2 size={16} strokeWidth={2} />}
-                  helperText="מסמכים, שיתופים וקבצים משותפים."
-                >
-                  <input
-                    type="url"
-                    value={draft.links.googleDrive}
-                    onChange={(event) =>
-                      handleLinkChange("googleDrive", event.target.value)
-                    }
-                    placeholder="https://drive.google.com/..."
-                  />
-                </Field>
-
-                <Field
-                  label="GitHub"
-                  icon={<Github size={16} strokeWidth={2} />}
-                  helperText="מאגרי קוד, תרגילים ופרויקטים."
-                >
-                  <input
-                    type="url"
-                    value={draft.links.github}
-                    onChange={(event) =>
-                      handleLinkChange("github", event.target.value)
-                    }
-                    placeholder="https://github.com/username"
-                  />
-                </Field>
-
-                <Field
-                  label="LinkedIn"
-                  icon={<Linkedin size={16} strokeWidth={2} />}
-                  helperText="פרופיל מקצועי, קשרים והמלצות."
-                >
-                  <input
-                    type="url"
-                    value={draft.links.linkedin}
-                    onChange={(event) =>
-                      handleLinkChange("linkedin", event.target.value)
-                    }
-                    placeholder="https://linkedin.com/in/username"
-                  />
-                </Field>
-
-                <Field
-                  label="Scholar / פורטפוליו / אתר"
-                  icon={<Globe2 size={16} strokeWidth={2} />}
-                  helperText="כל קישור נוסף שמייצג אותך אקדמית או מקצועית."
-                >
-                  <input
-                    type="url"
-                    value={draft.links.portfolio}
-                    onChange={(event) =>
-                      handleLinkChange("portfolio", event.target.value)
-                    }
-                    placeholder="https://your-site.com"
-                  />
-                </Field>
               </div>
             </SectionCard>
           </div>
