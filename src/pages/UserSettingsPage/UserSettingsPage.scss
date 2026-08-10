@@ -92,10 +92,15 @@
 }
 
 .user-settings-page__avatar-shell {
+  --profile-avatar-size: clamp(8.5rem, 14vw, 11rem);
+
   position: relative;
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
+  width: var(--profile-avatar-size);
+  height: var(--profile-avatar-size);
+  flex: 0 0 var(--profile-avatar-size);
   transition:
     filter var(--motion-base) var(--motion-ease),
     box-shadow var(--motion-base) var(--motion-ease);
@@ -105,8 +110,9 @@
 }
 
 .user-settings-page__avatar {
-  width: 100%;
-  aspect-ratio: 1 / 1;
+  width: var(--profile-avatar-size);
+  height: var(--profile-avatar-size);
+  aspect-ratio: 1;
   border-radius: var(--radius-full);
   overflow: hidden;
   display: flex;
@@ -122,9 +128,12 @@
 }
 
 .user-settings-page__avatar-image {
+  display: block;
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: center;
+  flex: 0 0 100%;
 }
 
 .user-settings-page__avatar-initials {
@@ -137,6 +146,7 @@
 .user-settings-page__avatar-upload {
   position: absolute;
   inset-block-end: 0;
+  inset-inline-end: 0;
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
@@ -448,5 +458,9 @@
 
   .user-settings-page__card {
     padding: var(--space-5);
+  }
+
+  .user-settings-page__avatar-shell {
+    --profile-avatar-size: 8.5rem;
   }
 }

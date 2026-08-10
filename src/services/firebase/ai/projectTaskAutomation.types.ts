@@ -9,7 +9,26 @@ export interface ProjectTaskAutomationInput {
   projectDescription?: string | null;
   projectInstructions?: string | null;
   projectMemberIds?: string[];
+  memberProfiles?: ProjectTaskAutomationMemberProfile[];
   finalSubmissionAt?: Date | null;
+}
+
+export interface ProjectTaskAutomationMemberProfile {
+  id: string;
+  displayName?: string | null;
+  email?: string | null;
+  role?: string | null;
+  academicProfile?: {
+    university?: string;
+    department?: string;
+    studyYear?: string;
+  };
+  collaborationProfile?: {
+    skills?: string;
+    learningGoals?: string;
+    availability?: string;
+    taskPreferences?: string;
+  };
 }
 
 export interface ProjectTaskDifficultyEstimate {

@@ -51,6 +51,15 @@ const clampDifficulty = (value: number): number =>
 const getTaskCount = (difficulty: number): number =>
   clampDifficulty(difficulty) * 3;
 
+const TASK_DIFFICULTY_WORKLOAD_WEIGHT: Record<
+  ProjectTaskAutomationTask["difficulty"],
+  number
+> = {
+  easy: 1,
+  medium: 2,
+  hard: 3,
+};
+
 const formatDateForPrompt = (value: Date | null | undefined): string => {
   if (!value) {
     return "";
@@ -129,9 +138,44 @@ const balanceAssignees = (
     return tasks;
   }
 
-  return tasks.map((task, index) => ({
+  const workloadByMember = new Map(
+    projectMemberIds.map((memberId) => [memberId, 0]),
+  );
+  const allowedMemberIds = new Set(projectMemberIds);
+  const assignments = new Map<ProjectTaskAutomationTask, string>();
+
+  [...tasks]
+    .sort(
+      (left, right) =>
+        TASK_DIFFICULTY_WORKLOAD_WEIGHT[right.difficulty] -
+        TASK_DIFFICULTY_WORKLOAD_WEIGHT[left.difficulty],
+    )
+    .forEach((task) => {
+      const taskWeight = TASK_DIFFICULTY_WORKLOAD_WEIGHT[task.difficulty];
+      const aiAssigneeId = task.assigneeIds.find((assigneeId) =>
+        allowedMemberIds.has(assigneeId),
+      );
+      const lowestWorkload = Math.min(...workloadByMember.values());
+      const fallbackAssigneeId =
+        projectMemberIds.find(
+          (memberId) => workloadByMember.get(memberId) === lowestWorkload,
+        ) ?? projectMemberIds[0];
+      const selectedAssigneeId =
+        aiAssigneeId &&
+        (workloadByMember.get(aiAssigneeId) ?? 0) <= lowestWorkload
+          ? aiAssigneeId
+          : fallbackAssigneeId;
+
+      assignments.set(task, selectedAssigneeId);
+      workloadByMember.set(
+        selectedAssigneeId,
+        (workloadByMember.get(selectedAssigneeId) ?? 0) + taskWeight,
+      );
+    });
+
+  return tasks.map((task) => ({
     ...task,
-    assigneeIds: [projectMemberIds[index % projectMemberIds.length]],
+    assigneeIds: [assignments.get(task) ?? projectMemberIds[0]],
   }));
 };
 
@@ -246,6 +290,24 @@ const validateProjectTaskList = (
   return value.map((item) => validateProjectTask(item, allowedAssigneeIds));
 };
 
+const buildMemberProfilesBlock = (input: ProjectTaskAutomationInput): string => {
+  if (!input.memberProfiles || input.memberProfiles.length === 0) {
+    return "[]";
+  }
+
+  return JSON.stringify(
+    input.memberProfiles.map((member) => ({
+      id: member.id,
+      name: member.displayName ?? member.email ?? member.id,
+      role: member.role ?? "member",
+      academicProfile: member.academicProfile ?? null,
+      collaborationProfile: member.collaborationProfile ?? null,
+    })),
+    null,
+    2,
+  );
+};
+
 const buildDifficultyPrompt = (input: ProjectTaskAutomationInput): string => {
   const contextLines = [
     input.projectDescription
@@ -297,7 +359,19 @@ const buildTaskPrompt = (
     input.projectMemberIds && input.projectMemberIds.length > 0
       ? JSON.stringify(input.projectMemberIds)
       : "[]";
+  const memberProfilesBlock = buildMemberProfilesBlock(input);
   const finalSubmissionAt = formatDateForPrompt(input.finalSubmissionAt);
+  const assignmentGuidance = `
+Member profiles for assignment decisions:
+${memberProfilesBlock}
+
+Assignment and fairness rules:
+- Use member skills, learning goals, availability and task preferences when choosing assignees.
+- Difficulty workload ratio is easy:medium:hard = 1:2:3.
+- Balance by weighted workload, not by raw task count.
+- Try to spread hard, medium and easy tasks fairly across members.
+- Avoid giving one member mostly hard tasks while another receives mostly easy tasks, unless the member profile clearly justifies it.
+- Every task must still have exactly one assignee from the allowed member IDs.`;
 
   return `אתה עוזר AI ליצירת משימות לפרויקטים אקדמיים.
 החזר אך ורק JSON תקני וללא markdown וללא טקסט נוסף.
@@ -324,6 +398,7 @@ const buildTaskPrompt = (
 
 שם הפרויקט: ${input.projectName}
 ${contextLines ? `\n${contextLines}` : ""}
+${assignmentGuidance}
 ${finalSubmissionAt ? `\nתאריך הגשה סופי: ${finalSubmissionAt}` : ""}
 
 הנחיות:

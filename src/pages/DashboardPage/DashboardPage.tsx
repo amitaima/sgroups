@@ -48,6 +48,7 @@ import type {
   Project,
   ProjectLink,
   ProjectMemberRole,
+  TaskDifficulty,
   TaskPriority,
   TaskStatus,
 } from "../../types/common";
@@ -71,6 +72,7 @@ type DashboardTaskItem = {
   completed: boolean;
   dueDateLabel: string;
   assigneeIds: string[];
+  difficulty: TaskDifficulty;
 };
 
 type DashboardMemberRow = {
@@ -105,6 +107,12 @@ const ROLE_LABELS: Record<ProjectMemberRole, string> = {
   owner: "בעלים",
   faculty: "סגל",
   member: "חבר צוות",
+};
+
+const TASK_DIFFICULTY_WORKLOAD_WEIGHT: Record<TaskDifficulty, number> = {
+  easy: 1,
+  medium: 2,
+  hard: 3,
 };
 
 type ProjectDeadline =
@@ -195,6 +203,7 @@ const buildTaskItems = (tasks: ProjectTaskRecord[]): DashboardTaskItem[] =>
       completed: task.status === "completed" || task.completed,
       dueDateLabel: getTaskDueDateLabel(task),
       assigneeIds: task.assigneeIds,
+      difficulty: task.difficulty,
     }));
 
 const buildEmptyTaskDraft = (): TaskDialogDraft => ({
@@ -297,7 +306,8 @@ const buildDistributionData = (
         return;
       }
 
-      counts.set(memberId, (counts.get(memberId) ?? 0) + 1);
+      const workloadWeight = TASK_DIFFICULTY_WORKLOAD_WEIGHT[task.difficulty];
+      counts.set(memberId, (counts.get(memberId) ?? 0) + workloadWeight);
     });
   });
 

@@ -40,6 +40,7 @@ import type {
   TaskStatus,
   ThemeMode,
   UserAcademicProfile,
+  UserCollaborationProfile,
   UserLinks,
   UserNotificationPreferences,
 } from "../../types/common";
@@ -76,6 +77,7 @@ export interface UserProfile {
   theme: ThemeMode;
   notifications: UserNotificationPreferences;
   academicProfile?: UserAcademicProfile;
+  collaborationProfile?: UserCollaborationProfile;
   links?: UserLinks;
   provider: string;
   createdAt: unknown;
@@ -88,6 +90,8 @@ export interface MemberDirectoryUser {
   email: string | null;
   displayName: string | null;
   photoURL: string | null;
+  academicProfile?: UserAcademicProfile;
+  collaborationProfile?: UserCollaborationProfile;
 }
 
 const USER_THEMES: ThemeMode[] = ["light", "dark", "system"];
@@ -144,6 +148,33 @@ const getAcademicProfile = (
     department,
     studyYear,
   };
+};
+
+const getCollaborationProfile = (
+  value: unknown,
+): UserCollaborationProfile | undefined => {
+  if (!value || typeof value !== "object") {
+    return undefined;
+  }
+
+  const data = value as Record<string, unknown>;
+  const profile = {
+    skills: normalizeUserText(data.skills),
+    learningGoals: normalizeUserText(data.learningGoals),
+    availability: normalizeUserText(data.availability),
+    taskPreferences: normalizeUserText(data.taskPreferences),
+  };
+
+  if (
+    !profile.skills &&
+    !profile.learningGoals &&
+    !profile.availability &&
+    !profile.taskPreferences
+  ) {
+    return undefined;
+  }
+
+  return profile;
 };
 
 const getUserLinks = (value: unknown): UserLinks | undefined => {
@@ -338,6 +369,9 @@ export const upsertUserProfile = async (user: User): Promise<void> => {
   const existingTheme = getUserTheme(data?.theme);
   const existingNotifications = getNotificationPreferences(data?.notifications);
   const existingAcademicProfile = getAcademicProfile(data?.academicProfile);
+  const existingCollaborationProfile = getCollaborationProfile(
+    data?.collaborationProfile,
+  );
   const existingLinks = getUserLinks(data?.links);
   const existingLastLoginAt = data?.lastLoginAt ?? null;
   const provider = user.providerData[0]?.providerId || "password";
@@ -357,6 +391,10 @@ export const upsertUserProfile = async (user: User): Promise<void> => {
 
   if (existingAcademicProfile !== undefined) {
     payload.academicProfile = existingAcademicProfile;
+  }
+
+  if (existingCollaborationProfile !== undefined) {
+    payload.collaborationProfile = existingCollaborationProfile;
   }
 
   if (existingLinks !== undefined) {
@@ -385,6 +423,13 @@ export const updateUserAcademicProfile = async (
   academicProfile: UserAcademicProfile,
 ): Promise<void> => {
   await setDoc(getUserDocRef(uid), { academicProfile }, { merge: true });
+};
+
+export const updateUserCollaborationProfile = async (
+  uid: string,
+  collaborationProfile: UserCollaborationProfile,
+): Promise<void> => {
+  await setDoc(getUserDocRef(uid), { collaborationProfile }, { merge: true });
 };
 
 export const updateUserLinks = async (
@@ -936,9 +981,9 @@ const sortProjectTasks = (tasks: ProjectTaskRecord[]) =>
   });
 
 const taskDifficultyScore: Record<TaskDifficulty, number> = {
-  easy: 10,
-  medium: 20,
-  hard: 35,
+  easy: 1,
+  medium: 2,
+  hard: 3,
 };
 
 const calculateTaskScore = (task: ProjectTaskRecord): number => {
@@ -1505,6 +1550,8 @@ export const getUsersByIds = async (
         displayName:
           typeof data.displayName === "string" ? data.displayName : null,
         photoURL: typeof data.photoURL === "string" ? data.photoURL : null,
+        academicProfile: getAcademicProfile(data.academicProfile),
+        collaborationProfile: getCollaborationProfile(data.collaborationProfile),
       };
     }),
   );

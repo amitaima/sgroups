@@ -405,11 +405,20 @@ export const ProjectsHomePage = () => {
 
       if (formState.autoGenerateTasks) {
         try {
+          const projectMembers = await getUsersByIds(projectMemberIds);
           const generatedTasks = await generateProjectTaskAutomation({
             projectName,
             projectDescription: formState.description,
             projectInstructions: formState.projectInstructions,
             projectMemberIds,
+            memberProfiles: projectMembers.map((member) => ({
+              id: member.uid,
+              displayName: member.displayName,
+              email: member.email,
+              role: member.uid === user.uid ? "owner" : "member",
+              academicProfile: member.academicProfile,
+              collaborationProfile: member.collaborationProfile,
+            })),
             finalSubmissionAt: formState.finalSubmissionAt
               ? new Date(formState.finalSubmissionAt)
               : null,

@@ -14,9 +14,9 @@ import {
 export type TaskDifficulty = "easy" | "medium" | "hard";
 
 export const difficultyScore = {
-  easy: 10,
-  medium: 20,
-  hard: 35,
+  easy: 1,
+  medium: 2,
+  hard: 3,
 } as const;
 
 export type DifficultyScoreMap = typeof difficultyScore;

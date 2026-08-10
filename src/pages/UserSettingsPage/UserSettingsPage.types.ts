@@ -8,6 +8,12 @@ export interface UserSettingsDraft {
     department: string;
     studyYear: string;
   };
+  collaborationProfile: {
+    skills: string;
+    learningGoals: string;
+    availability: string;
+    taskPreferences: string;
+  };
   notifications: {
     deadlineReminders: boolean;
     taskActivityNotifications: boolean;

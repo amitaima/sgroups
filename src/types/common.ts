@@ -21,6 +21,13 @@ export interface UserAcademicProfile {
   studyYear: string;
 }
 
+export interface UserCollaborationProfile {
+  skills: string;
+  learningGoals: string;
+  availability: string;
+  taskPreferences: string;
+}
+
 export interface UserLinks {
   googleDrive: string;
   github: string;

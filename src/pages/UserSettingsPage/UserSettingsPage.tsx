@@ -11,6 +11,7 @@ import { SectionTitle } from "@components/ui/SectionTitle/SectionTitle";
 import {
   db,
   updateUserAcademicProfile,
+  updateUserCollaborationProfile,
   updateUserDisplayProfile,
   updateUserLinks,
   updateUserNotificationPreferences,
@@ -19,6 +20,7 @@ import {
 import type {
   ThemeMode,
   UserAcademicProfile,
+  UserCollaborationProfile,
   UserLinks,
   UserNotificationPreferences,
 } from "../../types/common";
@@ -92,6 +94,12 @@ const createEmptySettings = (
     department: "",
     studyYear: "",
   },
+  collaborationProfile: {
+    skills: "",
+    learningGoals: "",
+    availability: "",
+    taskPreferences: "",
+  },
   notifications: {
     deadlineReminders: false,
     taskActivityNotifications: false,
@@ -132,6 +140,10 @@ const normalizeDocumentSettings = (
     data?.links && typeof data.links === "object"
       ? (data.links as Record<string, unknown>)
       : undefined;
+  const collaborationProfileData =
+    data?.collaborationProfile && typeof data.collaborationProfile === "object"
+      ? (data.collaborationProfile as Record<string, unknown>)
+      : undefined;
 
   return {
     profile: {
@@ -145,6 +157,14 @@ const normalizeDocumentSettings = (
       university: normalizeText(academicProfileData?.university),
       department: normalizeText(academicProfileData?.department),
       studyYear: normalizeText(academicProfileData?.studyYear),
+    },
+    collaborationProfile: {
+      skills: normalizeText(collaborationProfileData?.skills),
+      learningGoals: normalizeText(collaborationProfileData?.learningGoals),
+      availability: normalizeText(collaborationProfileData?.availability),
+      taskPreferences: normalizeText(
+        collaborationProfileData?.taskPreferences,
+      ),
     },
     notifications: {
       deadlineReminders: normalizeBoolean(
@@ -248,6 +268,7 @@ export const UserSettingsPage = () => {
   const [loading, setLoading] = useState(true);
   const [savingProfile, setSavingProfile] = useState(false);
   const [savingAcademic, setSavingAcademic] = useState(false);
+  const [savingCollaboration, setSavingCollaboration] = useState(false);
   const [savingLinks, setSavingLinks] = useState(false);
 
   useEffect(() => {
@@ -306,6 +327,15 @@ export const UserSettingsPage = () => {
       savedDraft.academicProfile.department ||
     draft.academicProfile.studyYear !== savedDraft.academicProfile.studyYear;
 
+  const collaborationDirty =
+    draft.collaborationProfile.skills !== savedDraft.collaborationProfile.skills ||
+    draft.collaborationProfile.learningGoals !==
+      savedDraft.collaborationProfile.learningGoals ||
+    draft.collaborationProfile.availability !==
+      savedDraft.collaborationProfile.availability ||
+    draft.collaborationProfile.taskPreferences !==
+      savedDraft.collaborationProfile.taskPreferences;
+
   const linksDirty =
     draft.links.googleDrive !== savedDraft.links.googleDrive ||
     draft.links.github !== savedDraft.links.github ||
@@ -359,6 +389,19 @@ export const UserSettingsPage = () => {
       ...current,
       links: {
         ...current.links,
+        [field]: value,
+      },
+    }));
+  };
+
+  const handleCollaborationChange = (
+    field: keyof UserSettingsDraft["collaborationProfile"],
+    value: string,
+  ) => {
+    setDraft((current) => ({
+      ...current,
+      collaborationProfile: {
+        ...current.collaborationProfile,
         [field]: value,
       },
     }));
@@ -489,6 +532,41 @@ export const UserSettingsPage = () => {
     }
   };
 
+  const handleCollaborationSave = async () => {
+    if (!user) {
+      return;
+    }
+
+    setSavingCollaboration(true);
+
+    try {
+      const nextCollaborationProfile: UserCollaborationProfile = {
+        skills: draft.collaborationProfile.skills.trim(),
+        learningGoals: draft.collaborationProfile.learningGoals.trim(),
+        availability: draft.collaborationProfile.availability.trim(),
+        taskPreferences: draft.collaborationProfile.taskPreferences.trim(),
+      };
+
+      await updateUserCollaborationProfile(
+        user.uid,
+        nextCollaborationProfile,
+      );
+
+      setSavedDraft((current) => ({
+        ...current,
+        collaborationProfile: nextCollaborationProfile,
+      }));
+      setDraft((current) => ({
+        ...current,
+        collaborationProfile: nextCollaborationProfile,
+      }));
+    } catch (error) {
+      console.error("Failed to persist collaboration profile", error);
+    } finally {
+      setSavingCollaboration(false);
+    }
+  };
+
   const handleLinksSave = async () => {
     if (!user) {
       return;
@@ -540,6 +618,17 @@ export const UserSettingsPage = () => {
     >
       <Save size={15} strokeWidth={2} />
       {savingAcademic ? "שומר..." : "שמירת לימודים"}
+    </Button>
+  ) : null;
+
+  const collaborationActions = collaborationDirty ? (
+    <Button
+      type="button"
+      onClick={() => void handleCollaborationSave()}
+      disabled={savingCollaboration}
+    >
+      <Save size={15} strokeWidth={2} />
+      {savingCollaboration ? "שומר..." : "שמירת התאמה"}
     </Button>
   ) : null;
 
@@ -711,6 +800,80 @@ export const UserSettingsPage = () => {
                       </option>
                     ))}
                   </select>
+                </Field>
+              </div>
+            </SectionCard>
+
+            <SectionCard
+              title="פרטים נוספים"
+              subtitle="שדות רשות שיעזרו למערכת לחלק משימות לפי יכולות, רצונות וזמינות."
+              actions={collaborationActions}
+              wide
+            >
+              <div className="user-settings-page__field-grid">
+                <Field
+                  label="חוזקות וכישורים"
+                  helperText="לדוגמה: React, כתיבה, עיצוב, מחקר, בדיקות, הצגה."
+                >
+                  <textarea
+                    value={draft.collaborationProfile.skills}
+                    onChange={(event) =>
+                      handleCollaborationChange("skills", event.target.value)
+                    }
+                    placeholder="במה את/ה חזק/ה?"
+                    rows={3}
+                  />
+                </Field>
+
+                <Field
+                  label="מה תרצה/י ללמוד או לתרגל"
+                  helperText="ה-AI ינסה לשלב גם משימות שמתאימות ללמידה."
+                >
+                  <textarea
+                    value={draft.collaborationProfile.learningGoals}
+                    onChange={(event) =>
+                      handleCollaborationChange(
+                        "learningGoals",
+                        event.target.value,
+                      )
+                    }
+                    placeholder="אילו תחומים תרצה/י לחזק בפרויקט?"
+                    rows={3}
+                  />
+                </Field>
+
+                <Field
+                  label="זמינות"
+                  helperText="לדוגמה: פנוי/ה בעיקר בסופשים, מעט זמן השבוע, זמינות גבוהה."
+                >
+                  <textarea
+                    value={draft.collaborationProfile.availability}
+                    onChange={(event) =>
+                      handleCollaborationChange(
+                        "availability",
+                        event.target.value,
+                      )
+                    }
+                    placeholder="כמה זמן יש לך ומה הזמינות שלך?"
+                    rows={3}
+                  />
+                </Field>
+
+                <Field
+                  label="העדפות והערות לחלוקת משימות"
+                  helperText="אפשר לציין מה מעדיפים לעשות או ממה כדאי להימנע."
+                >
+                  <textarea
+                    value={draft.collaborationProfile.taskPreferences}
+                    onChange={(event) =>
+                      handleCollaborationChange(
+                        "taskPreferences",
+                        event.target.value,
+                      )
+                    }
+                    placeholder="העדפות אישיות לחלוקת העבודה"
+                    rows={3}
+                  />
                 </Field>
               </div>
             </SectionCard>

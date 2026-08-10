@@ -7,6 +7,8 @@
     "start": "npm run dev",
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "functions:build": "npm --prefix functions run build",
+    "functions:deploy": "npm --prefix functions run deploy",
     "lint": "eslint .",
     "preview": "vite preview"
   },
